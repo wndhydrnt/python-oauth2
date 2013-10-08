@@ -16,13 +16,6 @@ Also some features like `scopes <http://tools.ietf.org/html/rfc6749#section-3.3>
 `Refreh Token <http://tools.ietf.org/html/rfc6749#section-1.5>`_ have not
 been implemented yet.
 
-Installation
-************
-
-oauth2-provider is available on `PyPI <http://pypi.python.org/pypi/oauth2-provider/>`_
-
-    pip install oauth2-provider
-
 Usage
 *****
 
