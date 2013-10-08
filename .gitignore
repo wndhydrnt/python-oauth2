@@ -1,0 +1,9 @@
+# IDE
+.project
+.pydevproject
+
+# Python
+*.pyc
+*.egg-info/
+dist/
+
