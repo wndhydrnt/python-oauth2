@@ -8,7 +8,7 @@ setup(name="oauth2-provider",
       long_description=open("README.rst").read(),
       author="Markus Meyer",
       author_email="hydrantanderwand@gmail.com",
-      url="http://memband.com/",
+      url="https://github.com/wndhydrnt/oauth2-provider",
       packages = ["oauth2", "oauth2.test"],
       classifiers=[
         'Development Status :: 3 - Alpha',
