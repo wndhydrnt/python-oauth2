@@ -1,13 +1,13 @@
-oauth2-provider
+python-oauth2
 ###############
 
-oauth2-provider is a framework that aims at making it easy to provide authentication
+python-oauth2 is a framework that aims at making it easy to provide authentication
 via `OAuth 2.0 <http://tools.ietf.org/html/rfc6749>`_ within an application stack. 
 
 Status
 ******
 
-oauth2-provider is currently not ready for use in production environments.
+python-oauth2 is currently not ready for use in production environments.
 While the basic implementations work already pretty well, some types of
 authorization Grants
 `defined in the RFC <http://tools.ietf.org/html/rfc6749#section-1.3>`_ are
@@ -22,7 +22,7 @@ Usage
 Storage adapters
 ================
 
-oauth2-provider handles the request/response flow needed to create a OAuth 2.0 token.
+python-oauth2 handles the request/response flow needed to create a OAuth 2.0 token.
 It does not define how a token is stored so you can choose the
 persistence strategy that works best for you. It is possible to write a token to
 mysql or mongodb for persistence, save it in memcache or redis for fast access or
@@ -35,6 +35,6 @@ Also take a look at the examples in the *examples* directory of the project.
 Site adapter
 ============
 
-Like for storage, oauth2-provider does not define how you identify a user or show a
+Like for storage, python-oauth2 does not define how you identify a user or show a
 confirmation dialogue.
 Instead your application should use the API defined by ``oauth2.web.SiteAdapter``.

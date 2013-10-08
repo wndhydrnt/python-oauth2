@@ -29,10 +29,10 @@ class OAuthRequestHandler(WSGIRequestHandler):
     """
     Request handler that enables formatting of the log messages on the console.
     
-    This handler is used by the oauth2-provider application.
+    This handler is used by the python-oauth2 application.
     """
     def address_string(self):
-        return "oauth2-provider"
+        return "python-oauth2"
 
 class LocalAccessTokenStore(AccessTokenStore):
     """
@@ -132,7 +132,7 @@ class TestSiteAdapter(SiteAdapter):
 class ClientApplication(object):
     """
     Very basic application that simulates calls to the API of the
-    oauth2-provider app.
+    python-oauth2 app.
     """
     callback_url   = "http://localhost:8081/callback"
     client_id = "abc"
