@@ -667,6 +667,44 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         self.assertEqual(responseMock.content, "")
         self.assertEqual(result_response, responseMock)
     
+    
+    def test_process_redirect_with_state(self):
+        """
+        ImplicitGrantHandler should include the value of the "state" query parameter from request in redirect
+        """
+        client_id    = "abc"
+        redirect_uri = "http://callback"
+        state        = "XHGFI"
+        token        = "tokencode"
+        user_id      = 1
+        
+        expected_redirect_uri = "%s#access_token=%s&token_type=bearer&state=%s" % (redirect_uri, token, state)
+        
+        response_mock = Mock(spec=Response)
+        
+        site_adapter_mock = Mock(spec=SiteAdapter)
+        site_adapter_mock.authenticate.return_value = user_id
+        
+        token_generator_mock = Mock(spec=["generate"])
+        token_generator_mock.generate.return_value = token
+        
+        handler = ImplicitGrantHandler(
+            access_token_store=Mock(AccessTokenStore), client_store=Mock(),
+            site_adapter=site_adapter_mock,
+            token_generator=token_generator_mock)
+        handler.client_id = client_id
+        handler.redirect_uri = redirect_uri
+        handler.state = state
+        
+        result_response = handler.process(request=Mock(spec=Request),
+                                          response=response_mock, environ={})
+        
+        response_mock.add_header.assert_called_with("Location",
+                                                   expected_redirect_uri)
+        self.assertEqual(response_mock.status_code, "302 Moved Temporarily")
+        self.assertEqual(response_mock.content, "")
+        self.assertEqual(result_response, response_mock)
+    
     def test_process_unconfirmed(self):
         confirmation_page_result = "confirm"
         environ                  = {"session": "data"}

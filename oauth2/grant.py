@@ -315,7 +315,7 @@ class ImplicitGrant(GrantHandlerFactory):
     Register an instance of this class with `oauth2.AuthorizationServer`
     like this::
     
-        auth_server = AuthorizationServer()
+        auth_server = AuthorizationController()
         
         auth_server.add_grant_type(ImplicitGrant())
     """
@@ -368,6 +368,9 @@ class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
     
     def _redirect_access_token(self, response, token):
         uri_with_fragment = "%s#access_token=%s&token_type=bearer" % (self.redirect_uri, token)
+        
+        if self.state is not None:
+            uri_with_fragment += "&state=" + self.state
         
         response.status_code = "302 Moved Temporarily"
         response.add_header("Location", uri_with_fragment)
