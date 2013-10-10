@@ -4,7 +4,8 @@ import unittest
 from oauth2.web import Request, Response, SiteAdapter
 from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler,\
     AuthRequestMixin, AuthorizationCodeTokenHandler, ImplicitGrant,\
-    AuthorizationCodeGrant, ResourceOwnerGrantHandler, ResourceOwnerGrant
+    AuthorizationCodeGrant, ResourceOwnerGrantHandler, ResourceOwnerGrant,\
+    Scope
 from oauth2.store import ClientStore, AuthTokenStore, AccessTokenStore
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError
 
@@ -18,7 +19,7 @@ class DatetimeMock(datetime.datetime):
         return cls(1990, 1, 1, 0, 0, 0)
 datetime.datetime = DatetimeMock
 
-class AuthrizationCodeGrantTestCase(unittest.TestCase):
+class AuthorizationCodeGrantTestCase(unittest.TestCase):
     def test_create_auth_handler(self):
         path = "/auth"
         
@@ -253,6 +254,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         response_mock.status_code = "302 Found"
         response_mock.body = ""
         self.assertEqual(result, response_mock)
+    
 
 class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
     def test_read_validate_params(self):
@@ -954,6 +956,93 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         client_store_mock.fetch_by_client_id.assert_called_with(client_id)
         self.assertEqual(error.error, "invalid_request")
         self.assertEqual(error.explanation, "Could not authenticate client")
+
+class ScopeTestCase(unittest.TestCase):
+    def test_parse_scope_scope_present(self):
+        """
+        Scope.parse_scope should return a list of requested scopes
+        """
+        expected_scopes = ["friends_read", "user_read"]
+        
+        request_mock = Mock(Request)
+        request_mock.get_param.return_value = "friends_read user_read"
+        
+        scope = Scope(available=["user_read", "friends_write", "friends_read"])
+        
+        scopes = scope.parse_scope(request=request_mock)
+        
+        request_mock.get_param.assert_called_with("scope")
+        
+        self.assertListEqual(expected_scopes, scopes)
+    
+    def test_parse_scope_default_on_no_scope(self):
+        """
+        Scope.parse_scope should return a list containing the default value if no scope present in request and default is set
+        """
+        expected_scopes = ["all"]
+        
+        request_mock = Mock(Request)
+        request_mock.get_param.return_value = None
+        
+        scope = Scope(available=["user_read", "friends_write", "friends_read"],
+                      default="all")
+        
+        scopes = scope.parse_scope(request=request_mock)
+        
+        request_mock.get_param.assert_called_with("scope")
+        
+        self.assertListEqual(expected_scopes, scopes)
+    
+    def test_parse_scope_default_on_no_matching_scopes(self):
+        """
+        Scope.parse_scope should return a list containing the default value if scope in request does not match and default is set
+        """
+        expected_scopes = ["all"]
+        
+        request_mock = Mock(Request)
+        request_mock.get_param.return_value = "user_write"
+        
+        scope = Scope(available=["user_read", "friends_write", "friends_read"],
+                      default="all")
+        
+        scopes = scope.parse_scope(request=request_mock)
+        
+        request_mock.get_param.assert_called_with("scope")
+        
+        self.assertListEqual(expected_scopes, scopes)
+    
+    def test_parse_scope_no_value_on_no_scope_no_default(self):
+        """
+        Scope.parse_scope should return an empty list if no scope is present in request and no default or scapes are defined
+        """
+        expected_scopes = []
+        
+        request_mock = Mock(Request)
+        request_mock.get_param.return_value = None
+        
+        scope = Scope()
+        
+        scopes = scope.parse_scope(request=request_mock)
+        
+        request_mock.get_param.assert_called_with("scope")
+        
+        self.assertEqual(expected_scopes, scopes)
+    
+    def test_parse_scope_exception_on_available_scopes_no_scope_given(self):
+        """
+        Scope.parse_scope should throw an OAuthError if no scope is present in request but scopes are defined
+        """
+        request_mock = Mock(Request)
+        request_mock.get_param.return_value = None
+        
+        scope = Scope(available=["user_read", "friends_write", "friends_read"])
+        
+        with self.assertRaises(OAuthInvalidError) as expected:
+            scope.parse_scope(request_mock)
+        
+        e = expected.exception
+        
+        self.assertEqual(e.error, "invalid_scope")
 
 if __name__ == "__main__":
     unittest.main()
