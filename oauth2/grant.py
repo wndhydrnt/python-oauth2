@@ -14,6 +14,7 @@ class Scope(object):
     :param default: Fallback value in case no scope is present in request
     """
     def __init__(self, available=None, default=None):
+        self.scopes    = []
         self.send_back = False
         
         if isinstance(available, list):
@@ -33,21 +34,22 @@ class Scope(object):
         
         if req_scope is None:
             if self.default is not None:
-                return [self.default]
+                self.scopes = [self.default]
+                self.send_back = True
+                return
             elif len(self.available_scopes) != 0:
                 raise OAuthInvalidError(error="invalid_scope",
                                         explanation="Missing scope parameter in request")
             else:
-                return []
+                return
         
         req_scopes = req_scope.split(" ")
         
-        scopes = [scope for scope in req_scopes if scope in self.available_scopes]
+        self.scopes = [scope for scope in req_scopes if scope in self.available_scopes]
         
-        if len(scopes) == 0 and self.default is not None:
-            return [self.default]
-        
-        return scopes
+        if len(self.scopes) == 0 and self.default is not None:
+            self.scopes = [self.default]
+            self.send_back = True
 
 class GrantHandler(object):
     """

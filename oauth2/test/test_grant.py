@@ -969,11 +969,12 @@ class ScopeTestCase(unittest.TestCase):
         
         scope = Scope(available=["user_read", "friends_write", "friends_read"])
         
-        scopes = scope.parse(request=request_mock)
+        scope.parse(request=request_mock)
         
         request_mock.get_param.assert_called_with("scope")
         
-        self.assertListEqual(expected_scopes, scopes)
+        self.assertListEqual(expected_scopes, scope.scopes)
+        self.assertFalse(scope.send_back)
     
     def test_parse_scope_default_on_no_scope(self):
         """
@@ -987,11 +988,12 @@ class ScopeTestCase(unittest.TestCase):
         scope = Scope(available=["user_read", "friends_write", "friends_read"],
                       default="all")
         
-        scopes = scope.parse(request=request_mock)
+        scope.parse(request=request_mock)
         
         request_mock.get_param.assert_called_with("scope")
         
-        self.assertListEqual(expected_scopes, scopes)
+        self.assertListEqual(expected_scopes, scope.scopes)
+        self.assertTrue(scope.send_back)
     
     def test_parse_scope_default_on_no_matching_scopes(self):
         """
@@ -1005,11 +1007,12 @@ class ScopeTestCase(unittest.TestCase):
         scope = Scope(available=["user_read", "friends_write", "friends_read"],
                       default="all")
         
-        scopes = scope.parse(request=request_mock)
+        scope.parse(request=request_mock)
         
         request_mock.get_param.assert_called_with("scope")
         
-        self.assertListEqual(expected_scopes, scopes)
+        self.assertListEqual(expected_scopes, scope.scopes)
+        self.assertTrue(scope.send_back)
     
     def test_parse_scope_no_value_on_no_scope_no_default(self):
         """
@@ -1022,11 +1025,12 @@ class ScopeTestCase(unittest.TestCase):
         
         scope = Scope()
         
-        scopes = scope.parse(request=request_mock)
+        scope.parse(request=request_mock)
         
         request_mock.get_param.assert_called_with("scope")
         
-        self.assertEqual(expected_scopes, scopes)
+        self.assertEqual(expected_scopes, scope.scopes)
+        self.assertFalse(scope.send_back)
     
     def test_parse_scope_exception_on_available_scopes_no_scope_given(self):
         """
