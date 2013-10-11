@@ -14,6 +14,8 @@ class Scope(object):
     :param default: Fallback value in case no scope is present in request
     """
     def __init__(self, available=None, default=None):
+        self.send_back = False
+        
         if isinstance(available, list):
             self.available_scopes = available
         else:
@@ -21,7 +23,7 @@ class Scope(object):
         
         self.default = default
     
-    def parse_scope(self, request):
+    def parse(self, request):
         """
         Parses scope values from given request.
         

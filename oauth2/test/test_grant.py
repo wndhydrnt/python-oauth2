@@ -960,7 +960,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
 class ScopeTestCase(unittest.TestCase):
     def test_parse_scope_scope_present(self):
         """
-        Scope.parse_scope should return a list of requested scopes
+        Scope.parse should return a list of requested scopes
         """
         expected_scopes = ["friends_read", "user_read"]
         
@@ -969,7 +969,7 @@ class ScopeTestCase(unittest.TestCase):
         
         scope = Scope(available=["user_read", "friends_write", "friends_read"])
         
-        scopes = scope.parse_scope(request=request_mock)
+        scopes = scope.parse(request=request_mock)
         
         request_mock.get_param.assert_called_with("scope")
         
@@ -977,7 +977,7 @@ class ScopeTestCase(unittest.TestCase):
     
     def test_parse_scope_default_on_no_scope(self):
         """
-        Scope.parse_scope should return a list containing the default value if no scope present in request and default is set
+        Scope.parse should return a list containing the default value if no scope present in request and default is set
         """
         expected_scopes = ["all"]
         
@@ -987,7 +987,7 @@ class ScopeTestCase(unittest.TestCase):
         scope = Scope(available=["user_read", "friends_write", "friends_read"],
                       default="all")
         
-        scopes = scope.parse_scope(request=request_mock)
+        scopes = scope.parse(request=request_mock)
         
         request_mock.get_param.assert_called_with("scope")
         
@@ -995,7 +995,7 @@ class ScopeTestCase(unittest.TestCase):
     
     def test_parse_scope_default_on_no_matching_scopes(self):
         """
-        Scope.parse_scope should return a list containing the default value if scope in request does not match and default is set
+        Scope.parse should return a list containing the default value if scope in request does not match and default is set
         """
         expected_scopes = ["all"]
         
@@ -1005,7 +1005,7 @@ class ScopeTestCase(unittest.TestCase):
         scope = Scope(available=["user_read", "friends_write", "friends_read"],
                       default="all")
         
-        scopes = scope.parse_scope(request=request_mock)
+        scopes = scope.parse(request=request_mock)
         
         request_mock.get_param.assert_called_with("scope")
         
@@ -1013,7 +1013,7 @@ class ScopeTestCase(unittest.TestCase):
     
     def test_parse_scope_no_value_on_no_scope_no_default(self):
         """
-        Scope.parse_scope should return an empty list if no scope is present in request and no default or scapes are defined
+        Scope.parse should return an empty list if no scope is present in request and no default or scapes are defined
         """
         expected_scopes = []
         
@@ -1022,7 +1022,7 @@ class ScopeTestCase(unittest.TestCase):
         
         scope = Scope()
         
-        scopes = scope.parse_scope(request=request_mock)
+        scopes = scope.parse(request=request_mock)
         
         request_mock.get_param.assert_called_with("scope")
         
@@ -1030,7 +1030,7 @@ class ScopeTestCase(unittest.TestCase):
     
     def test_parse_scope_exception_on_available_scopes_no_scope_given(self):
         """
-        Scope.parse_scope should throw an OAuthError if no scope is present in request but scopes are defined
+        Scope.parse should throw an OAuthError if no scope is present in request but scopes are defined
         """
         request_mock = Mock(Request)
         request_mock.get_param.return_value = None
@@ -1038,7 +1038,7 @@ class ScopeTestCase(unittest.TestCase):
         scope = Scope(available=["user_read", "friends_write", "friends_read"])
         
         with self.assertRaises(OAuthInvalidError) as expected:
-            scope.parse_scope(request_mock)
+            scope.parse(request_mock)
         
         e = expected.exception
         
