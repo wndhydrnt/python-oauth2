@@ -1,6 +1,9 @@
 python-oauth2
 ###############
 
+.. image:: https://travis-ci.org/wndhydrnt/python-oauth2.png?branch=master
+   :target: https://travis-ci.org/wndhydrnt/python-oauth2
+
 python-oauth2 is a framework that aims at making it easy to provide authentication
 via `OAuth 2.0 <http://tools.ietf.org/html/rfc6749>`_ within an application stack. 
 
