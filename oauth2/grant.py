@@ -229,6 +229,7 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         self.client_secret = None
         self.code          = None
         self.redirect_uri  = None
+        self.scopes        = []
         
         self.access_token_store = access_token_store
         self.auth_token_store   = auth_token_store
@@ -267,6 +268,7 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         result = {"access_token": access_token, "token_type": "Bearer"}
         
         self.access_token_store.save_token(client_id=self.client_id,
+                                           scopes=self.scopes,
                                            token=access_token, user_data={})
         
         response.body = json.dumps(result)
@@ -339,6 +341,8 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         if current_time > stored_code["expired_at"]:
             raise OAuthInvalidError(error="invalid_grant",
                                   explanation="Authorization code has expired")
+        
+        self.scopes = stored_code["scopes"]
 
 class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
     """

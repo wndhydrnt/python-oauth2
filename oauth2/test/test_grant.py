@@ -345,12 +345,14 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         client_secret = "t%gH"
         code = "defg"
         redirect_uri = "http://callback"
+        scopes = ["scope"]
         
         auth_token_store_mock = Mock(spec=AuthTokenStore)
         auth_token_store_mock.fetch_by_code.return_value = {
             "code": code,
             "expired_at": DatetimeMock(1990, 1, 1, 0, 0, 0),
-            "redirect_uri": redirect_uri
+            "redirect_uri": redirect_uri,
+            "scopes": scopes
         }
         
         client_store_mock = Mock(spec=ClientStore)
@@ -377,6 +379,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         self.assertEqual(handler.client_secret, client_secret)
         self.assertEqual(handler.code, code)
         self.assertEqual(handler.redirect_uri, redirect_uri)
+        self.assertEqual(handler.scopes, scopes)
         self.assertTrue(result)
     
     def test_read_validate_params_missing_code(self):
@@ -629,6 +632,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
     def test_process(self):
         access_token = "abcd"
         client_id    = "efg"
+        scopes       = ["scope"]
         
         expected_body = {"access_token": access_token, "token_type": "Bearer"}
         
@@ -646,9 +650,11 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
                                                 Mock(spec=ClientStore),
                                                 token_generator_mock)
         handler.client_id = client_id
+        handler.scopes    = scopes
         response = handler.process(Mock(spec=Request), response_mock, {})
         
         access_token_store_mock.save_token.assert_called_with(client_id=client_id,
+                                                              scopes=scopes,
                                                               token=access_token,
                                                               user_data={})
         self.assertEqual(response.status_code, "200 OK")
