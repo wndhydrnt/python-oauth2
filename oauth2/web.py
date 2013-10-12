@@ -7,7 +7,7 @@ class SiteAdapter(object):
     def render_auth_page(self, request, response, environ):
         pass
     
-    def authenticate(self, request, environ):
+    def authenticate(self, request, environ, scopes):
         pass
     
     def user_has_denied_access(self, request):
