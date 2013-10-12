@@ -6,22 +6,6 @@ from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError
 from oauth2.compatibility import urlencode, quote
 import json
 
-def query_params_to_uri_param(query_params):
-    """
-    Helper function that turns a dictionary into a query to use in URIs.
-    """
-    try:
-        param_pairs = query_params.iteritems()
-    except AttributeError:
-        param_pairs = list(query_params.items())
-    
-    params = []
-    
-    for key, value in param_pairs:
-        params.append(key + "=" + quote(value))
-    
-    return "&".join(params)
-
 class Scope(object):
     """
     Handler of scopes in the oauth2 flow.
@@ -226,15 +210,13 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
         return response
     
     def _generate_location(self, code):
-        query_params = {"code": code}
+        query = "code=" + code
         
         if self.state is not None:
-            query_params["state"] = self.state
+            query += "&state=" + self.state
         
         if self.scope_handler.send_back is True:
-            query_params["scope"] = " ".join(self.scope_handler.scopes)
-        
-        query = query_params_to_uri_param(query_params)
+            query += "&scope=" + quote(" ".join(self.scope_handler.scopes))
         
         return "%s?%s" % (self.redirect_uri, query)
 

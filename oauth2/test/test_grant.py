@@ -202,7 +202,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         redirect_uri = "https://callback"
         user_data    = {"user_id": 789}
         
-        location_uri = "%s?state=%s&code=%s" % (redirect_uri, state, code)
+        location_uri = "%s?code=%s&state=%s" % (redirect_uri, code, state)
         
         auth_token_store_mock = Mock(spec=AuthTokenStore)
         
@@ -253,7 +253,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         redirect_uri = "https://callback"
         user_data    = {"user_id": 789}
         
-        location_uri = "%s?scope=%s&state=%s&code=%s" % (redirect_uri, scopes_uri, state, code)
+        location_uri = "%s?code=%s&state=%s&scope=%s" % (redirect_uri, code, state, scopes_uri)
         
         response_mock = Mock(spec=Response)
         
