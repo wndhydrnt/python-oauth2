@@ -212,6 +212,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         
         scope_handler_mock = Mock(Scope)
         scope_handler_mock.scopes = scopes
+        scope_handler_mock.send_back = False
         
         site_adapter_mock = Mock(spec=SiteAdapter)
         site_adapter_mock.authenticate.return_value = user_data
@@ -238,6 +239,47 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
             client_id, code, DatetimeMock(1990, 1, 1, 0, 10, 0), redirect_uri,
             scopes, user_data
         )
+        self.assertEqual(response.status_code, "302 Found")
+        self.assertEqual(response.body, "")
+        response_mock.add_header.assert_called_with("Location", location_uri)
+    
+    def test_process_redirect_with_scopes(self):
+        client_id    = "foobar"
+        code         = "abcd"
+        environ      = {"session": "data"}
+        scopes       = ["scope_read", "scope_write"]
+        scopes_uri   = "%20".join(scopes)
+        state        = "mystate"
+        redirect_uri = "https://callback"
+        user_data    = {"user_id": 789}
+        
+        location_uri = "%s?scope=%s&state=%s&code=%s" % (redirect_uri, scopes_uri, state, code)
+        
+        response_mock = Mock(spec=Response)
+        
+        scope_handler_mock = Mock(Scope)
+        scope_handler_mock.scopes = scopes
+        scope_handler_mock.send_back = True
+        
+        site_adapter_mock = Mock(spec=SiteAdapter)
+        site_adapter_mock.authenticate.return_value = user_data
+        
+        token_generator_mock = Mock(spec=["generate"])
+        token_generator_mock.generate.return_value = code
+        
+        handler = AuthorizationCodeAuthHandler(
+            auth_token_store=Mock(spec=AuthTokenStore),
+            client_store=Mock(), scope_handler=scope_handler_mock,
+            site_adapter=site_adapter_mock,
+            token_generator=token_generator_mock
+        )
+        
+        handler.client_id = client_id
+        handler.state = state
+        handler.redirect_uri = redirect_uri
+        response = handler.process(Mock(spec=Request), response_mock, environ)
+        
+        token_generator_mock.generate.assert_called_with()
         self.assertEqual(response.status_code, "302 Found")
         self.assertEqual(response.body, "")
         response_mock.add_header.assert_called_with("Location", location_uri)
@@ -685,6 +727,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         
         scope_handler_mock = Mock(Scope)
         scope_handler_mock.scopes = scopes
+        scope_handler_mock.send_back = False
         
         site_adapter_mock = Mock(spec=SiteAdapter)
         site_adapter_mock.authenticate.return_value = user_id
@@ -732,6 +775,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         
         scope_handler_mock = Mock(Scope)
         scope_handler_mock.scopes = []
+        scope_handler_mock.send_back = False
         
         site_adapter_mock = Mock(spec=SiteAdapter)
         site_adapter_mock.authenticate.return_value = user_id
@@ -743,6 +787,43 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
             access_token_store=Mock(AccessTokenStore), client_store=Mock(),
             scope_handler=scope_handler_mock,
             site_adapter=site_adapter_mock,
+            token_generator=token_generator_mock)
+        handler.client_id = client_id
+        handler.redirect_uri = redirect_uri
+        handler.state = state
+        
+        result_response = handler.process(request=Mock(spec=Request),
+                                          response=response_mock, environ={})
+        
+        response_mock.add_header.assert_called_with("Location",
+                                                   expected_redirect_uri)
+        self.assertEqual(response_mock.status_code, "302 Moved Temporarily")
+        self.assertEqual(response_mock.content, "")
+        self.assertEqual(result_response, response_mock)
+    
+    def test_process_with_scope(self):
+        client_id    = "abc"
+        redirect_uri = "http://callback"
+        scopes       = ["scope_read", "scope_write"]
+        scopes_uri   = "%20".join(scopes)
+        state        = "XHGFI"
+        token        = "tokencode"
+        
+        expected_redirect_uri = "%s#access_token=%s&token_type=bearer&state=%s&scope=%s" % (redirect_uri, token, state, scopes_uri)
+        
+        response_mock = Mock(spec=Response)
+        
+        scope_handler_mock = Mock(Scope)
+        scope_handler_mock.scopes = scopes
+        scope_handler_mock.send_back = True
+        
+        token_generator_mock = Mock(spec=["generate"])
+        token_generator_mock.generate.return_value = token
+        
+        handler = ImplicitGrantHandler(
+            access_token_store=Mock(AccessTokenStore), client_store=Mock(),
+            scope_handler=scope_handler_mock,
+            site_adapter=Mock(spec=SiteAdapter),
             token_generator=token_generator_mock)
         handler.client_id = client_id
         handler.redirect_uri = redirect_uri

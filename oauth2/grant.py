@@ -207,7 +207,10 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
         if self.state is not None:
             query_params["state"] = self.state
         
-        query = urllib.urlencode(query_params)
+        if self.scope_handler.send_back is True:
+            query_params["scope"] = " ".join(self.scope_handler.scopes)
+        
+        query = "&".join([key + "=" + urllib.quote(value) for key,value in query_params.iteritems()])
         
         return "%s?%s" % (self.redirect_uri, query)
 
@@ -435,6 +438,9 @@ class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
         
         if self.state is not None:
             uri_with_fragment += "&state=" + self.state
+        
+        if self.scope_handler.send_back is True:
+            uri_with_fragment += "&scope=" + "%20".join(self.scope_handler.scopes)
         
         response.status_code = "302 Moved Temporarily"
         response.add_header("Location", uri_with_fragment)
