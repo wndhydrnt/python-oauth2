@@ -14,8 +14,8 @@ class Scope(object):
     :param default: Fallback value in case no scope is present in request
     """
     def __init__(self, available=None, default=None):
-        self.scopes    = []
-        self.send_back = False
+        self.scopes     = []
+        self.send_back  = False
         
         if isinstance(available, list):
             self.available_scopes = available
@@ -50,6 +50,12 @@ class Scope(object):
         if len(self.scopes) == 0 and self.default is not None:
             self.scopes = [self.default]
             self.send_back = True
+
+class ScopeGrant(object):
+    def __init__(self, default_scope=None, scopes=None, scope_class=Scope):
+        self.default_scope = default_scope
+        self.scopes        = scopes
+        self.scope_class   = scope_class
 
 class GrantHandler(object):
     """
@@ -92,14 +98,15 @@ class AuthRequestMixin(object):
     `oauth2.grant.AuthorizationCodeAuthHandler` and
     `oauth2.grant.ImplicitGrantHandler`.
     """
-    def __init__(self, client_store, site_adapter, token_generator):
+    def __init__(self, client_store, scope_handler, site_adapter,
+                 token_generator):
         self.client_id    = None
         self.redirect_uri = None
-        self.scope        = None
         self.state        = None
         
-        self.site_adapter    = site_adapter
         self.client_store    = client_store
+        self.scope_handler   = scope_handler
+        self.site_adapter    = site_adapter
         self.token_generator = token_generator
     
     def read_validate_params(self, request):
@@ -129,8 +136,9 @@ class AuthRequestMixin(object):
         else:
             self.redirect_uri = client_data["redirect_uris"][0]
         
-        self.scope = request.get_param("scope")
         self.state = request.get_param("state")
+        
+        self.scope_handler.parse(request)
         
         return True
 
@@ -142,12 +150,12 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
     
     token_expiration = 600
     
-    def __init__(self, auth_token_store, client_store, site_adapter,
-                 token_generator):
+    def __init__(self, auth_token_store, client_store, scope_handler,
+                 site_adapter, token_generator):
         self.auth_token_store = auth_token_store
         
-        AuthRequestMixin.__init__(self, client_store, site_adapter,
-                                  token_generator)
+        AuthRequestMixin.__init__(self, client_store, scope_handler,
+                                  site_adapter, token_generator)
     
     def process(self, request, response, environ):
         """
@@ -160,14 +168,16 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
         
         if user_data is None:
             return self.site_adapter.render_auth_page(request, response,
-                                                      environ)
+                                                      environ,
+                                                      self.scope_handler.scopes)
         
         code = self.token_generator.generate()
         current_time = datetime.datetime.now()
         expiration_delta = datetime.timedelta(seconds=self.token_expiration)
         expires = current_time + expiration_delta
         self.auth_token_store.save_code(self.client_id, code, expires,
-                                        self.redirect_uri, user_data)
+                                        self.redirect_uri,
+                                        self.scope_handler.scopes, user_data)
         
         response.add_header("Location", self._generate_location(code))
         response.body = ""
@@ -323,7 +333,7 @@ class AuthorizationCodeTokenHandler(GrantHandler):
             raise OAuthInvalidError(error="invalid_grant",
                                   explanation="Authorization code has expired")
 
-class AuthorizationCodeGrant(GrantHandlerFactory):
+class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
     """
     Implementation of the Authorization Code Grant auth flow also known as
     "three-legged auth".
@@ -345,14 +355,18 @@ class AuthorizationCodeGrant(GrantHandlerFactory):
         
         if (request.get_param("response_type") == "code"
             and request.path == server.authorize_path):
+            scope_handler = self.scope_class(available=self.scopes,
+                                             default=self.default_scope)
+            
             return AuthorizationCodeAuthHandler(server.auth_token_store,
                                                 server.client_store,
+                                                scope_handler,
                                                 server.site_adapter,
                                                 server.token_generator)
         
         return None
 
-class ImplicitGrant(GrantHandlerFactory):
+class ImplicitGrant(GrantHandlerFactory, ScopeGrant):
     """
     Implementation of the Implicit Grant auth flow also known as
     "two-legged auth".
@@ -369,20 +383,23 @@ class ImplicitGrant(GrantHandlerFactory):
         
         if (response_type == "token"
             and request.path == server.authorize_path):
+            scope_handler = self.scope_class(available=self.scopes,
+                                             default=self.default_scope)
+            
             return ImplicitGrantHandler(
                 access_token_store=server.access_token_store,
-                client_store=server.client_store,
+                client_store=server.client_store, scope_handler=scope_handler,
                 site_adapter=server.site_adapter,
                 token_generator=server.token_generator)
         return None
 
 class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
-    def __init__(self, access_token_store, client_store, site_adapter,
-                 token_generator):
+    def __init__(self, access_token_store, client_store, scope_handler,
+                 site_adapter, token_generator):
         self.access_token_store = access_token_store
         
-        AuthRequestMixin.__init__(self, client_store, site_adapter,
-                                  token_generator)
+        AuthRequestMixin.__init__(self, client_store, scope_handler,
+                                  site_adapter, token_generator)
     
     def process(self, request, response, environ):
         if self.site_adapter.user_has_denied_access(request) == True:
@@ -393,11 +410,13 @@ class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
         
         if user_data is None:
             return self.site_adapter.render_auth_page(request, response,
-                                                      environ)
+                                                      environ,
+                                                      self.scope_handler.scopes)
         
         token = self.token_generator.generate()
         
         self.access_token_store.save_token(client_id=self.client_id,
+                                           scopes=self.scope_handler.scopes,
                                            token=token, user_data=user_data)
         
         return self._redirect_access_token(response, token)
