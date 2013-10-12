@@ -56,6 +56,10 @@ class ScopeGrant(object):
         self.default_scope = default_scope
         self.scopes        = scopes
         self.scope_class   = scope_class
+    
+    def _create_scope_handler(self):
+        return self.scope_class(available=self.scopes,
+                                default=self.default_scope)
 
 class GrantHandler(object):
     """
@@ -448,7 +452,7 @@ class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
         
         return response
 
-class ResourceOwnerGrant(GrantHandlerFactory):
+class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant):
     """
     Factory class to return a ResourceOwnerGrantHandler if the incoming
     request matches the conditions for this type of request.
@@ -464,6 +468,7 @@ class ResourceOwnerGrant(GrantHandlerFactory):
         return ResourceOwnerGrantHandler(
             access_token_store=server.access_token_store,
             client_store=server.client_store,
+            scope_handler=self._create_scope_handler(),
             site_adapter=server.site_adapter,
             token_generator=server.token_generator)
 
@@ -473,10 +478,11 @@ class ResourceOwnerGrantHandler(GrantHandler):
     
     See http://tools.ietf.org/html/rfc6749#section-4.3
     """
-    def __init__(self, access_token_store, client_store, site_adapter,
-                 token_generator):
+    def __init__(self, access_token_store, client_store, scope_handler,
+                 site_adapter, token_generator):
         self.access_token_store = access_token_store
         self.client_store       = client_store
+        self.scope_handler      = scope_handler
         self.site_adapter       = site_adapter
         self.token_generator    = token_generator
         
@@ -495,12 +501,17 @@ class ResourceOwnerGrantHandler(GrantHandler):
         access_token = self.token_generator.generate()
         
         self.access_token_store.save_token(self.client_id, access_token,
+                                           self.scope_handler.scopes,
                                            user_data)
+        
+        response_body = {"access_token": access_token, "token_type": "bearer"}
+        
+        if self.scope_handler.send_back is True:
+            response_body["scope"] = " ".join(self.scope_handler.scopes)
         
         response.add_header("Content-Type", "application/json")
         response.status_code = "200 OK"
-        response.body = json.dumps({"access_token": access_token,
-                                   "token_type": "bearer"})
+        response.body = json.dumps(response_body)
         
         return response
     
@@ -526,6 +537,8 @@ class ResourceOwnerGrantHandler(GrantHandler):
         
         self.password = request.post_param("password")
         self.username = request.post_param("username")
+        
+        self.scope_handler.parse(request=request, source="POST")
         
         return True
     

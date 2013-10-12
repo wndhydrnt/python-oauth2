@@ -970,6 +970,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         client_id    = "abcd"
         expected_response_body = {"access_token": access_token,
                                   "token_type": "bearer"}
+        scopes       = ["scope"]
         user         = {"id": 123}
         
         access_token_store_mock = Mock(AccessTokenStore)
@@ -977,6 +978,10 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         request_mock = Mock(Request)
         
         response_mock = Mock(Response)
+        
+        scope_handler_mock = Mock(Scope)
+        scope_handler_mock.scopes = scopes
+        scope_handler_mock.send_back = False
         
         site_adapter_mock = Mock(SiteAdapter)
         site_adapter_mock.authenticate.return_value = user
@@ -986,6 +991,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         
         handler = ResourceOwnerGrantHandler(access_token_store_mock,
                                             Mock(ClientStore),
+                                            scope_handler_mock,
                                             site_adapter_mock,
                                             token_generator_mock)
         handler.client_id = client_id
@@ -995,11 +1001,44 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         token_generator_mock.generate.assert_called_with()
         access_token_store_mock.save_token.assert_called_with(client_id,
                                                               access_token,
+                                                              scopes,
                                                               user)
         response_mock.add_header.assert_called_with("Content-Type",
                                                     "application/json")
         self.assertEqual(result.status_code, "200 OK")
         self.assertEqual(json.loads(result.body), expected_response_body)
+        self.assertEqual(result, response_mock)
+    
+    def test_process_redirect_with_scope(self):
+        access_token = "0aef"
+        client_id    = "abcd"
+        scopes       = ["scope_read", "scope_write"]
+        expected_response_body = {"access_token": access_token,
+                                  "token_type": "bearer",
+                                  "scope": " ".join(scopes)}
+        
+        response_mock = Mock(Response)
+        
+        scope_handler_mock = Mock(Scope)
+        scope_handler_mock.scopes = scopes
+        scope_handler_mock.send_back = True
+        
+        token_generator_mock = Mock()
+        token_generator_mock.generate.return_value = access_token
+        
+        handler = ResourceOwnerGrantHandler(Mock(AccessTokenStore),
+                                            Mock(ClientStore),
+                                            scope_handler_mock,
+                                            Mock(SiteAdapter),
+                                            token_generator_mock)
+        handler.client_id = client_id
+        result = handler.process(Mock(Request), response_mock, {})
+        
+        token_generator_mock.generate.assert_called_with()
+        response_mock.add_header.assert_called_with("Content-Type",
+                                                    "application/json")
+        self.assertEqual(result.status_code, "200 OK")
+        self.assertDictEqual(expected_response_body, json.loads(result.body))
         self.assertEqual(result, response_mock)
     
     def test_read_validate_params(self):
@@ -1015,13 +1054,19 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         request_mock.post_param.side_effect = [client_id, client_secret,
                                                password, username]
         
+        scope_handler_mock = Mock(Scope)
+        
         handler = ResourceOwnerGrantHandler(Mock(AccessTokenStore),
                                             client_store_mock,
+                                            scope_handler_mock,
                                             Mock(SiteAdapter),
                                             Mock())
         result = handler.read_validate_params(request_mock)
         
         client_store_mock.fetch_by_client_id.assert_called_with(client_id)
+        scope_handler_mock.parse.assert_called_with(request=request_mock,
+                                                    source="POST")
+        
         self.assertEqual(handler.client_id, client_id)
         self.assertEqual(handler.username, username)
         self.assertEqual(handler.password, password)
@@ -1032,9 +1077,8 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         request_mock.post_param.return_value = None
         
         handler = ResourceOwnerGrantHandler(Mock(AccessTokenStore),
-                                            Mock(ClientStore),
-                                            Mock(SiteAdapter),
-                                            Mock())
+                                            Mock(ClientStore), Mock(Scope),
+                                            Mock(SiteAdapter), Mock())
         
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
@@ -1055,9 +1099,8 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         request_mock.post_param.return_value = client_id
         
         handler = ResourceOwnerGrantHandler(Mock(AccessTokenStore),
-                                            client_store_mock,
-                                            Mock(SiteAdapter),
-                                            Mock())
+                                            client_store_mock, Mock(Scope),
+                                            Mock(SiteAdapter), Mock())
         
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
@@ -1082,6 +1125,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         
         handler = ResourceOwnerGrantHandler(Mock(AccessTokenStore),
                                             client_store_mock,
+                                            Mock(Scope),
                                             Mock(SiteAdapter),
                                             Mock())
         
