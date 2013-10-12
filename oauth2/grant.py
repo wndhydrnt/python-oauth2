@@ -52,6 +52,10 @@ class Scope(object):
             self.send_back = True
 
 class ScopeGrant(object):
+    """
+    Helper class to be extended by Grant classes that support the "scope"
+    parameter in request.
+    """
     def __init__(self, default_scope=None, scopes=None, scope_class=Scope):
         self.default_scope = default_scope
         self.scopes        = scopes
@@ -366,8 +370,7 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
         
         if (request.get_param("response_type") == "code"
             and request.path == server.authorize_path):
-            scope_handler = self.scope_class(available=self.scopes,
-                                             default=self.default_scope)
+            scope_handler = self._create_scope_handler()
             
             return AuthorizationCodeAuthHandler(server.auth_token_store,
                                                 server.client_store,
@@ -394,12 +397,10 @@ class ImplicitGrant(GrantHandlerFactory, ScopeGrant):
         
         if (response_type == "token"
             and request.path == server.authorize_path):
-            scope_handler = self.scope_class(available=self.scopes,
-                                             default=self.default_scope)
-            
             return ImplicitGrantHandler(
                 access_token_store=server.access_token_store,
-                client_store=server.client_store, scope_handler=scope_handler,
+                client_store=server.client_store,
+                scope_handler=self._create_scope_handler(),
                 site_adapter=server.site_adapter,
                 token_generator=server.token_generator)
         return None
