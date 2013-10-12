@@ -1,4 +1,4 @@
-import urlparse
+from oauth2.compatibility import parse_qs
 
 class SiteAdapter(object):
     """
@@ -21,14 +21,14 @@ class Request(object):
         self.path         = env["PATH_INFO"]
         self.post_params  = {}
         
-        for param,value in urlparse.parse_qs(env["QUERY_STRING"]).items():
+        for param,value in parse_qs(env["QUERY_STRING"]).items():
             self.query_params[param] = value[0]
         
         if (self.method == "POST"
             and env["CONTENT_TYPE"] == "application/x-www-form-urlencoded"):
             self.post_params = {}
             content = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
-            post_params = urlparse.parse_qs(content)
+            post_params = parse_qs(content)
             
             for param,value in post_params.items():
                 self.post_params[param] = value[0]

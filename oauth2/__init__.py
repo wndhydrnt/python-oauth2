@@ -47,10 +47,10 @@ class AuthorizationController(object):
             grant_type.read_validate_params(request)
             
             return grant_type.process(request, response, environ)
-        except OAuthUserError, error:
+        except OAuthUserError as error:
             response = self.response_class()
             return grant_type.redirect_oauth_error(error, response)
-        except OAuthInvalidError, error:
+        except OAuthInvalidError as error:
             response = self.response_class()
             response.add_header("Content-type", "application/json")
             response.status_code = "400 Bad Request"
