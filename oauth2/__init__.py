@@ -9,7 +9,7 @@ from oauth2.grant import AuthRequestMixin
 from oauth2.web import Request, Response
 from oauth2.tokengenerator import Uuid4
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 class AuthorizationController(object):
     """
