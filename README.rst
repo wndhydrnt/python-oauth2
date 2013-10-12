@@ -17,7 +17,15 @@ authorization Grants
 still missing.
 Also some features like `scopes <http://tools.ietf.org/html/rfc6749#section-3.3>`_ or
 `Refreh Token <http://tools.ietf.org/html/rfc6749#section-1.5>`_ have not
-been implemented yet.
+been implemented yet and the project has not been tested against other versions of
+Python than 2.7.
+
+Installation
+************
+
+python-oauth2 is available on `PyPI <http://pypi.python.org/pypi/python-oauth2/>`_
+
+    pip install python-oauth2
 
 Usage
 *****
