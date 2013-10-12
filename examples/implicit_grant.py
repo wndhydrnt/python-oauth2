@@ -5,7 +5,7 @@ import sys
 from multiprocessing import Process
 from wsgiref.simple_server import make_server
 
-sys.path.insert(0, os.path.abspath(os.path.realpath(__file__) + '/../../../'))
+sys.path.insert(0, os.path.abspath(os.path.realpath(__file__) + '/../../'))
 
 from oauth2 import AuthorizationController
 from oauth2.web import Wsgi, SiteAdapter
@@ -17,10 +17,11 @@ class LocalAccessTokenStore(AccessTokenStore):
     def __init__(self):
         self.tokens = {}
     
-    def save_token(self, client_id, token, user_data):
+    def save_token(self, client_id, token, scopes, user_data):
         msg = "Saving token %s for client %s in token store" % (token, client_id)
         print(msg)
-        self.tokens[token] = {"client_id": client_id, "user_data": user_data}
+        self.tokens[token] = {"client_id": client_id, "scopes": scopes,
+                              "user_data": user_data}
 
 class FakeAuthTokenStore(AuthTokenStore):
     pass
@@ -53,7 +54,7 @@ class TestSiteAdapter(SiteAdapter):
 </html>
     """
     
-    def render_auth_page(self, request, response, environ):
+    def render_auth_page(self, request, response, environ, scopes):
         # Add check if the user is logged or a redirect to the login page here
         response.body = self.CONFIRMATION_TEMPLATE
         
@@ -89,7 +90,7 @@ def run_app_server():
         var hash = window.location.hash.substring(1);
         
         if (hash == "" && accessToken == null) {
-            window.location.href = "http://localhost:8080/authorize?response_type=token&client_id=abc&redirect_uri=http%3A%2F%2Flocalhost%3A8081%2F"
+            window.location.href = "http://localhost:8080/authorize?response_type=token&client_id=abc&redirect_uri=http%3A%2F%2Flocalhost%3A8081%2F&scope=scope_write"
         }
         
         var hashParts = hash.split("&");

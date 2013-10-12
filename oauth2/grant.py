@@ -6,6 +6,65 @@ import urllib
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError
 import json
 
+class Scope(object):
+    """
+    Handler of scopes in the oauth2 flow.
+    
+    :param available: A list of strings each defining one supported scope
+    :param default: Fallback value in case no scope is present in request
+    """
+    def __init__(self, available=None, default=None):
+        self.scopes     = []
+        self.send_back  = False
+        
+        if isinstance(available, list):
+            self.available_scopes = available
+        else:
+            self.available_scopes = []
+        
+        self.default = default
+    
+    def parse(self, request):
+        """
+        Parses scope values from given request.
+        
+        :param request: ``oauth2.web.Request``
+        """
+        req_scope = request.get_param("scope")
+        
+        if req_scope is None:
+            if self.default is not None:
+                self.scopes = [self.default]
+                self.send_back = True
+                return
+            elif len(self.available_scopes) != 0:
+                raise OAuthInvalidError(error="invalid_scope",
+                                        explanation="Missing scope parameter in request")
+            else:
+                return
+        
+        req_scopes = req_scope.split(" ")
+        
+        self.scopes = [scope for scope in req_scopes if scope in self.available_scopes]
+        
+        if len(self.scopes) == 0 and self.default is not None:
+            self.scopes = [self.default]
+            self.send_back = True
+
+class ScopeGrant(object):
+    """
+    Helper class to be extended by Grant classes that support the "scope"
+    parameter in request.
+    """
+    def __init__(self, default_scope=None, scopes=None, scope_class=Scope):
+        self.default_scope = default_scope
+        self.scopes        = scopes
+        self.scope_class   = scope_class
+    
+    def _create_scope_handler(self):
+        return self.scope_class(available=self.scopes,
+                                default=self.default_scope)
+
 class GrantHandler(object):
     """
     Base class every oauth2 handler can extend.
@@ -47,14 +106,15 @@ class AuthRequestMixin(object):
     `oauth2.grant.AuthorizationCodeAuthHandler` and
     `oauth2.grant.ImplicitGrantHandler`.
     """
-    def __init__(self, client_store, site_adapter, token_generator):
+    def __init__(self, client_store, scope_handler, site_adapter,
+                 token_generator):
         self.client_id    = None
         self.redirect_uri = None
-        self.scope        = None
         self.state        = None
         
-        self.site_adapter    = site_adapter
         self.client_store    = client_store
+        self.scope_handler   = scope_handler
+        self.site_adapter    = site_adapter
         self.token_generator = token_generator
     
     def read_validate_params(self, request):
@@ -84,8 +144,9 @@ class AuthRequestMixin(object):
         else:
             self.redirect_uri = client_data["redirect_uris"][0]
         
-        self.scope = request.get_param("scope")
         self.state = request.get_param("state")
+        
+        self.scope_handler.parse(request)
         
         return True
 
@@ -97,12 +158,12 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
     
     token_expiration = 600
     
-    def __init__(self, auth_token_store, client_store, site_adapter,
-                 token_generator):
+    def __init__(self, auth_token_store, client_store, scope_handler,
+                 site_adapter, token_generator):
         self.auth_token_store = auth_token_store
         
-        AuthRequestMixin.__init__(self, client_store, site_adapter,
-                                  token_generator)
+        AuthRequestMixin.__init__(self, client_store, scope_handler,
+                                  site_adapter, token_generator)
     
     def process(self, request, response, environ):
         """
@@ -115,14 +176,16 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
         
         if user_data is None:
             return self.site_adapter.render_auth_page(request, response,
-                                                      environ)
+                                                      environ,
+                                                      self.scope_handler.scopes)
         
         code = self.token_generator.generate()
         current_time = datetime.datetime.now()
         expiration_delta = datetime.timedelta(seconds=self.token_expiration)
         expires = current_time + expiration_delta
         self.auth_token_store.save_code(self.client_id, code, expires,
-                                        self.redirect_uri, user_data)
+                                        self.redirect_uri,
+                                        self.scope_handler.scopes, user_data)
         
         response.add_header("Location", self._generate_location(code))
         response.body = ""
@@ -152,7 +215,10 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
         if self.state is not None:
             query_params["state"] = self.state
         
-        query = urllib.urlencode(query_params)
+        if self.scope_handler.send_back is True:
+            query_params["scope"] = " ".join(self.scope_handler.scopes)
+        
+        query = "&".join([key + "=" + urllib.quote(value) for key,value in query_params.iteritems()])
         
         return "%s?%s" % (self.redirect_uri, query)
 
@@ -167,6 +233,7 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         self.client_secret = None
         self.code          = None
         self.redirect_uri  = None
+        self.scopes        = []
         
         self.access_token_store = access_token_store
         self.auth_token_store   = auth_token_store
@@ -205,6 +272,7 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         result = {"access_token": access_token, "token_type": "Bearer"}
         
         self.access_token_store.save_token(client_id=self.client_id,
+                                           scopes=self.scopes,
                                            token=access_token, user_data={})
         
         response.body = json.dumps(result)
@@ -277,8 +345,10 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         if current_time > stored_code["expired_at"]:
             raise OAuthInvalidError(error="invalid_grant",
                                   explanation="Authorization code has expired")
+        
+        self.scopes = stored_code["scopes"]
 
-class AuthorizationCodeGrant(GrantHandlerFactory):
+class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
     """
     Implementation of the Authorization Code Grant auth flow also known as
     "three-legged auth".
@@ -300,14 +370,17 @@ class AuthorizationCodeGrant(GrantHandlerFactory):
         
         if (request.get_param("response_type") == "code"
             and request.path == server.authorize_path):
+            scope_handler = self._create_scope_handler()
+            
             return AuthorizationCodeAuthHandler(server.auth_token_store,
                                                 server.client_store,
+                                                scope_handler,
                                                 server.site_adapter,
                                                 server.token_generator)
         
         return None
 
-class ImplicitGrant(GrantHandlerFactory):
+class ImplicitGrant(GrantHandlerFactory, ScopeGrant):
     """
     Implementation of the Implicit Grant auth flow also known as
     "two-legged auth".
@@ -327,17 +400,18 @@ class ImplicitGrant(GrantHandlerFactory):
             return ImplicitGrantHandler(
                 access_token_store=server.access_token_store,
                 client_store=server.client_store,
+                scope_handler=self._create_scope_handler(),
                 site_adapter=server.site_adapter,
                 token_generator=server.token_generator)
         return None
 
 class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
-    def __init__(self, access_token_store, client_store, site_adapter,
-                 token_generator):
+    def __init__(self, access_token_store, client_store, scope_handler,
+                 site_adapter, token_generator):
         self.access_token_store = access_token_store
         
-        AuthRequestMixin.__init__(self, client_store, site_adapter,
-                                  token_generator)
+        AuthRequestMixin.__init__(self, client_store, scope_handler,
+                                  site_adapter, token_generator)
     
     def process(self, request, response, environ):
         if self.site_adapter.user_has_denied_access(request) == True:
@@ -348,11 +422,13 @@ class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
         
         if user_data is None:
             return self.site_adapter.render_auth_page(request, response,
-                                                      environ)
+                                                      environ,
+                                                      self.scope_handler.scopes)
         
         token = self.token_generator.generate()
         
         self.access_token_store.save_token(client_id=self.client_id,
+                                           scopes=self.scope_handler.scopes,
                                            token=token, user_data=user_data)
         
         return self._redirect_access_token(response, token)
@@ -372,13 +448,16 @@ class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
         if self.state is not None:
             uri_with_fragment += "&state=" + self.state
         
+        if self.scope_handler.send_back is True:
+            uri_with_fragment += "&scope=" + "%20".join(self.scope_handler.scopes)
+        
         response.status_code = "302 Moved Temporarily"
         response.add_header("Location", uri_with_fragment)
         response.content = ""
         
         return response
 
-class ResourceOwnerGrant(GrantHandlerFactory):
+class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant):
     """
     Factory class to return a ResourceOwnerGrantHandler if the incoming
     request matches the conditions for this type of request.
@@ -394,6 +473,7 @@ class ResourceOwnerGrant(GrantHandlerFactory):
         return ResourceOwnerGrantHandler(
             access_token_store=server.access_token_store,
             client_store=server.client_store,
+            scope_handler=self._create_scope_handler(),
             site_adapter=server.site_adapter,
             token_generator=server.token_generator)
 
@@ -403,10 +483,11 @@ class ResourceOwnerGrantHandler(GrantHandler):
     
     See http://tools.ietf.org/html/rfc6749#section-4.3
     """
-    def __init__(self, access_token_store, client_store, site_adapter,
-                 token_generator):
+    def __init__(self, access_token_store, client_store, scope_handler,
+                 site_adapter, token_generator):
         self.access_token_store = access_token_store
         self.client_store       = client_store
+        self.scope_handler      = scope_handler
         self.site_adapter       = site_adapter
         self.token_generator    = token_generator
         
@@ -425,12 +506,17 @@ class ResourceOwnerGrantHandler(GrantHandler):
         access_token = self.token_generator.generate()
         
         self.access_token_store.save_token(self.client_id, access_token,
+                                           self.scope_handler.scopes,
                                            user_data)
+        
+        response_body = {"access_token": access_token, "token_type": "bearer"}
+        
+        if self.scope_handler.send_back is True:
+            response_body["scope"] = " ".join(self.scope_handler.scopes)
         
         response.add_header("Content-Type", "application/json")
         response.status_code = "200 OK"
-        response.body = json.dumps({"access_token": access_token,
-                                   "token_type": "bearer"})
+        response.body = json.dumps(response_body)
         
         return response
     
@@ -456,6 +542,8 @@ class ResourceOwnerGrantHandler(GrantHandler):
         
         self.password = request.post_param("password")
         self.username = request.post_param("username")
+        
+        self.scope_handler.parse(request=request, source="POST")
         
         return True
     

@@ -8,7 +8,7 @@ class AccessTokenStore(object):
     
     Used by two-legged and three-legged authentication flows.
     """
-    def save_token(self, client_id, token, user_data):
+    def save_token(self, client_id, scopes, token, user_data):
         """
         Persists the access token together with the id of the requesting
         client.
@@ -26,7 +26,8 @@ class AuthTokenStore(object):
         """
         pass
     
-    def save_code(self, client_id, code, expires_in, redirect_uri, user_data):
+    def save_code(self, client_id, code, expires_in, redirect_uri, scopes,
+                  user_data):
         """
         Persists data of an auth token for later use in the request for an
         access token.

@@ -45,9 +45,10 @@ class LocalAccessTokenStore(AccessTokenStore):
     def __init__(self):
         self.access_tokens = {}
     
-    def save_token(self, client_id, token, user_data):
+    def save_token(self, client_id, token, scopes, user_data):
         self.access_tokens[token] = {"client_id": client_id,
-                                     "user_data": user_data}
+                                     "user_data": user_data,
+                                     "scopes": scopes}
 
 class LocalAuthTokenStore(AuthTokenStore):
     """
@@ -67,11 +68,13 @@ class LocalAuthTokenStore(AuthTokenStore):
             return data
         return None
     
-    def save_code(self, client_id, code, expires_in, redirect_uri, user_data):
+    def save_code(self, client_id, code, expires_in, redirect_uri, scopes,
+                  user_data):
         self.code_data[code] = {"client_id": client_id,
                                 "code": code,
                                 "expired_at": expires_in,
-                                "redirect_uri": redirect_uri}
+                                "redirect_uri": redirect_uri,
+                                "scopes": scopes}
         return True
 
 class FakeClientStorage(object):
@@ -112,7 +115,7 @@ class TestSiteAdapter(SiteAdapter):
 </html>
     """
     
-    def render_auth_page(self, request, response, environ):
+    def render_auth_page(self, request, response, environ, scopes):
         response.body = self.CONFIRMATION_TEMPLATE
         
         return response
