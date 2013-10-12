@@ -1,6 +1,6 @@
 from mock import Mock, call
 import json
-import unittest
+from oauth2.test import unittest
 from oauth2.web import Request, Response, SiteAdapter
 from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler,\
     AuthRequestMixin, AuthorizationCodeTokenHandler, ImplicitGrant,\

@@ -1,4 +1,4 @@
-import unittest
+from oauth2.test import unittest
 from mock import Mock
 from oauth2.web import Request, Response, Wsgi
 from oauth2 import AuthorizationController

@@ -1,4 +1,4 @@
-import unittest
+from oauth2.test import unittest
 from oauth2.tokengenerator import URandomTokenGenerator
 
 class URandomTokenGeneratorTestCase(unittest.TestCase):
