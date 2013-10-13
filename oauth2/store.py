@@ -36,14 +36,14 @@ class AuthTokenStore(object):
         """
         pass
     
-    def save_code(self, client_id, code, expires_in, redirect_uri, scopes,
+    def save_code(self, client_id, code, expires_at, redirect_uri, scopes,
                   user_data):
         """
         Stores the data belonging to an authorization code token.
         
         :param client_id: Identifier of the client the token is issued.
         :param code: The authorization code.
-        :param expires_in: ``datetime.datetime`` the authorization code will
+        :param expires_at: ``datetime.datetime`` the authorization code will
                            expire.
         :param redirect_uri: Redirect URI used in the token request.
         :param scopes: List of scopes requested by a client.
@@ -83,7 +83,7 @@ class LocalClientStore(ClientStore):
         
         """
         self.clients[client_id] = {"client_id": client_id,
-                                   "client_secret": client_secret,
+                                   "secret": client_secret,
                                    "redirect_uris": redirect_uris}
     
     def fetch_by_client_id(self, client_id):
@@ -109,10 +109,10 @@ class LocalTokenStore(AccessTokenStore, AuthTokenStore):
         
         return self.auth_tokens[code]
     
-    def save_code(self, client_id, code, expires_in, redirect_uri, scopes,
+    def save_code(self, client_id, code, expires_at, redirect_uri, scopes,
                   user_data):
-        self.auth_tokens[code] = {"client_id": client_id,
-                                  "expires_in": expires_in,
+        self.auth_tokens[code] = {"client_id": client_id, "code": code,
+                                  "expired_at": expires_at,
                                   "redirect_uri": redirect_uri,
                                   "scopes": scopes, "user_data": user_data}
     
@@ -169,7 +169,7 @@ class MemcacheTokenStore(AccessTokenStore, AuthTokenStore):
         """
         return self.mc.get(self._generate_cache_key(code))
     
-    def save_code(self, client_id, code, expires_in, redirect_uri, scopes,
+    def save_code(self, client_id, code, expired_at, redirect_uri, scopes,
                   user_data):
         """
         Stores the data belonging to an authorization code token in memcache.
@@ -179,7 +179,8 @@ class MemcacheTokenStore(AccessTokenStore, AuthTokenStore):
         """
         key = self._generate_cache_key(code)
         
-        self.mc.set(key, {"client_id": client_id, "expires_in": expires_in,
+        self.mc.set(key, {"client_id": client_id, "code": code,
+                          "expired_at": expired_at,
                           "redirect_uri": redirect_uri, "scopes": scopes,
                           "user_data": user_data})
     
