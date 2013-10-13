@@ -140,13 +140,13 @@ class MemcacheTokenStore(AccessTokenStore, AuthTokenStore):
     
     Initialization using pylibmc::
         
-        token_store = MemcacheTokenStore(["127.0.0.1"], binary=True,
+        token_store = MemcacheTokenStore(servers=["127.0.0.1"], binary=True,
                                          behaviors={"tcp_nodelay": True,
                                         "ketama": True})
         
     Initialization using python-memcached::
         
-        token_store = MemcacheTokenStore(['127.0.0.1:11211'], debug=0)
+        token_store = MemcacheTokenStore(servers=['127.0.0.1:11211'], debug=0)
         
     """
     def __init__(self, prefix="oauth2", *args, **kwargs):
