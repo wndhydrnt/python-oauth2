@@ -15,10 +15,8 @@ While the basic implementations work already pretty well, some types of
 authorization Grants
 `defined in the RFC <http://tools.ietf.org/html/rfc6749#section-1.3>`_ are
 still missing.
-Also some features like `scopes <http://tools.ietf.org/html/rfc6749#section-3.3>`_ or
-`Refreh Token <http://tools.ietf.org/html/rfc6749#section-1.5>`_ have not
-been implemented yet and the project has not been tested against other versions of
-Python than 2.7.
+Also some features like `Refreh Tokens <http://tools.ietf.org/html/rfc6749#section-1.5>`_
+have not been implemented yet.
 
 Installation
 ************
@@ -49,3 +47,18 @@ Site adapter
 Like for storage, python-oauth2 does not define how you identify a user or show a
 confirmation dialogue.
 Instead your application should use the API defined by ``oauth2.web.SiteAdapter``.
+
+Changelog
+*********
+
+New in version 0.2.0
+====================
+- Support for scopes
+- Local token and client stores
+- Memcache token store
+
+New in version 0.1.0
+====================
+- Working implementation of Authorization Code Grant
+- Working implementation of Implicit Grant
+- Working implementation of Resource Owner Password Credentials Grant
