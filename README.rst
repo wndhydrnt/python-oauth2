@@ -56,6 +56,7 @@ New in version 0.2.0
 - Support for scopes
 - Local token and client stores
 - Memcache token store
+- Support for Python 2.6, 3.2 and 3.3
 
 New in version 0.1.0
 ====================
