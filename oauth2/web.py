@@ -75,9 +75,9 @@ class Wsgi(object):
         
         if (env["PATH_INFO"] != self.authorize_uri
             and env["PATH_INFO"] != self.token_uri):
-            start_response("500 Internal Wsgi Error",
+            start_response("404 Not Found",
                            [('Content-type', 'text/html')])
-            return ["Internal Wsgi Error"]
+            return ["Not Found"]
         
         request = self.request_class(env)
         
