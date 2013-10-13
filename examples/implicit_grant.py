@@ -11,28 +11,7 @@ from oauth2 import AuthorizationController
 from oauth2.web import Wsgi, SiteAdapter
 from oauth2.tokengenerator import Uuid4
 from oauth2.grant import ImplicitGrant
-from oauth2.store import AccessTokenStore, AuthTokenStore
-
-class LocalAccessTokenStore(AccessTokenStore):
-    def __init__(self):
-        self.tokens = {}
-    
-    def save_token(self, client_id, token, scopes, user_data):
-        msg = "Saving token %s for client %s in token store" % (token, client_id)
-        print(msg)
-        self.tokens[token] = {"client_id": client_id, "scopes": scopes,
-                              "user_data": user_data}
-
-class FakeAuthTokenStore(AuthTokenStore):
-    pass
-
-class FakeClientStorage(object):
-    def fetch_by_client_id(self, client_id):
-        # This client storage knows the client with id "abc"
-        if client_id == "abc":
-            return {"client_id": "abc",
-                    "redirect_uris": ["http://localhost:8081/"]}
-        return None
+from oauth2.store import LocalClientStore, LocalTokenStore
 
 class TestSiteAdapter(SiteAdapter):
     CONFIRMATION_TEMPLATE = """
@@ -131,10 +110,16 @@ def run_app_server():
 
 def run_auth_server():
     try:
+        client_store = LocalClientStore()
+        client_store.add_client(client_id="abc", client_secret="xyz",
+                                redirect_uris=["http://localhost:8081/"])
+        
+        token_store = LocalTokenStore()
+        
         auth_server = AuthorizationController(
-            access_token_store=LocalAccessTokenStore(),
-            auth_token_store=FakeAuthTokenStore(),
-            client_store=FakeClientStorage(),
+            access_token_store=token_store,
+            auth_token_store=token_store,
+            client_store=client_store,
             site_adapter=TestSiteAdapter(),
             token_generator=Uuid4())
         auth_server.add_grant(ImplicitGrant())

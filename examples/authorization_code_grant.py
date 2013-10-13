@@ -11,7 +11,7 @@ from wsgiref.simple_server import make_server, WSGIRequestHandler
 sys.path.insert(0, os.path.abspath(os.path.realpath(__file__) + '/../../'))
 
 from oauth2 import AuthorizationController
-from oauth2.store import AuthTokenStore, AccessTokenStore
+from oauth2.store import LocalClientStore, LocalTokenStore
 from oauth2.tokengenerator import Uuid4
 from oauth2.web import SiteAdapter, Wsgi
 from oauth2.grant import AuthorizationCodeGrant
@@ -33,62 +33,6 @@ class OAuthRequestHandler(WSGIRequestHandler):
     """
     def address_string(self):
         return "python-oauth2"
-
-class LocalAccessTokenStore(AccessTokenStore):
-    """
-    Stores access tokens in local memory.
-    
-    Use a central storage like memcached or redis in a real world application
-    to be able to scale by running more than one instance of an authorization
-    server.
-    """
-    def __init__(self):
-        self.access_tokens = {}
-    
-    def save_token(self, client_id, token, scopes, user_data):
-        self.access_tokens[token] = {"client_id": client_id,
-                                     "user_data": user_data,
-                                     "scopes": scopes}
-
-class LocalAuthTokenStore(AuthTokenStore):
-    """
-    Stores an auth_token in memory.
-    
-    Use a central storage like memcached or redis in a real world application
-    to be able to scale by running more than one instance of an authorization
-    server.
-    """
-    def __init__(self):
-        self.code_data = {}
-    
-    def fetch_by_code(self, code):
-        if code in self.code_data:
-            data = self.code_data[code]
-            del self.code_data[code]
-            return data
-        return None
-    
-    def save_code(self, client_id, code, expires_in, redirect_uri, scopes,
-                  user_data):
-        self.code_data[code] = {"client_id": client_id,
-                                "code": code,
-                                "expired_at": expires_in,
-                                "redirect_uri": redirect_uri,
-                                "scopes": scopes}
-        return True
-
-class FakeClientStorage(object):
-    """
-    Storage that holds all information about  clients.
-    
-    For testing purposes only the client_id "abc" is recognized.
-    """
-    def fetch_by_client_id(self, client_id):
-        if client_id == "abc":
-            return {"client_id": "abc",
-                    "secret": "xyz",
-                    "redirect_uris": ["http://localhost:8081/callback"]}
-        return None
 
 class TestSiteAdapter(SiteAdapter):
     """
@@ -230,10 +174,16 @@ def run_app_server():
 
 def run_auth_server():
     try:
+        client_store = LocalClientStore()
+        client_store.add_client(client_id="abc", client_secret="xyz",
+                                redirect_uris=["http://localhost:8081/callback"])
+        
+        token_store = LocalTokenStore()
+        
         auth_controller = AuthorizationController(
-            access_token_store=LocalAccessTokenStore(),
-            auth_token_store=LocalAuthTokenStore(),
-            client_store=FakeClientStorage(),
+            access_token_store=token_store,
+            auth_token_store=token_store,
+            client_store=client_store,
             site_adapter=TestSiteAdapter(),
             token_generator=Uuid4())
         auth_controller.add_grant(AuthorizationCodeGrant())
