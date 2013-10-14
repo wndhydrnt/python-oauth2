@@ -2,12 +2,28 @@ from oauth2.compatibility import parse_qs
 
 class SiteAdapter(object):
     """
-    Base class 
+    Handling of interaction with the user.
+    
+    Extend this class to define your own UI.
     """
-    def render_auth_page(self, request, response, environ):
+    def authenticate(self, request, environ, scopes):
+        """
+        Authenticate a user and check if she has authorized access.
+        
+        :param request: An instance of :class:`oauth2.web.Request`.
+        :param environ: Environment variables of this request.
+        :param scopes: A list of strings with each string being one requested
+                       scope.
+        :return: A value that is not ``None`` if the user was authenticated
+                 successfully. This value will be stored together with the
+                 generated access token.
+        """
         pass
     
-    def authenticate(self, request, environ, scopes):
+    def render_auth_page(self, request, response, environ):
+        """
+        
+        """
         pass
     
     def user_has_denied_access(self, request):

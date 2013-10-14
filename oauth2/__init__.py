@@ -1,5 +1,63 @@
 """
-Python OAuth 2.0 server
+=============
+python-oauth2
+=============
+
+python-oauth2 is a framework that aims at making it easy to provide
+authentication via `OAuth 2.0 <http://tools.ietf.org/html/rfc6749>`_ within
+an application stack.
+
+Usage
+=====
+
+Example HTTP server::
+    
+    from wsgiref.simple_server import make_server
+    import oauth2
+    import oauth2.store
+    import oauth2.web
+
+    # Create a SiteAdapter to interact with the user.
+    # This can be used to display confirmation dialogues and the like.
+    class TestSiteAdapter(oauth2.web.SiteAdapter):
+        def authenticate(self, request, environ, scopes):
+            # Always returning anything else than None here means the token
+            # will be issued without any user interaction
+            return {}
+
+    # Create an in-memory storage to store your client apps.
+    client_store = oauth2.store.LocalClientStore()
+    # Add a client
+    client_store.add_client(client_id="abc", client_secret="xyz",
+                            redirect_uris=["http://localhost/callback"])
+    
+    # Create an in-memory storage to store issued tokens.
+    token_store = oauth2.store.LocalTokenStore()
+
+    # Create the controller.
+    auth_controller = oauth2.AuthorizationController(
+        # LocalTokenStore can store access and auth tokens
+        access_token_store=token_store,
+        auth_token_store=token_store,
+        client_store=client_store,
+        site_adapter=TestSiteAdapter(),
+        token_generator=oauth2.tokengenerator.Uuid4()
+    )
+
+    # Wrap the controller with the Wsgi adapter
+    app = oauth2.web.Wsgi(server=auth_controller)
+
+    httpd = make_server('', 8080, app)
+    httpd.server_forever()
+
+Installation
+============
+
+python-oauth2 is available on
+`PyPI <http://pypi.python.org/pypi/python-oauth2/>`_::
+    
+    pip install python-oauth2
+
 """
 
 import json
@@ -14,6 +72,17 @@ VERSION = "0.2.0"
 class AuthorizationController(object):
     """
     Endpoint of requests to the OAuth 2.0 server.
+    
+    :param access_token_store: Stores access tokens.
+                               See ``oauth2.store.AccessTokenStore``.
+    :param auth_token_store: Stores and retrieves auth tokens.
+                             See ``oauth2.store.AuthTokenStore``.
+    :param client_store: Retrieves clients. See ``oauth2.store.ClientStore``.
+    :param site_adapter: Contains logic to display messages to the user.
+                         See ``oauth2.web.SiteAdapter``.
+    :param token_generator: Generates unique tokens.
+                            See ``oauth2.tokengenerator``.
+    :param response_class: Class to create a response from.
     """
     def __init__(self, access_token_store, auth_token_store, client_store,
                  site_adapter, token_generator, response_class=Response):
@@ -38,6 +107,11 @@ class AuthorizationController(object):
     def dispatch(self, request, environ):
         """
         Checks which Grant supports the current request and dispatches to it.
+        
+        :param request: An instance of ``oauth2.web.Request``.
+        :param environ: Hash containing environment variables.
+        
+        :return: An instance of ``oauth2.web.Response``.
         """
         try:
             grant_type = self._determine_grant_type(request)

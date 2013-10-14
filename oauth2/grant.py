@@ -1,5 +1,8 @@
 """
-OAuth 2.0 Grant types
+Grants are the heart of OAuth 2.0. Each Grant defines one way for a client to
+retrieve an authorization. Grants are defined in
+`Section 4 <http://tools.ietf.org/html/rfc6749#section-4>`_ of the OAuth 2.0
+spec.
 """
 import datetime
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError
@@ -8,10 +11,14 @@ import json
 
 class Scope(object):
     """
-    Handler of scopes in the oauth2 flow.
+    Handling of the "scope" parameter in a request.
     
-    :param available: A list of strings each defining one supported scope
-    :param default: Fallback value in case no scope is present in request
+    If ``available`` and ``default`` are both ``None``, the "scope" parameter
+    is ignored.
+    
+    :param available: A list of strings each defining one supported scope.
+    :param default: Value to fall back to in case no scope is present in a
+                    request.
     """
     def __init__(self, available=None, default=None):
         self.scopes     = []
@@ -26,9 +33,18 @@ class Scope(object):
     
     def parse(self, request):
         """
-        Parses scope values from given request.
+        Parses scope value in given request.
         
-        :param request: ``oauth2.web.Request``
+        Expects the value of the "scope" parameter in request to be a string
+        where each requested scope is separated by a white space::
+        
+            # One scope requested
+            "profile_read"
+            
+            # Multiple scopes
+            "profile_read profile_write"
+        
+        :param request: An instance of :class:`oauth2.web.Request`.
         """
         req_scope = request.get_param("scope")
         
@@ -53,8 +69,16 @@ class Scope(object):
 
 class ScopeGrant(object):
     """
-    Helper class to be extended by Grant classes that support the "scope"
-    parameter in request.
+    Handling of scopes in the OAuth 2.0 flow.
+    
+    Inherited by all grants that need to support scopes.
+    
+    :param default_scope: The scope identifier that is returned by default.
+                          (optional)
+    :param scopes:        A list of strings identifying the scopes that the
+                          grant supports.
+    :param scope_class: The class that does the actual handling in a request.
+                        Default: :class:`oauth2.grant.Scope`.
     """
     def __init__(self, default_scope=None, scopes=None, scope_class=Scope):
         self.default_scope = default_scope
@@ -96,6 +120,8 @@ class GrantHandler(object):
 class GrantHandlerFactory(object):
     """
     Base class every handler factory can extend.
+    
+    This class defines the basic interface of each Grant.
     """
     def __call__(self, request, server):
         raise NotImplementedError
@@ -348,15 +374,21 @@ class AuthorizationCodeTokenHandler(GrantHandler):
 
 class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
     """
-    Implementation of the Authorization Code Grant auth flow also known as
-    "three-legged auth".
+    Implementation of the Authorization Code Grant auth flow.
     
-    Register an instance of this class with `oauth2.AuthorizationServer`
-    like this::
+    This grant type is also known as "three-legged auth" because of the three
+    parties being involved:
     
-        auth_server = AuthorizationServer()
+    * The client that wants to access resources on behalf of the user.
+    * The user who grants access to her resources.
+    * The server that issues the access token if the user allows it.
+    
+    Register an instance of this class with
+    :class:`oauth2.AuthorizationController` like this::
+    
+        auth_controller = AuthorizationController()
         
-        auth_server.add_grant_type(AuthorizationCodeGrant())
+        auth_controller.add_grant_type(AuthorizationCodeGrant())
     """
     def __call__(self, request, server):
         if (request.post_param("grant_type") == "authorization_code"
@@ -380,15 +412,20 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
 
 class ImplicitGrant(GrantHandlerFactory, ScopeGrant):
     """
-    Implementation of the Implicit Grant auth flow also known as
-    "two-legged auth".
+    Implementation of the Implicit Grant auth flow.
     
-    Register an instance of this class with `oauth2.AuthorizationServer`
-    like this::
+    This grant type is also known as "two-legged auth" because of the two
+    parties being involved:
     
-        auth_server = AuthorizationController()
+    * The client that wants to access resources on behalf of the user.
+    * The server that issues the access token if the user allows it.
+    
+    Register an instance of this class with
+    :class:`oauth2.AuthorizationController` like this::
+    
+        auth_controller = AuthorizationController()
         
-        auth_server.add_grant_type(ImplicitGrant())
+        auth_controller.add_grant_type(ImplicitGrant())
     """
     def __call__(self, request, server):
         response_type = request.get_param("response_type")
@@ -457,8 +494,18 @@ class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
 
 class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant):
     """
-    Factory class to return a ResourceOwnerGrantHandler if the incoming
-    request matches the conditions for this type of request.
+    Implementation of the Resource Owner Password Credentials Grant auth flow.
+    
+    In this Grant a user is asked a user name and a password.
+    An access token is issued if the user could be identified by the auth
+    server.
+    
+    Register an instance of this class with
+    :class:`oauth2.AuthorizationController` like this::
+    
+        auth_controller = AuthorizationController()
+        
+        auth_controller.add_grant_type(ResourceOwnerGrant())
     """
     def __call__(self, request, server):
         """
