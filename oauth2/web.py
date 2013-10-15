@@ -1,36 +1,60 @@
+"""
+Classes for handling a HTTP request/response flow.
+"""
+
 from oauth2.compatibility import parse_qs
 
 class SiteAdapter(object):
     """
-    Handling of interaction with the user.
+    Interact with a user.
     
-    Extend this class to define your own UI.
+    Display HTML or redirect the user agent to another page of your website
+    where she can do something before being returned to the OAuth 2.0 server.
     """
     def authenticate(self, request, environ, scopes):
         """
-        Authenticate a user and check if she has authorized access.
+        Authenticates a user and checks if she has authorized access.
         
         :param request: An instance of :class:`oauth2.web.Request`.
-        :param environ: Environment variables of this request.
+        :param environ: Environment variables of the request.
         :param scopes: A list of strings with each string being one requested
                        scope.
         :return: A value that is not ``None`` if the user was authenticated
-                 successfully. This value will be stored together with the
-                 generated access token.
+                 successfully and allowed the access. This value will be
+                 stored together with the generated access token.
         """
         pass
     
     def render_auth_page(self, request, response, environ):
         """
-        
+        Defines how to display a confirmation page to the user.
+
+        :param request: An instance of :class:`oauth2.web.Request`.
+        :param response: An instance of :class:`oauth2.web.Response`.
+        :param environ: Environment variables of the request.
+        :return: The response passed in a parameter.
+                 It can contain HTML or issue a redirect.
         """
         pass
     
     def user_has_denied_access(self, request):
+        """
+        Checks if the user has denied access. This will lead to python-oauth2
+        returning a "acess_denied" response to the requesting client app.
+
+        :param request: An instance of :class:`oauth2.web.Request`.
+        :return: Return ``True`` if the user has denied access.
+        """
         pass
 
 class Request(object):
+    """
+    Contains data of the current HTTP request.
+    """
     def __init__(self, env):
+        """
+        :param env: Wsgi environment
+        """
         self.method       = env["REQUEST_METHOD"]
         self.query_params = {}
         self.query_string = env["QUERY_STRING"]
@@ -50,18 +74,27 @@ class Request(object):
                 self.post_params[param] = value[0]
     
     def get_param(self, name, default=None):
+        """
+        Returns a param of a GET request identified by its name.
+        """
         try:
             return self.query_params[name]
         except KeyError:
             return default
     
     def post_param(self, name, default=None):
+        """
+        Returns a param of a POST request identified by its name.
+        """
         try:
             return self.post_params[name]
         except KeyError:
             return default
 
 class Response(object):
+    """
+    Contains data returned to the requesting user agent.
+    """
     def __init__(self):
         self.status_code = "200 OK"
         self._headers    = {"Content-type": "text/html"}

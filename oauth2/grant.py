@@ -1,8 +1,31 @@
 """
 Grants are the heart of OAuth 2.0. Each Grant defines one way for a client to
-retrieve an authorization. Grants are defined in
+retrieve an authorization. They are defined in
 `Section 4 <http://tools.ietf.org/html/rfc6749#section-4>`_ of the OAuth 2.0
 spec.
+
+OAuth 2.0 comes in two flavours of how an access token is issued:
+two-legged and three-legged auth. To avoid confusion they are explained in
+short here.
+
+Three-legged OAuth
+------------------
+The "three" symbolizes the parties that are involved:
+
+* The client that wants to access a resource on behalf of the user.
+* The user who grants access to her resources.
+* The server that issues the access token if the user allows it.
+
+Two-legged OAuth
+----------------
+The two-legged OAuth process differs from the three-legged process by one
+missing paricipant. The user cannot allow or deny access.
+
+So there are two remaining parties:
+
+* The client that wants to access a resource.
+* The server that issues the access.
+
 """
 import datetime
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError
@@ -14,7 +37,7 @@ class Scope(object):
     Handling of the "scope" parameter in a request.
     
     If ``available`` and ``default`` are both ``None``, the "scope" parameter
-    is ignored.
+    is ignored (the default).
     
     :param available: A list of strings each defining one supported scope.
     :param default: Value to fall back to in case no scope is present in a
@@ -376,12 +399,7 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
     """
     Implementation of the Authorization Code Grant auth flow.
     
-    This grant type is also known as "three-legged auth" because of the three
-    parties being involved:
-    
-    * The client that wants to access resources on behalf of the user.
-    * The user who grants access to her resources.
-    * The server that issues the access token if the user allows it.
+    This is a three-legged OAuth process.
     
     Register an instance of this class with
     :class:`oauth2.AuthorizationController` like this::
@@ -414,12 +432,8 @@ class ImplicitGrant(GrantHandlerFactory, ScopeGrant):
     """
     Implementation of the Implicit Grant auth flow.
     
-    This grant type is also known as "two-legged auth" because of the two
-    parties being involved:
-    
-    * The client that wants to access resources on behalf of the user.
-    * The server that issues the access token if the user allows it.
-    
+    This is a three-legged OAuth process.
+
     Register an instance of this class with
     :class:`oauth2.AuthorizationController` like this::
     
@@ -496,9 +510,9 @@ class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant):
     """
     Implementation of the Resource Owner Password Credentials Grant auth flow.
     
-    In this Grant a user is asked a user name and a password.
-    An access token is issued if the user could be identified by the auth
-    server.
+    In this Grant a user provides a user name and a password.
+    An access token is issued if the auth server was able to verify the user
+    by her credentials. 
     
     Register an instance of this class with
     :class:`oauth2.AuthorizationController` like this::

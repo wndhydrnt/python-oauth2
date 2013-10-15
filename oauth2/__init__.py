@@ -18,12 +18,26 @@ Example HTTP server::
     import oauth2.web
 
     # Create a SiteAdapter to interact with the user.
-    # This can be used to display confirmation dialogues and the like.
+    # This can be used to display confirmation dialogs and the like.
     class TestSiteAdapter(oauth2.web.SiteAdapter):
         def authenticate(self, request, environ, scopes):
-            # Always returning anything else than None here means the token
-            # will be issued without any user interaction
-            return {}
+            if request.post_param("confirm") == "1":
+                # Returning anything else than None here means the token
+                # will be issued without any user interaction
+                return {}
+            return None
+
+        def render_auth_page(self, request, response, environ):
+            response.body = '''
+    <html>
+        <body>
+            <form method="POST" name="confirmation_form">
+                <input name="confirm" type="hidden" value="1" />
+                <input type="submit" value="confirm" />
+            </form>
+        </body>
+    </html>'''
+            return response
 
     # Create an in-memory storage to store your client apps.
     client_store = oauth2.store.LocalClientStore()
@@ -47,8 +61,9 @@ Example HTTP server::
     # Wrap the controller with the Wsgi adapter
     app = oauth2.web.Wsgi(server=auth_controller)
 
-    httpd = make_server('', 8080, app)
-    httpd.server_forever()
+    if __name__ == "__main__":
+        httpd = make_server('', 8080, app)
+        httpd.server_forever()
 
 Installation
 ============
