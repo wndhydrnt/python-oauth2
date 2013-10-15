@@ -56,10 +56,10 @@ class OAuth2Handler(tornado.web.RequestHandler):
     def _dispatch_request(self):
         request = Request(request_handler=self)
         
-        return self.controller.dispatch(request, env={})
+        return self.controller.dispatch(request, environ={})
     
     def _map_response(self, response):
-        for name, value in list(response.headers.items()):
+        for name, value in response.headers:
             self.set_header(name, value)
         
         self.set_status(response.status_code)
