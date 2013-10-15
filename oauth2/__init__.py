@@ -57,6 +57,10 @@ Example HTTP server::
         site_adapter=TestSiteAdapter(),
         token_generator=oauth2.tokengenerator.Uuid4()
     )
+    
+    # Add Grants you want to support
+    auth_controller.add_grant(AuthorizationCodeGrant())
+    auth_controller.add_grant(ImplicitGrant())
 
     # Wrap the controller with the Wsgi adapter
     app = oauth2.web.Wsgi(server=auth_controller)

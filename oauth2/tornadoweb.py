@@ -1,5 +1,6 @@
 """
-Integrating python-oauth2 into Tornado Web Server.
+Integrating python-oauth2 into Tornado Web Server
+-------------------------------------------------
 """
 import tornado.web
 
@@ -9,13 +10,13 @@ class Request(object):
     """
     def __init__(self, request_handler):
         self.request_handler = request_handler
-    
+        
     def get_param(self, name, default=None):
         return self._read_argument(name, default, source="GET")
-    
+        
     def post_param(self, name, default=None):
         return self._read_argument(name, default, source="POST")
-    
+        
     def _read_argument(self, name, default, source):
         if self.request_handler.request.method != source:
             return None
@@ -26,7 +27,7 @@ class Request(object):
 
 class OAuth2Handler(tornado.web.RequestHandler):
     """
-    Add this handler to your Tornado application.
+    Add this handler to your Tornado application::
     
         import oauth2
         import oauth2.tornadoweb
@@ -37,7 +38,7 @@ class OAuth2Handler(tornado.web.RequestHandler):
         
         # Create your Tornado application and add the handler
         app = tornado.web.Application([
-            (r'/authorize', oauth2.tornadoweb.OAuth2Handler, dict(controller=auth_controller)),
+            (r'/authorize', oauth2.tornadoweb.OAuth2Handler, dict(controller=auth_controller))
         ])
     """
     def initialize(self, controller):
