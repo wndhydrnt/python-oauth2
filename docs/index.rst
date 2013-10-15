@@ -8,6 +8,7 @@ Contents:
    :maxdepth: 1
 
    grant.rst
+   frameworks.rst
    web.rst
    error.rst
    oauth2.rst
