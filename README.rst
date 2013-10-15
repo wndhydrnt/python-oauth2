@@ -4,7 +4,7 @@ python-oauth2
 python-oauth2 is a framework that aims at making it easy to provide authentication
 via `OAuth 2.0 <http://tools.ietf.org/html/rfc6749>`_ within an application stack. 
 
-`Documentation <https://readthedocs.org/projects/python-oauth2/>`_
+`Documentation <http://python-oauth2.readthedocs.org/en/latest/index.html>`_
 
 Status
 ******
