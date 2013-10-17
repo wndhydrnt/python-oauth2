@@ -238,7 +238,7 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
         
         response.add_header("Location", self._generate_location(code))
         response.body = ""
-        response.status_code = "302 Found"
+        response.status_code = 302
         
         return response
     
@@ -252,7 +252,7 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
         
         location = "%s?%s" % (self.redirect_uri, query)
         
-        response.status_code = "302 Found"
+        response.status_code = 302
         response.body = ""
         response.add_header("Location", location)
         
@@ -323,7 +323,7 @@ class AuthorizationCodeTokenHandler(GrantHandler):
                                            token=access_token, user_data={})
         
         response.body = json.dumps(result)
-        response.status_code = "200 OK"
+        response.status_code = 200
         
         response.add_header("Content-type", "application/json")
         
@@ -336,7 +336,7 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         """
         msg = {"error": error.error}
         
-        response.status_code = "400 Bad Request"
+        response.status_code = 400
         response.add_header("Content-type", "application/json")
         response.body = json.dumps(msg)
         
@@ -487,7 +487,7 @@ class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
         
         response.add_header("Location", redirect_location)
         response.body = ""
-        response.status_code = "302 Moved Temporarily"
+        response.status_code = 302
         
         return response
     
@@ -500,7 +500,7 @@ class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
         if self.scope_handler.send_back is True:
             uri_with_fragment += "&scope=" + "%20".join(self.scope_handler.scopes)
         
-        response.status_code = "302 Moved Temporarily"
+        response.status_code = 302
         response.add_header("Location", uri_with_fragment)
         response.content = ""
         
@@ -574,7 +574,7 @@ class ResourceOwnerGrantHandler(GrantHandler):
             response_body["scope"] = " ".join(self.scope_handler.scopes)
         
         response.add_header("Content-Type", "application/json")
-        response.status_code = "200 OK"
+        response.status_code = 200
         response.body = json.dumps(response_body)
         
         return response
@@ -612,7 +612,7 @@ class ResourceOwnerGrantHandler(GrantHandler):
         """
         msg = {"error": error.error, "description": error.explanation}
         
-        response.status_code = "400 Bad Request"
+        response.status_code = 400
         response.add_header("Content-Type", "application/json")
         response.body = json.dumps(msg)
         

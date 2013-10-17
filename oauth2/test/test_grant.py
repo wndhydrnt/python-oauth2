@@ -239,7 +239,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
             client_id, code, DatetimeMock(1990, 1, 1, 0, 10, 0), redirect_uri,
             scopes, user_data
         )
-        self.assertEqual(response.status_code, "302 Found")
+        self.assertEqual(response.status_code, 302)
         self.assertEqual(response.body, "")
         response_mock.add_header.assert_called_with("Location", location_uri)
     
@@ -280,7 +280,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         response = handler.process(Mock(spec=Request), response_mock, environ)
         
         token_generator_mock.generate.assert_called_with()
-        self.assertEqual(response.status_code, "302 Found")
+        self.assertEqual(response.status_code, 302)
         self.assertEqual(response.body, "")
         response_mock.add_header.assert_called_with("Location", location_uri)
     
@@ -334,7 +334,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         
         response_mock.add_header.assert_called_with("Location",
                                                     expected_redirect)
-        response_mock.status_code = "302 Found"
+        response_mock.status_code = 302
         response_mock.body = ""
         self.assertEqual(result, response_mock)
     
@@ -657,7 +657,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
                                                               scopes=scopes,
                                                               token=access_token,
                                                               user_data={})
-        self.assertEqual(response.status_code, "200 OK")
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.body, json.dumps(expected_body))
         response_mock.add_header.assert_called_with("Content-type",
                                                     "application/json")
@@ -676,7 +676,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         
         response_mock.add_header.assert_called_with("Content-type",
                                                     "application/json")
-        self.assertEqual(response_mock.status_code, "400 Bad Request")
+        self.assertEqual(response_mock.status_code, 400)
         self.assertEqual(response_mock.body, json.dumps(expected_content))
         self.assertEqual(result, response_mock)
 
@@ -760,7 +760,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
                                                               user_data=user_id)
         responseMock.add_header.assert_called_with("Location",
                                                    redirect_uri_with_token)
-        self.assertEqual(responseMock.status_code, "302 Moved Temporarily")
+        self.assertEqual(responseMock.status_code, 302)
         self.assertEqual(responseMock.content, "")
         self.assertEqual(result_response, responseMock)
     
@@ -803,7 +803,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         
         response_mock.add_header.assert_called_with("Location",
                                                    expected_redirect_uri)
-        self.assertEqual(response_mock.status_code, "302 Moved Temporarily")
+        self.assertEqual(response_mock.status_code, 302)
         self.assertEqual(response_mock.content, "")
         self.assertEqual(result_response, response_mock)
     
@@ -840,7 +840,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         
         response_mock.add_header.assert_called_with("Location",
                                                    expected_redirect_uri)
-        self.assertEqual(response_mock.status_code, "302 Moved Temporarily")
+        self.assertEqual(response_mock.status_code, 302)
         self.assertEqual(response_mock.content, "")
         self.assertEqual(result_response, response_mock)
     
@@ -931,7 +931,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         
         response_mock.add_header.assert_called_with("Location",
                                                     expected_redirect_location)
-        self.assertEqual(altered_response.status_code, "302 Moved Temporarily")
+        self.assertEqual(altered_response.status_code, 302)
         self.assertEqual(altered_response.body, "")
 
 class ResourceOwnerGrantTestCase(unittest.TestCase):
@@ -1011,7 +1011,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
                                                               user)
         response_mock.add_header.assert_called_with("Content-Type",
                                                     "application/json")
-        self.assertEqual(result.status_code, "200 OK")
+        self.assertEqual(result.status_code, 200)
         self.assertEqual(json.loads(result.body), expected_response_body)
         self.assertEqual(result, response_mock)
     
@@ -1043,7 +1043,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         token_generator_mock.generate.assert_called_with()
         response_mock.add_header.assert_called_with("Content-Type",
                                                     "application/json")
-        self.assertEqual(result.status_code, "200 OK")
+        self.assertEqual(result.status_code, 200)
         self.assertDictEqual(expected_response_body, json.loads(result.body))
         self.assertEqual(result, response_mock)
     
