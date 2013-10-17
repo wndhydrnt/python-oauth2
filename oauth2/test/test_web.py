@@ -92,7 +92,7 @@ class RequestTestCase(unittest.TestCase):
 class WsgiTestCase(unittest.TestCase):
     def test_call(self):
         body = "body"
-        headers = [("header", "value")]
+        headers = {"header": "value"}
         path = "/authorize"
         status_code = "200 OK"
         
@@ -118,5 +118,5 @@ class WsgiTestCase(unittest.TestCase):
         request_class_mock.assert_called_with(environment)
         server_mock.dispatch.assert_called_with(request_mock,
                                                 {"myvar": "value"})
-        start_response_mock.assert_called_with(status_code, headers)
+        start_response_mock.assert_called_with(status_code, headers.items())
         self.assertEqual(result, [body])

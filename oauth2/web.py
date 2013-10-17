@@ -102,7 +102,7 @@ class Response(object):
     
     @property
     def headers(self):
-        return self._headers.items()
+        return self._headers
     
     def add_header(self, header, value):
         self._headers[header] = str(value)
@@ -137,6 +137,6 @@ class Wsgi(object):
         
         response = self.server.dispatch(request, environ)
         
-        start_response(response.status_code, response.headers)
+        start_response(response.status_code, response.headers.items())
         
         return [response.body]
