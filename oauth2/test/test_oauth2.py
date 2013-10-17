@@ -57,6 +57,6 @@ class AuthorizationControllerTestCase(unittest.TestCase):
         
         response_mock.add_header.assert_called_with("Content-type",
                                                     "application/json")
-        self.assertEqual(response_mock.status_code, "400 Bad Request")
+        self.assertEqual(response_mock.status_code, 400)
         self.assertEqual(response_mock.body, json.dumps(error_body))
         self.assertEqual(result, response_mock)

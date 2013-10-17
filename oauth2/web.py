@@ -96,7 +96,7 @@ class Response(object):
     Contains data returned to the requesting user agent.
     """
     def __init__(self):
-        self.status_code = "200 OK"
+        self.status_code = 200
         self._headers    = {"Content-type": "text/html"}
         self.body        = ""
     
@@ -108,6 +108,12 @@ class Response(object):
         self._headers[header] = str(value)
 
 class Wsgi(object):
+    HTTP_CODES = {200: "200 OK",
+                  301: "301 Moved Permanently",
+                  302: "302 Found",
+                  400: "400 Bad Request",
+                  404: "404 Not Found"}
+    
     def __init__(self, server, authorize_uri="/authorize", env_vars=None,
                  request_class=Request, token_uri="/token"):
         self.authorize_uri = authorize_uri
@@ -137,6 +143,7 @@ class Wsgi(object):
         
         response = self.server.dispatch(request, environ)
         
-        start_response(response.status_code, response.headers.items())
+        start_response(self.HTTP_CODES[response.status_code],
+                       response.headers.items())
         
         return [response.body]

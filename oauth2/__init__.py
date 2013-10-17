@@ -146,7 +146,7 @@ class AuthorizationController(object):
         except OAuthInvalidError as error:
             response = self.response_class()
             response.add_header("Content-type", "application/json")
-            response.status_code = "400 Bad Request"
+            response.status_code = 400
             json_body = {"error": error.error}
             if error.explanation is not None:
                 json_body["error_description"] = error.explanation

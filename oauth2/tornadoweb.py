@@ -63,7 +63,5 @@ class OAuth2Handler(tornado.web.RequestHandler):
         for name, value in list(response.headers.items()):
             self.set_header(name, value)
         
-        status_code_parts = response.status_code.split(" ")
-        
-        self.set_status(int(status_code_parts[0]))
+        self.set_status(response.status_code)
         self.write(response.body)
