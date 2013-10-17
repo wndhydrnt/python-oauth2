@@ -98,6 +98,4 @@ class OAuth2(object):
         
         response = self.controller.dispatch(Request(), environ={})
         
-        status_code_parts = response.status_code.split(" ")
-        
-        return response.body, int(status_code_parts[0]), response._headers
+        return response.body, response.status_code, response._headers
