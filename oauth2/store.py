@@ -19,7 +19,7 @@ class AccessTokenStore(object):
                           the token.
         
         """
-        pass
+        raise NotImplementedError
 
 class AuthTokenStore(object):
     """
@@ -34,7 +34,7 @@ class AuthTokenStore(object):
         :param code: The authorization code.
         
         """
-        pass
+        raise NotImplementedError
     
     def save_code(self, client_id, code, expires_at, redirect_uri, scopes,
                   user_data):
@@ -51,7 +51,7 @@ class AuthTokenStore(object):
                           the token.
         
         """
-        pass
+        raise NotImplementedError
 
 class ClientStore(object):
     """
@@ -64,7 +64,7 @@ class ClientStore(object):
         :param client_id: Identifier of a client app.
         
         """
-        pass
+        raise NotImplementedError
 
 class LocalClientStore(ClientStore):
     """
@@ -83,8 +83,10 @@ class LocalClientStore(ClientStore):
         
         """
         self.clients[client_id] = {"client_id": client_id,
-                                   "secret": client_secret,
+                                   "client_secret": client_secret,
                                    "redirect_uris": redirect_uris}
+        
+        return True
     
     def fetch_by_client_id(self, client_id):
         if client_id not in self.clients:
@@ -101,24 +103,28 @@ class LocalTokenStore(AccessTokenStore, AuthTokenStore):
     """
     def __init__(self):
         self.access_tokens = {}
-        self.auth_tokens   = {}
+        self.auth_codes   = {}
     
     def fetch_by_code(self, code):
-        if code not in self.auth_tokens:
+        if code not in self.auth_codes:
             return None
         
-        return self.auth_tokens[code]
+        return self.auth_codes[code]
     
     def save_code(self, client_id, code, expires_at, redirect_uri, scopes,
                   user_data):
-        self.auth_tokens[code] = {"client_id": client_id, "code": code,
+        self.auth_codes[code] = {"client_id": client_id, "code": code,
                                   "expired_at": expires_at,
                                   "redirect_uri": redirect_uri,
                                   "scopes": scopes, "user_data": user_data}
+        
+        return True
     
     def save_token(self, client_id, scopes, token, user_data):
         self.access_tokens[token] = {"client_id": client_id, "scopes": scopes,
                                      "user_data": user_data}
+        
+        return True
     
     def fetch_by_token(self, token):
         """
@@ -138,6 +144,15 @@ class MemcacheTokenStore(AccessTokenStore, AuthTokenStore):
     ``pylibmc`` first and falls back to ``python-memcached``. Arguments are
     passed to the underlying client implementation.
     
+    Initialization by passing an object::
+        
+        # This exmple uses python-memcached
+        import memcache
+        
+        mc = memcache.Client(servers=['127.0.0.1:11211'], debug=0)
+        
+        token_store = MemcacheTokenStore(mc=mc)
+    
     Initialization using pylibmc::
         
         token_store = MemcacheTokenStore(servers=["127.0.0.1"], binary=True,
@@ -149,15 +164,18 @@ class MemcacheTokenStore(AccessTokenStore, AuthTokenStore):
         token_store = MemcacheTokenStore(servers=['127.0.0.1:11211'], debug=0)
         
     """
-    def __init__(self, prefix="oauth2", *args, **kwargs):
+    def __init__(self, mc=None, prefix="oauth2", *args, **kwargs):
         self.prefix = prefix
         
-        try:
-            import pylibmc
-            self.mc = pylibmc.Client(*args, **kwargs)
-        except ImportError:
-            import memcache
-            self.mc = memcache.Client(*args, **kwargs)
+        if mc is not None:
+            self.mc = mc
+        else:
+            try:
+                import pylibmc
+                self.mc = pylibmc.Client(*args, **kwargs)
+            except ImportError:
+                import memcache
+                self.mc = memcache.Client(*args, **kwargs)
     
     def fetch_by_code(self, code):
         """
