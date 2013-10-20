@@ -1,4 +1,4 @@
-import unittest
+from oauth2.test import unittest
 from oauth2.store import MemcacheTokenStore, LocalTokenStore, LocalClientStore
 from mock import Mock
 from oauth2.error import ClientNotFoundError, AuthCodeNotFound
