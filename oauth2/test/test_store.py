@@ -18,7 +18,9 @@ class LocalClientStoreTestCase(unittest.TestCase):
         
         client = store.fetch_by_client_id("abc")
         
-        self.assertDictEqual(client, expected_client_data)
+        self.assertEqual(client.identifier, expected_client_data["client_id"])
+        self.assertEqual(client.secret, expected_client_data["client_secret"])
+        self.assertEqual(client.redirect_uris, expected_client_data["redirect_uris"])
     
     def test_fetch_by_client_id_no_client(self):
         store = LocalClientStore()
