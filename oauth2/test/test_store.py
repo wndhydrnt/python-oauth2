@@ -1,7 +1,8 @@
 import unittest
 from oauth2.store import MemcacheTokenStore, LocalTokenStore, LocalClientStore
 from mock import Mock
-from oauth2.error import ClientNotFoundError
+from oauth2.error import ClientNotFoundError, AuthCodeNotFound
+from oauth2 import AuthorizationCode
 
 class LocalClientStoreTestCase(unittest.TestCase):
     def test_add_client_and_fetch_by_client_id(self):
@@ -31,26 +32,24 @@ class LocalTokenStoreTestCase(unittest.TestCase):
         self.access_token_data = {"client_id": "myclient",
                                   "scopes": ["foo_read", "foo_write"],
                                   "user_data": {"name": "test"}}
-        self.auth_code_data = {"client_id": "myclient", "code": "abc",
-                               "expired_at": 100,
-                               "redirect_uri": "http://localhost",
-                               "scopes": ["foo_read", "foo_write"],
-                               "user_data": {"name": "test"}}
+        self.auth_code = AuthorizationCode("myclient", "abc", 100,
+                                           "http://localhost",
+                                           ["foo_read", "foo_write"],
+                                           {"name": "test"})
         
         self.test_store = LocalTokenStore()
     
+    def test_fetch_by_code(self):
+        with self.assertRaises(AuthCodeNotFound):
+            self.test_store.fetch_by_code("unknown")
+    
     def test_save_code_and_fetch_by_code(self):
-        success = self.test_store.save_code(self.auth_code_data["client_id"],
-                                            self.auth_code_data["code"],
-                                            self.auth_code_data["expired_at"],
-                                            self.auth_code_data["redirect_uri"],
-                                            self.auth_code_data["scopes"],
-                                            self.auth_code_data["user_data"])
+        success = self.test_store.save_code(self.auth_code)
         self.assertTrue(success)
         
-        result = self.test_store.fetch_by_code(self.auth_code_data["code"])
+        result = self.test_store.fetch_by_code(self.auth_code.code)
         
-        self.assertEqual(result, self.auth_code_data)
+        self.assertEqual(result, self.auth_code)
     
     def test_save_token_and_fetch_by_token(self):
         success = self.test_store.save_token(self.access_token_data["client_id"],
@@ -72,38 +71,52 @@ class MemcacheTokenStoreTestCase(unittest.TestCase):
     
     def test_fetch_by_code(self):
         code = "abc"
-        expected_result = {"client_id": "myclient", "code": code,
-                           "expired_at": 100,
-                           "redirect_uri": "http://localhost",
-                           "scopes": ["foo_read", "foo_write"],
-                           "user_data": {"name": "test"}}
+        saved_data = {"client_id": "myclient", "code": code,
+                      "expires_at": 100, "redirect_uri": "http://localhost",
+                      "scopes": ["foo_read", "foo_write"],
+                      "data": {"name": "test"}}
         
         mc_mock = Mock(spec=["get"])
-        mc_mock.get.return_value = expected_result
+        mc_mock.get.return_value = saved_data
         
         store = MemcacheTokenStore(mc=mc_mock, prefix=self.cache_prefix)
         
-        result = store.fetch_by_code(code)
+        auth_code = store.fetch_by_code(code)
         
         mc_mock.get.assert_called_with(self._generate_test_cache_key(code))
-        self.assertEqual(result, expected_result)
+        self.assertEqual(auth_code.client_id, saved_data["client_id"])
+        self.assertEqual(auth_code.code, saved_data["code"])
+        self.assertEqual(auth_code.expires_at, saved_data["expires_at"])
+        self.assertEqual(auth_code.redirect_uri, saved_data["redirect_uri"])
+        self.assertEqual(auth_code.scopes, saved_data["scopes"])
+        self.assertEqual(auth_code.data, saved_data["data"])
+    
+    def test_fetch_by_code_no_data(self):
+        mc_mock = Mock(spec=["get"])
+        mc_mock.get.return_value = None
+        
+        store = MemcacheTokenStore(mc=mc_mock, prefix=self.cache_prefix)
+        
+        with self.assertRaises(AuthCodeNotFound):
+            store.fetch_by_code("abc")
     
     def test_save_code(self):
-        data = {"client_id": "myclient", "code": "abc", "expired_at": 100,
+        data = {"client_id": "myclient", "code": "abc", "expires_at": 100,
                  "redirect_uri": "http://localhost",
                  "scopes": ["foo_read", "foo_write"],
-                 "user_data": {"name": "test"}}
+                 "data": {"name": "test"}}
+        
+        auth_code = AuthorizationCode(**data)
+        
         cache_key = self._generate_test_cache_key(data["code"])
         
         mc_mock = Mock(spec=["set"])
         
         store = MemcacheTokenStore(mc=mc_mock, prefix=self.cache_prefix)
         
-        store.save_code(data["client_id"], data["code"], data["expired_at"],
-                        data["redirect_uri"], data["scopes"],
-                        data["user_data"])
+        store.save_code(auth_code)
         
-        mc_mock.set.assert_called_with(cache_key, data)
+        mc_mock.set.assert_called_with(cache_key, auth_code)
     
     def test_save_token(self):
         token = "xyz"

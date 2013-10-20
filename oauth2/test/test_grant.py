@@ -9,16 +9,14 @@ from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler,\
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
     ClientNotFoundError
+from oauth2 import AuthorizationController, Client, AuthorizationCode
 
 # Mock datetime.now()
 # see http://stackoverflow.com/questions/4481954/python-trying-to-mock-datetime-date-today-but-not-working
-import datetime
-from oauth2 import AuthorizationController, Client
-class DatetimeMock(datetime.datetime):
-    @classmethod
-    def now(cls):
-        return cls(1990, 1, 1, 0, 0, 0)
-datetime.datetime = DatetimeMock
+import time
+def time():
+    return 1000
+time.time = time
 
 class AuthorizationCodeGrantTestCase(unittest.TestCase):
     def test_create_auth_handler(self):
@@ -37,7 +35,7 @@ class AuthorizationCodeGrantTestCase(unittest.TestCase):
         
         server_mock = Mock()
         server_mock.authorize_path = path
-        server_mock.auth_token_store = Mock()
+        server_mock.auth_code_store = Mock()
         server_mock.client_store = Mock()
         server_mock.site_adapter = Mock()
         server_mock.token_generator = Mock()
@@ -62,7 +60,7 @@ class AuthorizationCodeGrantTestCase(unittest.TestCase):
         server_mock.authorize_path = "/auth"
         server_mock.token_path = path
         server_mock.access_token_store = Mock(spec=AccessTokenStore)
-        server_mock.auth_token_store = Mock()
+        server_mock.auth_code_store = Mock()
         server_mock.client_store = Mock()
         server_mock.token_generator = Mock()
         
@@ -211,7 +209,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         
         location_uri = "%s?code=%s&state=%s" % (redirect_uri, code, state)
         
-        auth_token_store_mock = Mock(spec=AuthCodeStore)
+        auth_code_store_mock = Mock(spec=AuthCodeStore)
         
         response_mock = Mock(spec=Response)
         
@@ -228,7 +226,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         token_generator_mock.generate.return_value = code
         
         handler = AuthorizationCodeAuthHandler(
-            auth_token_store=auth_token_store_mock,
+            auth_token_store=auth_code_store_mock,
             client_store=Mock(), scope_handler=scope_handler_mock,
             site_adapter=site_adapter_mock,
             token_generator=token_generator_mock
@@ -242,10 +240,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         token_generator_mock.generate.assert_called_with()
         site_adapter_mock.authenticate.assert_called_with(request_mock,
                                                           environ)
-        auth_token_store_mock.save_code.assert_called_with(
-            client_id, code, DatetimeMock(1990, 1, 1, 0, 10, 0), redirect_uri,
-            scopes, user_data
-        )
+        self.assertTrue(auth_code_store_mock.save_code.called)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.body, "")
         response_mock.add_header.assert_called_with("Location", location_uri)
@@ -354,17 +349,18 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         redirect_uri = "http://callback"
         scopes = ["scope"]
         
+        auth_code = Mock(AuthorizationCode)
+        auth_code.code = code
+        auth_code.is_expired.return_value = False
+        auth_code.redirect_uri = redirect_uri
+        auth_code.scopes = scopes
+        
+        auth_code_store_mock = Mock(spec=AuthCodeStore)
+        auth_code_store_mock.fetch_by_code.return_value = auth_code
+        
         client_mock = Mock(Client)
         client_mock.secret = client_secret
         client_mock.redirect_uris = [redirect_uri]
-        
-        auth_token_store_mock = Mock(spec=AuthCodeStore)
-        auth_token_store_mock.fetch_by_code.return_value = {
-            "code": code,
-            "expired_at": DatetimeMock(1990, 1, 1, 0, 0, 0),
-            "redirect_uri": redirect_uri,
-            "scopes": scopes
-        }
         
         client_store_mock = Mock(spec=ClientStore)
         client_store_mock.fetch_by_client_id.return_value = client_mock
@@ -374,7 +370,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
                                                redirect_uri]
         
         handler = AuthorizationCodeTokenHandler(Mock(spec=AccessTokenStore),
-                                                auth_token_store_mock,
+                                                auth_code_store_mock,
                                                 client_store_mock, Mock())
         result = handler.read_validate_params(request_mock)
         
@@ -382,7 +378,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
                                                   call("client_secret"),
                                                   call("code"),
                                                   call("redirect_uri")])
-        auth_token_store_mock.fetch_by_code.assert_called_with(code)
+        auth_code_store_mock.fetch_by_code.assert_called_with(code)
         self.assertEqual(handler.client_id, client_id)
         self.assertEqual(handler.client_secret, client_secret)
         self.assertEqual(handler.code, code)
@@ -426,10 +422,11 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         code_actual   = "xyz"
         redirect_uri  = "http://callback"
         
-        auth_token_store_mock = Mock(spec=AuthCodeStore)
-        auth_token_store_mock.fetch_by_code.return_value = {
-            "code": code_expected
-        }
+        auth_code_mock = Mock(AuthorizationCode)
+        auth_code_mock.code = code_expected
+        
+        auth_code_store_mock = Mock(spec=AuthCodeStore)
+        auth_code_store_mock.fetch_by_code.return_value = auth_code_mock
         
         client_mock = Mock(Client)
         client_mock.secret = client_secret
@@ -443,7 +440,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
                                                code_actual, redirect_uri]
         
         handler = AuthorizationCodeTokenHandler(Mock(spec=AccessTokenStore),
-                                                auth_token_store_mock,
+                                                auth_code_store_mock,
                                                 client_store_mock, Mock())
         
         with self.assertRaises(OAuthInvalidError) as expected:
@@ -544,8 +541,8 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         code   = "xyz"
         redirect_uri = "http://callback"
         
-        auth_token_store_mock = Mock(spec=AuthCodeStore)
-        auth_token_store_mock.fetch_by_code.return_value = None
+        auth_code_store_mock = Mock(spec=AuthCodeStore)
+        auth_code_store_mock.fetch_by_code.return_value = None
         
         client_mock = Mock(Client)
         client_mock.secret = client_secret
@@ -559,7 +556,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
                                                code, redirect_uri]
         
         handler = AuthorizationCodeTokenHandler(Mock(spec=AccessTokenStore),
-                                                auth_token_store_mock,
+                                                auth_code_store_mock,
                                                 client_store_mock, Mock())
         
         with self.assertRaises(OAuthInvalidError) as expected:
@@ -578,11 +575,12 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         redirect_uri_actual = "http://invalid-callback"
         redirect_uri_expected = "http://callback"
         
-        auth_token_store_mock = Mock(spec=AuthCodeStore)
-        auth_token_store_mock.fetch_by_code.return_value = {
-            "code": code,
-            "redirect_uri": redirect_uri_actual
-        }
+        auth_code_mock = Mock(AuthorizationCode)
+        auth_code_mock.code = code
+        auth_code_mock.redirect_uri = redirect_uri_actual
+        
+        auth_code_store_mock = Mock(spec=AuthCodeStore)
+        auth_code_store_mock.fetch_by_code.return_value = auth_code_mock
         
         client_mock = Mock(Client)
         client_mock.secret = client_secret
@@ -596,7 +594,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
                                                code, redirect_uri_expected]
         
         handler = AuthorizationCodeTokenHandler(Mock(spec=AccessTokenStore),
-                                                auth_token_store_mock,
+                                                auth_code_store_mock,
                                                 client_store_mock, Mock())
         
         with self.assertRaises(OAuthInvalidError) as expected:
@@ -612,14 +610,14 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         client_secret = "t%gH"
         code   = "xyz"
         redirect_uri = "http://callback"
-        token_expired_at = DatetimeMock(1989, 12, 31, 23, 59, 59)
         
-        auth_token_store_mock = Mock(spec=AuthCodeStore)
-        auth_token_store_mock.fetch_by_code.return_value = {
-            "code": code,
-            "expired_at": token_expired_at,
-            "redirect_uri": redirect_uri
-        }
+        auth_code_mock = Mock(AuthorizationCode)
+        auth_code_mock.code = code
+        auth_code_mock.redirect_uri = redirect_uri
+        auth_code_mock.is_expired.return_value = True
+        
+        auth_code_store_mock = Mock(spec=AuthCodeStore)
+        auth_code_store_mock.fetch_by_code.return_value = auth_code_mock
         
         client_mock = Mock(Client)
         client_mock.secret = client_secret
@@ -633,7 +631,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
                                                code, redirect_uri]
         
         handler = AuthorizationCodeTokenHandler(Mock(spec=AccessTokenStore),
-                                                auth_token_store_mock,
+                                                auth_code_store_mock,
                                                 client_store_mock, Mock())
         
         with self.assertRaises(OAuthInvalidError) as expected:

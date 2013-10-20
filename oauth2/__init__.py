@@ -52,7 +52,7 @@ Example HTTP server::
     auth_controller = oauth2.AuthorizationController(
         # LocalTokenStore can store access and auth tokens
         access_token_store=token_store,
-        auth_token_store=token_store,
+        auth_code_store=token_store,
         client_store=client_store,
         site_adapter=TestSiteAdapter(),
         token_generator=oauth2.tokengenerator.Uuid4()
@@ -80,13 +80,31 @@ python-oauth2 is available on
 """
 
 import json
+import time
 import urllib
 from oauth2.error import OAuthInvalidError, OAuthUserError
-from oauth2.grant import AuthRequestMixin
 from oauth2.web import Request, Response
 from oauth2.tokengenerator import Uuid4
 
 VERSION = "0.2.0"
+
+class AuthorizationCode(object):
+    """
+    Holds an authorization code and additional information.
+    """
+    def __init__(self, client_id, code, expires_at, redirect_uri, scopes,
+                 data=None):
+        self.client_id    = client_id
+        self.code         = code
+        self.expires_at   = expires_at
+        self.redirect_uri = redirect_uri
+        self.scopes       = scopes
+        self.data         = data
+    
+    def is_expired(self):
+        if self.expires_at < int(time.time()):
+            return True
+        return False
 
 class Client(object):
     """
@@ -109,7 +127,7 @@ class AuthorizationController(object):
     
     :param access_token_store: Stores access tokens.
                                See ``oauth2.store.AccessTokenStore``.
-    :param auth_token_store: Stores and retrieves auth tokens.
+    :param auth_code_store: Stores and retrieves auth tokens.
                              See ``oauth2.store.AuthTokenStore``.
     :param client_store: Retrieves clients. See ``oauth2.store.ClientStore``.
     :param site_adapter: Contains logic to display messages to the user.
@@ -126,7 +144,7 @@ class AuthorizationController(object):
         self._input_handler = None
         
         self.access_token_store = access_token_store
-        self.auth_token_store   = auth_token_store
+        self.auth_code_store   = auth_token_store
         self.client_store       = client_store
         self.response_class     = response_class
         self.site_adapter       = site_adapter

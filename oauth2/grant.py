@@ -27,11 +27,12 @@ So there are two remaining parties:
 * The server that issues the access.
 
 """
-import datetime
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
     ClientNotFoundError
 from oauth2.compatibility import urlencode, quote
 import json
+import time
+from oauth2 import AuthorizationCode
 
 class Scope(object):
     """
@@ -210,7 +211,7 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
     
     def __init__(self, auth_token_store, client_store, scope_handler,
                  site_adapter, token_generator):
-        self.auth_token_store = auth_token_store
+        self.auth_code_store = auth_token_store
         
         AuthRequestMixin.__init__(self, client_store, scope_handler,
                                   site_adapter, token_generator)
@@ -230,12 +231,15 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
                                                       self.scope_handler.scopes)
         
         code = self.token_generator.generate()
-        current_time = datetime.datetime.now()
-        expiration_delta = datetime.timedelta(seconds=self.token_expiration)
-        expires = current_time + expiration_delta
-        self.auth_token_store.save_code(self.client_id, code, expires,
-                                        self.redirect_uri,
-                                        self.scope_handler.scopes, user_data)
+        expires = int(time.time()) + self.token_expiration
+        
+        auth_code = AuthorizationCode(client_id=self.client_id, code=code,
+                                      expires_at=expires,
+                                      redirect_uri=self.redirect_uri,
+                                      scopes=self.scope_handler.scopes,
+                                      data=user_data)
+        
+        self.auth_code_store.save_code(auth_code)
         
         response.add_header("Location", self._generate_location(code))
         response.body = ""
@@ -284,7 +288,7 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         self.scopes        = []
         
         self.access_token_store = access_token_store
-        self.auth_token_store   = auth_token_store
+        self.auth_code_store   = auth_token_store
         self.client_store       = client_store
         self.token_generator    = token_generator
     
@@ -373,28 +377,27 @@ class AuthorizationCodeTokenHandler(GrantHandler):
                                   explanation="Invalid redirect_uri parameter")
     
     def _validate_code(self):
-        stored_code = self.auth_token_store.fetch_by_code(self.code)
+        stored_code = self.auth_code_store.fetch_by_code(self.code)
         
         if stored_code is None:
             raise OAuthInvalidError(error="invalid_request",
                                   explanation="Invalid authorization code " \
                                               "parameter")
         
-        if stored_code["code"] != self.code:
+        if stored_code.code != self.code:
             raise OAuthInvalidError(error="invalid_grant",
                                   explanation="Invalid code parameter in " \
                                               "request")
         
-        if stored_code["redirect_uri"] != self.redirect_uri:
+        if stored_code.redirect_uri != self.redirect_uri:
             raise OAuthInvalidError(error="invalid_request",
                                   explanation="Invalid redirect_uri parameter")
         
-        current_time = datetime.datetime.now()
-        if current_time > stored_code["expired_at"]:
+        if stored_code.is_expired():
             raise OAuthInvalidError(error="invalid_grant",
                                   explanation="Authorization code has expired")
         
-        self.scopes = stored_code["scopes"]
+        self.scopes = stored_code.scopes
 
 class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
     """
@@ -413,7 +416,7 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
         if (request.post_param("grant_type") == "authorization_code"
             and request.path == server.token_path):
             return AuthorizationCodeTokenHandler(server.access_token_store,
-                                                 server.auth_token_store,
+                                                 server.auth_code_store,
                                                  server.client_store,
                                                  server.token_generator)
         
@@ -421,7 +424,7 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
             and request.path == server.authorize_path):
             scope_handler = self._create_scope_handler()
             
-            return AuthorizationCodeAuthHandler(server.auth_token_store,
+            return AuthorizationCodeAuthHandler(server.auth_code_store,
                                                 server.client_store,
                                                 scope_handler,
                                                 server.site_adapter,

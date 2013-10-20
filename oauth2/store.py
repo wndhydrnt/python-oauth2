@@ -1,7 +1,8 @@
 """
 Store adapters to persist data during the OAuth 2.0 process.
 """
-from oauth2.error import ClientNotFoundError
+from oauth2.error import ClientNotFoundError, AuthCodeNotFound
+from oauth2 import AuthorizationCode
 
 class AccessTokenStore(object):
     """
@@ -33,23 +34,17 @@ class AuthCodeStore(object):
         ``None`` if no data was found.
         
         :param code: The authorization code.
+        :return: An instance of ``oauth2.AuthorizationCode``.
+        :raises: AuthCodeNotFound
         
         """
         raise NotImplementedError
     
-    def save_code(self, client_id, code, expires_at, redirect_uri, scopes,
-                  user_data):
+    def save_code(self, authorization_code):
         """
         Stores the data belonging to an authorization code token.
         
-        :param client_id: Identifier of the client the token is issued.
-        :param code: The authorization code.
-        :param expires_at: ``datetime.datetime`` the authorization code will
-                           expire.
-        :param redirect_uri: Redirect URI used in the token request.
-        :param scopes: List of scopes requested by a client.
-        :param user_data: Dictionary containing additional data to save with
-                          the token.
+        :param authorization_code: An instance of ``oauth2.AuthorizationCode``.
         
         """
         raise NotImplementedError
@@ -110,16 +105,12 @@ class LocalTokenStore(AccessTokenStore, AuthCodeStore):
     
     def fetch_by_code(self, code):
         if code not in self.auth_codes:
-            return None
+            raise AuthCodeNotFound
         
         return self.auth_codes[code]
     
-    def save_code(self, client_id, code, expires_at, redirect_uri, scopes,
-                  user_data):
-        self.auth_codes[code] = {"client_id": client_id, "code": code,
-                                  "expired_at": expires_at,
-                                  "redirect_uri": redirect_uri,
-                                  "scopes": scopes, "user_data": user_data}
+    def save_code(self, authorization_code):
+        self.auth_codes[authorization_code.code] = authorization_code
         
         return True
     
@@ -188,22 +179,23 @@ class MemcacheTokenStore(AccessTokenStore, AuthCodeStore):
         See ``oauth2.store.AuthCodeStore``.
         
         """
-        return self.mc.get(self._generate_cache_key(code))
+        code_data = self.mc.get(self._generate_cache_key(code))
+        
+        if code_data is None:
+            raise AuthCodeNotFound
+        
+        return AuthorizationCode(**code_data)
     
-    def save_code(self, client_id, code, expired_at, redirect_uri, scopes,
-                  user_data):
+    def save_code(self, authorization_code):
         """
         Stores the data belonging to an authorization code token in memcache.
         
         See ``oauth2.store.AuthCodeStore``.
         
         """
-        key = self._generate_cache_key(code)
+        key = self._generate_cache_key(authorization_code.code)
         
-        self.mc.set(key, {"client_id": client_id, "code": code,
-                          "expired_at": expired_at,
-                          "redirect_uri": redirect_uri, "scopes": scopes,
-                          "user_data": user_data})
+        self.mc.set(key, authorization_code)
     
     def save_token(self, client_id, scopes, token, user_data):
         """
