@@ -9,7 +9,8 @@ from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler,\
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
     ClientNotFoundError
-from oauth2 import AuthorizationController, Client, AuthorizationCode
+from oauth2 import AuthorizationController, Client, AuthorizationCode,\
+    AccessToken
 
 # Mock datetime.now()
 # see http://stackoverflow.com/questions/4481954/python-trying-to-mock-datetime-date-today-but-not-working
@@ -666,7 +667,8 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         handler.scopes    = scopes
         response = handler.process(Mock(spec=Request), response_mock, {})
         
-        self.assertTrue(access_token_store_mock.save_token.called)
+        access_token, = access_token_store_mock.save_token.call_args[0]
+        self.assertTrue(isinstance(access_token, AccessToken))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.body, json.dumps(expected_body))
         response_mock.add_header.assert_called_with("Content-type",
@@ -765,7 +767,8 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         site_adapter_mock.authenticate.assert_called_with(request_mock,
                                                           environ)
         
-        self.assertTrue(access_token_store_mock.save_token.called)
+        access_token, = access_token_store_mock.save_token.call_args[0]
+        self.assertTrue(isinstance(access_token, AccessToken))
         
         responseMock.add_header.assert_called_with("Location",
                                                    redirect_uri_with_token)
@@ -1018,7 +1021,8 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         
         site_adapter_mock.authenticate.assert_called_with(request_mock, {})
         token_generator_mock.generate.assert_called_with()
-        self.assertTrue(access_token_store_mock.save_token.called)
+        access_token, = access_token_store_mock.save_token.call_args[0]
+        self.assertTrue(isinstance(access_token, AccessToken))
         response_mock.add_header.assert_called_with("Content-Type",
                                                     "application/json")
         self.assertEqual(result.status_code, 200)
