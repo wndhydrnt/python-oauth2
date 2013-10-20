@@ -23,7 +23,7 @@ class SiteAdapter(object):
                  successfully and allowed the access. This value will be
                  stored together with the generated access token.
         """
-        pass
+        raise NotImplementedError
     
     def render_auth_page(self, request, response, environ):
         """
@@ -35,7 +35,7 @@ class SiteAdapter(object):
         :return: The response passed in a parameter.
                  It can contain HTML or issue a redirect.
         """
-        pass
+        raise NotImplementedError
     
     def user_has_denied_access(self, request):
         """
@@ -45,7 +45,7 @@ class SiteAdapter(object):
         :param request: An instance of :class:`oauth2.web.Request`.
         :return: Return ``True`` if the user has denied access.
         """
-        pass
+        raise NotImplementedError
 
 class Request(object):
     """
