@@ -188,11 +188,11 @@ class AuthRequestMixin(object):
         redirect_uri = request.get_param("redirect_uri")
         
         if (redirect_uri is not None
-            and redirect_uri not in client_data["redirect_uris"]):
+            and client_data.has_redirect_uri(redirect_uri) == False):
             raise OAuthInvalidError(error="invalid_request",
                                     explanation="redirect_uri is not registered for this client")
         else:
-            self.redirect_uri = client_data["redirect_uris"][0]
+            self.redirect_uri = client_data.redirect_uris[0]
         
         self.state = request.get_param("state")
         
@@ -364,11 +364,11 @@ class AuthorizationCodeTokenHandler(GrantHandler):
             raise OAuthClientError(error="invalid_client",
                                    explanation="Unknown client")
         
-        if client["secret"] != self.client_secret:
+        if client.secret != self.client_secret:
             raise OAuthClientError(error="invalid_client",
                                    explanation="Invalid client_secret")
         
-        if self.redirect_uri not in client["redirect_uris"]:
+        if client.has_redirect_uri(self.redirect_uri) == False:
             raise OAuthInvalidError(error="invalid_request",
                                   explanation="Invalid redirect_uri parameter")
     
@@ -596,7 +596,7 @@ class ResourceOwnerGrantHandler(GrantHandler):
             raise OAuthInvalidError(error="invalid_request",
                                   explanation="Unknown client")
         
-        if client["secret"] != request.post_param("client_secret"):
+        if client.secret != request.post_param("client_secret"):
             raise OAuthInvalidError(error="invalid_request",
                                   explanation="Could not authenticate client")
         

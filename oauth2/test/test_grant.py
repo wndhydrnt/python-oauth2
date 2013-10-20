@@ -13,7 +13,7 @@ from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
 # Mock datetime.now()
 # see http://stackoverflow.com/questions/4481954/python-trying-to-mock-datetime-date-today-but-not-working
 import datetime
-from oauth2 import AuthorizationController
+from oauth2 import AuthorizationController, Client
 class DatetimeMock(datetime.datetime):
     @classmethod
     def now(cls):
@@ -94,13 +94,16 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         redirect_uri = "http://somewhere"
         state        = "state"
         
+        client_mock = Mock(Client)
+        client_mock.redirect_uris = [redirect_uri]
+        
         request_mock = Mock(spec=Request)
         request_mock.get_param.side_effect = [client_id, redirect_uri, state]
         
         scope_handler_mock = Mock(Scope)
         
         clientStoreMock = Mock(spec=ClientStore)
-        clientStoreMock.fetch_by_client_id.return_value = {"redirect_uris": [redirect_uri]}
+        clientStoreMock.fetch_by_client_id.return_value = client_mock
         
         handler = AuthRequestMixin(client_store=clientStoreMock,
                                    site_adapter=Mock(),
@@ -172,11 +175,14 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         client_id = "abc"
         redirect_uri = "http://endpoint-one"
         
+        client_mock = Mock(Client)
+        client_mock.has_redirect_uri.return_value = False
+        
         request_mock = Mock(spec=Request)
         request_mock.get_param.side_effect = [client_id, redirect_uri]
         
         clientStoreMock = Mock(spec=ClientStore)
-        clientStoreMock.fetch_by_client_id.return_value = {"redirect_uris": ["http://endpoint-two"]}
+        clientStoreMock.fetch_by_client_id.return_value = client_mock
         
         handler = AuthRequestMixin(client_store=clientStoreMock,
                                    scope_handler=Mock(), site_adapter=Mock(),
@@ -348,6 +354,10 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         redirect_uri = "http://callback"
         scopes = ["scope"]
         
+        client_mock = Mock(Client)
+        client_mock.secret = client_secret
+        client_mock.redirect_uris = [redirect_uri]
+        
         auth_token_store_mock = Mock(spec=AuthTokenStore)
         auth_token_store_mock.fetch_by_code.return_value = {
             "code": code,
@@ -357,10 +367,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         }
         
         client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = {
-            "redirect_uris": [redirect_uri],
-            "secret": client_secret
-        }
+        client_store_mock.fetch_by_client_id.return_value = client_mock
         
         request_mock = Mock(spec=Request)
         request_mock.post_param.side_effect = [client_id, client_secret, code,
@@ -389,10 +396,11 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         code = None
         redirect_uri = "http://callback"
         
+        client_mock = Mock(Client)
+        client_mock.secret = client_secret
+        
         client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = {
-            "secret": client_secret
-        }
+        client_store_mock.fetch_by_client_id.return_value = client_mock
         
         request_mock = Mock(spec=Request)
         request_mock.post_param.side_effect = [client_id, client_secret, code,
@@ -423,11 +431,12 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
             "code": code_expected
         }
         
+        client_mock = Mock(Client)
+        client_mock.secret = client_secret
+        client_mock.redirect_uris = [redirect_uri]
+        
         client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = {
-            "redirect_uris": [redirect_uri],
-            "secret": client_secret
-        }
+        client_store_mock.fetch_by_client_id.return_value = client_mock
         
         request_mock = Mock(spec=Request)
         request_mock.post_param.side_effect = [client_id, client_secret,
@@ -477,10 +486,12 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         code   = "xyz"
         redirect_uri  = "http://callback"
         
+        client_mock = Mock(Client)
+        client_mock.secret = client_secret_expected
+        client_mock.redirect_uris = [redirect_uri]
+        
         client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = {
-            "secret": client_secret_expected
-        }
+        client_store_mock.fetch_by_client_id.return_value = client_mock
         
         request_mock = Mock(spec=Request)
         request_mock.post_param.side_effect = [client_id, client_secret_actual,
@@ -502,18 +513,18 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         client_id     = "abc"
         client_secret = "t%gH"
         code   = "xyz"
-        redirect_uri_actual = "http://invalid-callback"
-        redirect_uri_expected = "http://callback"
+        redirect_uri = "http://invalid-callback"
+        
+        client_mock = Mock(Client)
+        client_mock.secret = client_secret
+        client_mock.has_redirect_uri.return_value = False
         
         client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = {
-            "redirect_uris": [redirect_uri_expected],
-            "secret": client_secret
-        }
+        client_store_mock.fetch_by_client_id.return_value = client_mock
         
         request_mock = Mock(spec=Request)
         request_mock.post_param.side_effect = [client_id, client_secret,
-                                               code, redirect_uri_actual]
+                                               code, redirect_uri]
         
         handler = AuthorizationCodeTokenHandler(Mock(spec=AccessTokenStore),
                                                 Mock(spec=AuthTokenStore),
@@ -536,11 +547,12 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         auth_token_store_mock = Mock(spec=AuthTokenStore)
         auth_token_store_mock.fetch_by_code.return_value = None
         
+        client_mock = Mock(Client)
+        client_mock.secret = client_secret
+        client_mock.redirect_uris = [redirect_uri]
+        
         client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = {
-            "redirect_uris": [redirect_uri],
-            "secret": client_secret
-        }
+        client_store_mock.fetch_by_client_id.return_value = client_mock
         
         request_mock = Mock(spec=Request)
         request_mock.post_param.side_effect = [client_id, client_secret,
@@ -572,11 +584,12 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
             "redirect_uri": redirect_uri_actual
         }
         
+        client_mock = Mock(Client)
+        client_mock.secret = client_secret
+        client_mock.redirect_uris = [redirect_uri_expected]
+        
         client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = {
-            "redirect_uris": [redirect_uri_expected],
-            "secret": client_secret
-        }
+        client_store_mock.fetch_by_client_id.return_value = client_mock
         
         request_mock = Mock(spec=Request)
         request_mock.post_param.side_effect = [client_id, client_secret,
@@ -608,11 +621,12 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
             "redirect_uri": redirect_uri
         }
         
+        client_mock = Mock(Client)
+        client_mock.secret = client_secret
+        client_mock.redirect_uris = [redirect_uri]
+        
         client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = {
-            "redirect_uris": [redirect_uri],
-            "secret": client_secret
-        }
+        client_store_mock.fetch_by_client_id.return_value = client_mock
         
         request_mock = Mock(spec=Request)
         request_mock.post_param.side_effect = [client_id, client_secret,
@@ -909,8 +923,12 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         state        = "state"
         expected_redirect_location = "%s#error=%s" % (redirect_uri, error_code)
         
+        client_mock = Mock(Client)
+        client_mock.redirect_uris = [redirect_uri]
+        client_mock.has_redirect_uri.return_value = True
+        
         client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = {"redirect_uris": [redirect_uri]}
+        client_store_mock.fetch_by_client_id.return_value = client_mock
         
         error_mock = Mock(spec=OAuthUserError)
         error_mock.error = error_code
@@ -1054,8 +1072,11 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         password      = "johnpw"
         username      = "johndoe"
         
+        client_mock = Mock(Client)
+        client_mock.secret = client_secret
+        
         client_store_mock = Mock(ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = {"secret": client_secret}
+        client_store_mock.fetch_by_client_id.return_value = client_mock
         
         request_mock = Mock(Request)
         request_mock.post_param.side_effect = [client_id, client_secret,
@@ -1124,8 +1145,11 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         client_secret_actual = "foo"
         client_secret_expected = "xyz"
         
+        client_mock = Mock(Client)
+        client_mock.secret = client_secret_expected
+        
         client_store_mock = Mock(ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = {"secret": client_secret_expected}
+        client_store_mock.fetch_by_client_id.return_value = client_mock
         
         request_mock = Mock(Request)
         request_mock.post_param.side_effect = [client_id, client_secret_actual]

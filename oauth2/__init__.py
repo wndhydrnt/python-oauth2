@@ -88,6 +88,21 @@ from oauth2.tokengenerator import Uuid4
 
 VERSION = "0.2.0"
 
+class Client(object):
+    """
+    Representation of a client application.
+    """
+    def __init__(self, identifier, secret, redirect_uris=[]):
+        self.identifier    = identifier
+        self.secret        = secret,
+        self.redirect_uris = redirect_uris
+    
+    def has_redirect_uri(self, uri):
+        """
+        Checks if a uri is associated with the client.
+        """
+        return uri in self.redirect_uris
+
 class AuthorizationController(object):
     """
     Endpoint of requests to the OAuth 2.0 server.
