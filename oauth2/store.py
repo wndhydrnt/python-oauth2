@@ -22,7 +22,7 @@ class AccessTokenStore(object):
         """
         raise NotImplementedError
 
-class AuthTokenStore(object):
+class AuthCodeStore(object):
     """
     Base class for writing and retrieving an auth token during three-legged
     OAuth2 requests.
@@ -97,7 +97,7 @@ class LocalClientStore(ClientStore):
         
         return self.clients[client_id]
 
-class LocalTokenStore(AccessTokenStore, AuthTokenStore):
+class LocalTokenStore(AccessTokenStore, AuthCodeStore):
     """
     Store tokens in memory.
     
@@ -139,7 +139,7 @@ class LocalTokenStore(AccessTokenStore, AuthTokenStore):
         
         return self.access_tokens[token]
 
-class MemcacheTokenStore(AccessTokenStore, AuthTokenStore):
+class MemcacheTokenStore(AccessTokenStore, AuthCodeStore):
     """
     Store class that uses memcache to store access tokens and auth tokens.
     
@@ -185,7 +185,7 @@ class MemcacheTokenStore(AccessTokenStore, AuthTokenStore):
         Returns data belonging to an authorization code from memcache or
         ``None`` if no data was found.
         
-        See ``oauth2.store.AuthTokenStore``.
+        See ``oauth2.store.AuthCodeStore``.
         
         """
         return self.mc.get(self._generate_cache_key(code))
@@ -195,7 +195,7 @@ class MemcacheTokenStore(AccessTokenStore, AuthTokenStore):
         """
         Stores the data belonging to an authorization code token in memcache.
         
-        See ``oauth2.store.AuthTokenStore``.
+        See ``oauth2.store.AuthCodeStore``.
         
         """
         key = self._generate_cache_key(code)
