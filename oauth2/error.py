@@ -2,6 +2,13 @@
 Errors raised during the OAuth 2.0 flow.
 """
 
+class ClientNotFoundError(Exception):
+    """
+    Error raised by an implementation of ``oauth2.store.ClientStore`` when a
+    client does not exists.
+    """
+    pass
+
 class OAuthBaseError(Exception):
     """
     Base class used by all OAuth 2.0 errors.

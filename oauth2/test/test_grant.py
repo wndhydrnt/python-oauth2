@@ -7,7 +7,8 @@ from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler,\
     AuthorizationCodeGrant, ResourceOwnerGrantHandler, ResourceOwnerGrant,\
     Scope
 from oauth2.store import ClientStore, AuthTokenStore, AccessTokenStore
-from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError
+from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
+    ClientNotFoundError
 
 # Mock datetime.now()
 # see http://stackoverflow.com/questions/4481954/python-trying-to-mock-datetime-date-today-but-not-working
@@ -138,7 +139,7 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         self.assertEqual(e.error, "invalid_request")
         self.assertEqual(e.explanation, "Missing client_id parameter")
     
-    def test_read_validate_params_invalid_client_id(self):
+    def test_read_validate_params_unknown_client_id(self):
         """
         AuthRequestMixin.read_validate_params should raise an OAuthInvalidError if no client with given client_id exists
         """
@@ -148,7 +149,7 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         request_mock.get_param.return_value = client_id
         
         clientStoreMock = Mock(spec=ClientStore)
-        clientStoreMock.fetch_by_client_id.return_value = None
+        clientStoreMock.fetch_by_client_id.side_effect = ClientNotFoundError
         
         handler = AuthRequestMixin(client_store=clientStoreMock,
                                    scope_handler=Mock(), site_adapter=Mock(),
@@ -451,7 +452,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         redirect_uri  = "http://callback"
         
         client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = None
+        client_store_mock.fetch_by_client_id.side_effect = ClientNotFoundError
         
         request_mock = Mock(spec=Request)
         request_mock.post_param.side_effect = [client_id, client_secret, code,
@@ -1099,7 +1100,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         client_id = "abcd"
         
         client_store_mock = Mock(ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = None
+        client_store_mock.fetch_by_client_id.side_effect = ClientNotFoundError
         
         request_mock = Mock(Request)
         request_mock.post_param.return_value = client_id

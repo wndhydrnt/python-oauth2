@@ -1,6 +1,7 @@
 """
 Store adapters to persist data during the OAuth 2.0 process.
 """
+from oauth2.error import ClientNotFoundError
 
 class AccessTokenStore(object):
     """
@@ -62,6 +63,8 @@ class ClientStore(object):
         Retrieve data of a client by its client identifier.
         
         :param client_id: Identifier of a client app.
+        :return: An instance of ``oauth2.Client``.
+        :raises: ClientNotFoundError
         
         """
         raise NotImplementedError
@@ -90,7 +93,7 @@ class LocalClientStore(ClientStore):
     
     def fetch_by_client_id(self, client_id):
         if client_id not in self.clients:
-            return None
+            raise ClientNotFoundError
         
         return self.clients[client_id]
 

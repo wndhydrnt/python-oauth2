@@ -28,7 +28,8 @@ So there are two remaining parties:
 
 """
 import datetime
-from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError
+from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
+    ClientNotFoundError
 from oauth2.compatibility import urlencode, quote
 import json
 
@@ -178,9 +179,9 @@ class AuthRequestMixin(object):
                                   explanation="Missing client_id parameter")
         self.client_id = client_id
         
-        client_data = self.client_store.fetch_by_client_id(self.client_id)
-        
-        if client_data is None:
+        try:
+            client_data = self.client_store.fetch_by_client_id(self.client_id)
+        except ClientNotFoundError:
             raise OAuthInvalidError(error="invalid_request",
                                   explanation="No client registered")
         
@@ -357,9 +358,9 @@ class AuthorizationCodeTokenHandler(GrantHandler):
                                               "in request")
     
     def _validate_client(self):
-        client = self.client_store.fetch_by_client_id(self.client_id)
-        
-        if client is None:
+        try:
+            client = self.client_store.fetch_by_client_id(self.client_id)
+        except ClientNotFoundError:
             raise OAuthClientError(error="invalid_client",
                                    explanation="Unknown client")
         
@@ -589,9 +590,9 @@ class ResourceOwnerGrantHandler(GrantHandler):
             raise OAuthInvalidError(error="invalid_request",
                                   explanation="Missing client_id parameter")
         
-        client = self.client_store.fetch_by_client_id(self.client_id)
-        
-        if client is None:
+        try:
+            client = self.client_store.fetch_by_client_id(self.client_id)
+        except ClientNotFoundError:
             raise OAuthInvalidError(error="invalid_request",
                                   explanation="Unknown client")
         

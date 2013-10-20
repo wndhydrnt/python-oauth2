@@ -1,6 +1,7 @@
 import unittest
 from oauth2.store import MemcacheTokenStore, LocalTokenStore, LocalClientStore
 from mock import Mock
+from oauth2.error import ClientNotFoundError
 
 class LocalClientStoreTestCase(unittest.TestCase):
     def test_add_client_and_fetch_by_client_id(self):
@@ -17,6 +18,12 @@ class LocalClientStoreTestCase(unittest.TestCase):
         client = store.fetch_by_client_id("abc")
         
         self.assertDictEqual(client, expected_client_data)
+    
+    def test_fetch_by_client_id_no_client(self):
+        store = LocalClientStore()
+        
+        with self.assertRaises(ClientNotFoundError):
+            store.fetch_by_client_id("abc")
 
 class LocalTokenStoreTestCase(unittest.TestCase):
     def setUp(self):
