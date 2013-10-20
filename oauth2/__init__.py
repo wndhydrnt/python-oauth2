@@ -122,7 +122,7 @@ class Client(object):
     """
     def __init__(self, identifier, secret, redirect_uris=[]):
         self.identifier    = identifier
-        self.secret        = secret,
+        self.secret        = secret
         self.redirect_uris = redirect_uris
     
     def has_redirect_uri(self, uri):

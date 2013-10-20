@@ -2,7 +2,7 @@
 Store adapters to persist data during the OAuth 2.0 process.
 """
 from oauth2.error import ClientNotFoundError, AuthCodeNotFound
-from oauth2 import AuthorizationCode
+from oauth2 import AuthorizationCode, Client
 
 class AccessTokenStore(object):
     """
@@ -76,9 +76,9 @@ class LocalClientStore(ClientStore):
         :param redirect_uris: A list of URIs to redirect to.
         
         """
-        self.clients[client_id] = {"client_id": client_id,
-                                   "client_secret": client_secret,
-                                   "redirect_uris": redirect_uris}
+        self.clients[client_id] = Client(identifier=client_id,
+                                         secret=client_secret,
+                                         redirect_uris=redirect_uris)
         
         return True
     
