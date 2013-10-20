@@ -10,15 +10,11 @@ class AccessTokenStore(object):
     
     Used by two-legged and three-legged authentication flows.
     """
-    def save_token(self, client_id, scopes, token, user_data):
+    def save_token(self, access_token):
         """
         Stores the access token and additional data.
         
-        :param client_id: Identifier of the client the token is issued.
-        :param scopes: List of scopes requested by a client.
-        :param token: The access token.
-        :param user_data: Dictionary containing additional data to save with
-                          the token.
+        :param client_id: An instane of ``oauth2.AccessToken``.
         
         """
         raise NotImplementedError
@@ -114,9 +110,8 @@ class LocalTokenStore(AccessTokenStore, AuthCodeStore):
         
         return True
     
-    def save_token(self, client_id, scopes, token, user_data):
-        self.access_tokens[token] = {"client_id": client_id, "scopes": scopes,
-                                     "user_data": user_data}
+    def save_token(self, access_token):
+        self.access_tokens[access_token.token] = access_token
         
         return True
     
@@ -197,17 +192,16 @@ class MemcacheTokenStore(AccessTokenStore, AuthCodeStore):
         
         self.mc.set(key, authorization_code)
     
-    def save_token(self, client_id, scopes, token, user_data):
+    def save_token(self, access_token):
         """
         Stores the access token and additional data in memcache.
         
         See ``oauth2.store.AccessTokenStore``.
         
         """
-        key = self._generate_cache_key(token)
+        key = self._generate_cache_key(access_token.token)
         
-        self.mc.set(key, {"client_id": client_id, "scopes": scopes,
-                          "user_data": user_data})
+        self.mc.set(key, access_token)
     
     def _generate_cache_key(self, identifier):
         return self.prefix + "_" + identifier

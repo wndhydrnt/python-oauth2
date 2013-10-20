@@ -2,7 +2,7 @@ from oauth2.test import unittest
 from oauth2.store import MemcacheTokenStore, LocalTokenStore, LocalClientStore
 from mock import Mock
 from oauth2.error import ClientNotFoundError, AuthCodeNotFound
-from oauth2 import AuthorizationCode
+from oauth2 import AuthorizationCode, AccessToken
 
 class LocalClientStoreTestCase(unittest.TestCase):
     def test_add_client_and_fetch_by_client_id(self):
@@ -28,10 +28,10 @@ class LocalClientStoreTestCase(unittest.TestCase):
 
 class LocalTokenStoreTestCase(unittest.TestCase):
     def setUp(self):
-        self.access_token = "xyz"
         self.access_token_data = {"client_id": "myclient",
+                                  "token": "xyz",
                                   "scopes": ["foo_read", "foo_write"],
-                                  "user_data": {"name": "test"}}
+                                  "data": {"name": "test"}}
         self.auth_code = AuthorizationCode("myclient", "abc", 100,
                                            "http://localhost",
                                            ["foo_read", "foo_write"],
@@ -52,15 +52,14 @@ class LocalTokenStoreTestCase(unittest.TestCase):
         self.assertEqual(result, self.auth_code)
     
     def test_save_token_and_fetch_by_token(self):
-        success = self.test_store.save_token(self.access_token_data["client_id"],
-                                             self.access_token_data["scopes"],
-                                             self.access_token,
-                                             self.access_token_data["user_data"])
+        access_token = AccessToken(**self.access_token_data)
+        
+        success = self.test_store.save_token(access_token)
         self.assertTrue(success)
         
-        result = self.test_store.fetch_by_token(self.access_token)
+        result = self.test_store.fetch_by_token(access_token.token)
         
-        self.assertDictEqual(result, self.access_token_data)
+        self.assertEqual(result, access_token)
 
 class MemcacheTokenStoreTestCase(unittest.TestCase):
     def setUp(self):
@@ -119,16 +118,16 @@ class MemcacheTokenStoreTestCase(unittest.TestCase):
         mc_mock.set.assert_called_with(cache_key, auth_code)
     
     def test_save_token(self):
-        token = "xyz"
-        data = {"client_id": "myclient", "scopes": ["foo_read", "foo_write"],
-                "user_data": {"name": "test"}}
-        cache_key = self._generate_test_cache_key(token)
+        access_token = AccessToken(client_id="myclient", token="xyz",
+                                   data={"name": "test"},
+                                   scopes=["foo_read", "foo_write"],)
+        
+        cache_key = self._generate_test_cache_key(access_token.token)
         
         mc_mock = Mock(spec=["set"])
         
         store = MemcacheTokenStore(mc=mc_mock, prefix=self.cache_prefix)
         
-        store.save_token(data["client_id"], data["scopes"], token,
-                         data["user_data"])
+        store.save_token(access_token)
         
-        mc_mock.set.assert_called_with(cache_key, data)
+        mc_mock.set.assert_called_with(cache_key, access_token)

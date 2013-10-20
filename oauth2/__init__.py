@@ -88,6 +88,16 @@ from oauth2.tokengenerator import Uuid4
 
 VERSION = "0.2.0"
 
+class AccessToken(object):
+    """
+    An access token and associated data.
+    """
+    def __init__(self, client_id, token, data={}, scopes=[]):
+        self.client_id = client_id
+        self.token     = token
+        self.data      = data
+        self.scopes    = scopes
+
 class AuthorizationCode(object):
     """
     Holds an authorization code and additional information.

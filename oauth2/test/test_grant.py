@@ -666,10 +666,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         handler.scopes    = scopes
         response = handler.process(Mock(spec=Request), response_mock, {})
         
-        access_token_store_mock.save_token.assert_called_with(client_id=client_id,
-                                                              scopes=scopes,
-                                                              token=access_token,
-                                                              user_data={})
+        self.assertTrue(access_token_store_mock.save_token.called)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.body, json.dumps(expected_body))
         response_mock.add_header.assert_called_with("Content-type",
@@ -767,10 +764,9 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         
         site_adapter_mock.authenticate.assert_called_with(request_mock,
                                                           environ)
-        access_token_store_mock.save_token.assert_called_with(client_id=client_id,
-                                                              scopes=scopes,
-                                                              token=token,
-                                                              user_data=user_id)
+        
+        self.assertTrue(access_token_store_mock.save_token.called)
+        
         responseMock.add_header.assert_called_with("Location",
                                                    redirect_uri_with_token)
         self.assertEqual(responseMock.status_code, 302)
@@ -1022,10 +1018,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         
         site_adapter_mock.authenticate.assert_called_with(request_mock, {})
         token_generator_mock.generate.assert_called_with()
-        access_token_store_mock.save_token.assert_called_with(client_id,
-                                                              access_token,
-                                                              scopes,
-                                                              user)
+        self.assertTrue(access_token_store_mock.save_token.called)
         response_mock.add_header.assert_called_with("Content-Type",
                                                     "application/json")
         self.assertEqual(result.status_code, 200)

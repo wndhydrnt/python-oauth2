@@ -32,7 +32,7 @@ from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
 from oauth2.compatibility import urlencode, quote
 import json
 import time
-from oauth2 import AuthorizationCode
+from oauth2 import AuthorizationCode, AccessToken
 
 class Scope(object):
     """
@@ -319,13 +319,14 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         
         Calls `oauth2.store.AccessTokenStore` to persist the token.
         """
-        access_token = self.token_generator.generate()
+        token = self.token_generator.generate()
         
-        result = {"access_token": access_token, "token_type": "Bearer"}
+        result = {"access_token": token, "token_type": "Bearer"}
         
-        self.access_token_store.save_token(client_id=self.client_id,
-                                           scopes=self.scopes,
-                                           token=access_token, user_data={})
+        access_token = AccessToken(client_id=self.client_id, token=token,
+                                   scopes=self.scopes)
+        
+        self.access_token_store.save_token(access_token)
         
         response.body = json.dumps(result)
         response.status_code = 200
@@ -480,9 +481,11 @@ class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
         
         token = self.token_generator.generate()
         
-        self.access_token_store.save_token(client_id=self.client_id,
-                                           scopes=self.scope_handler.scopes,
-                                           token=token, user_data=user_data)
+        access_token = AccessToken(client_id=self.client_id, token=token,
+                                   data=user_data,
+                                   scopes=self.scope_handler.scopes)
+        
+        self.access_token_store.save_token(access_token)
         
         return self._redirect_access_token(response, token)
     
@@ -566,13 +569,15 @@ class ResourceOwnerGrantHandler(GrantHandler):
         """
         user_data = self.site_adapter.authenticate(request, environ)
         
-        access_token = self.token_generator.generate()
+        token = self.token_generator.generate()
         
-        self.access_token_store.save_token(self.client_id, access_token,
-                                           self.scope_handler.scopes,
-                                           user_data)
+        access_token = AccessToken(client_id=self.client_id, token=token,
+                                   data=user_data,
+                                   scopes=self.scope_handler.scopes)
         
-        response_body = {"access_token": access_token, "token_type": "bearer"}
+        self.access_token_store.save_token(access_token)
+        
+        response_body = {"access_token": token, "token_type": "bearer"}
         
         if self.scope_handler.send_back is True:
             response_body["scope"] = " ".join(self.scope_handler.scopes)
