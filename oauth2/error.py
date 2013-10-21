@@ -49,3 +49,10 @@ class OAuthInvalidError(OAuthBaseError):
     Indicates an error during validation of a request.
     """
     pass
+
+class UserNotAuthenticated(Exception):
+    """
+    Raised by a ``oauth2.web.SiteAdapter`` if a user could not be
+    authenticated.
+    """
+    pass

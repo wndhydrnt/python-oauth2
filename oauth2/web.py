@@ -19,9 +19,11 @@ class SiteAdapter(object):
         :param environ: Environment variables of the request.
         :param scopes: A list of strings with each string being one requested
                        scope.
-        :return: A value that is not ``None`` if the user was authenticated
-                 successfully and allowed the access. This value will be
-                 stored together with the generated access token.
+        :return: A ``dict`` containing arbitrary data that will be passed to 
+                 the current storage adapter and saved with auth code and
+                 access token.
+        :raises: :class:`oauth2.error.UserNotAuthenticated` if the user could
+                 not be authenticated.
         """
         raise NotImplementedError
     
@@ -32,7 +34,7 @@ class SiteAdapter(object):
         :param request: An instance of :class:`oauth2.web.Request`.
         :param response: An instance of :class:`oauth2.web.Response`.
         :param environ: Environment variables of the request.
-        :return: The response passed in a parameter.
+        :return: The response passed in as a parameter.
                  It can contain HTML or issue a redirect.
         """
         raise NotImplementedError

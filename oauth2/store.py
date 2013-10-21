@@ -31,7 +31,7 @@ class AuthCodeStore(object):
         
         :param code: The authorization code.
         :return: An instance of ``oauth2.AuthorizationCode``.
-        :raises: AuthCodeNotFound
+        :raises: :class:`AuthCodeNotFound`
         
         """
         raise NotImplementedError
