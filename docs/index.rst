@@ -8,10 +8,11 @@ Contents:
    :maxdepth: 1
 
    grant.rst
-   frameworks.rst
+   store.rst
+   oauth2.rst
    web.rst
    error.rst
-   oauth2.rst
+   frameworks.rst
 
 Indices and tables
 ==================

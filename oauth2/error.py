@@ -5,13 +5,13 @@ Errors raised during the OAuth 2.0 flow.
 class AuthCodeNotFound(Exception):
     """
     Error indicating that an authorization code could not be read from the
-    storage backend.
+    storage backend by an instance of :class:`oauth2.store.AuthCodeStore`.
     """
     pass
 
 class ClientNotFoundError(Exception):
     """
-    Error raised by an implementation of ``oauth2.store.ClientStore`` when a
+    Error raised by an implementation of :class:`oauth2.store.ClientStore` if a
     client does not exists.
     """
     pass
@@ -52,7 +52,7 @@ class OAuthInvalidError(OAuthBaseError):
 
 class UserNotAuthenticated(Exception):
     """
-    Raised by a ``oauth2.web.SiteAdapter`` if a user could not be
+    Raised by a :class:`oauth2.web.SiteAdapter` if a user could not be
     authenticated.
     """
     pass

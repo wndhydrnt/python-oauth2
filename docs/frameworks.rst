@@ -1,5 +1,5 @@
-Using python-oauth2 with other frameworks
-=========================================
+Using ``python-oauth2`` with other frameworks
+=============================================
 
 .. automodule:: oauth2.tornadoweb
 

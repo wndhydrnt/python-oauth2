@@ -31,22 +31,23 @@ python-oauth2 is available on
 Usage
 *****
 
-Example HTTP server::
+Example Authorization server::
     
     from wsgiref.simple_server import make_server
     import oauth2
+    import oauth2.error
     import oauth2.store
+    import oauth2.tokengenerator
     import oauth2.web
 
     # Create a SiteAdapter to interact with the user.
     # This can be used to display confirmation dialogs and the like.
-    class TestSiteAdapter(oauth2.web.SiteAdapter):
+    class ExampleSiteAdapter(oauth2.web.SiteAdapter):
         def authenticate(self, request, environ, scopes):
             if request.post_param("confirm") == "1":
-                # Returning anything else than None here means the token
-                # will be issued without any user interaction
                 return {}
-            return None
+
+            raise oauth2.error.UserNotAuthenticated
 
         def render_auth_page(self, request, response, environ):
             response.body = '''
@@ -67,15 +68,15 @@ Example HTTP server::
                             redirect_uris=["http://localhost/callback"])
     
     # Create an in-memory storage to store issued tokens.
+    # LocalTokenStore can store access and auth tokens
     token_store = oauth2.store.LocalTokenStore()
 
     # Create the controller.
     auth_controller = oauth2.AuthorizationController(
-        # LocalTokenStore can store access and auth tokens
         access_token_store=token_store,
-        auth_token_store=token_store,
+        auth_code_store=token_store,
         client_store=client_store,
-        site_adapter=TestSiteAdapter(),
+        site_adapter=ExampleSiteAdapter(),
         token_generator=oauth2.tokengenerator.Uuid4()
     )
     
