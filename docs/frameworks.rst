@@ -1,6 +1,8 @@
 Using ``python-oauth2`` with other frameworks
 =============================================
 
-.. automodule:: oauth2.tornadoweb
+.. toctree::
+   :maxdepth: 1
 
-.. autoclass:: OAuth2Handler
+   flask.rst
+   tornado.rst
