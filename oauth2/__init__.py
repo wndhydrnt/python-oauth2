@@ -133,6 +133,9 @@ class Client(object):
         return uri in self.redirect_uris
 
 class AuthorizationController(object):
+    
+    authorize_path = "/authorize"
+    token_path = "/token"
     """
     Endpoint of requests to the OAuth 2.0 server.
     
@@ -150,9 +153,7 @@ class AuthorizationController(object):
     """
     def __init__(self, access_token_store, auth_token_store, client_store,
                  site_adapter, token_generator, response_class=Response):
-        self.authorize_path = None
         self.grant_types    = []
-        self.token_path     = None
         self._input_handler = None
         
         self.access_token_store = access_token_store
