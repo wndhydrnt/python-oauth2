@@ -223,7 +223,8 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
         A form to authorize the access of the application can be displayed with
         the help of `oauth2.web.SiteAdapter`.
         """
-        user_data = self.site_adapter.authenticate(request, environ)
+        user_data = self.site_adapter.authenticate(request, environ,
+                                                   self.scope_handler.scopes)
         
         if user_data is None:
             return self.site_adapter.render_auth_page(request, response,
@@ -472,7 +473,8 @@ class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
             raise OAuthUserError(error="access_denied",
                                  explanation="Authorization denied by user")
         
-        user_data = self.site_adapter.authenticate(request, environ)
+        user_data = self.site_adapter.authenticate(request, environ,
+                                                   self.scope_handler.scopes)
         
         if user_data is None:
             return self.site_adapter.render_auth_page(request, response,
@@ -567,7 +569,8 @@ class ResourceOwnerGrantHandler(GrantHandler):
         it and issues a new access token that is returned to the client on
         successful validation.
         """
-        user_data = self.site_adapter.authenticate(request, environ)
+        user_data = self.site_adapter.authenticate(request, environ,
+                                                   self.scope_handler.scopes)
         
         token = self.token_generator.generate()
         

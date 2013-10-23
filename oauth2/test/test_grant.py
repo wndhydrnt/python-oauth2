@@ -240,7 +240,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         
         token_generator_mock.generate.assert_called_with()
         site_adapter_mock.authenticate.assert_called_with(request_mock,
-                                                          environ)
+                                                          environ, scopes)
         self.assertTrue(auth_code_store_mock.save_code.called)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.body, "")
@@ -765,7 +765,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         result_response = handler.process(request_mock, responseMock, environ)
         
         site_adapter_mock.authenticate.assert_called_with(request_mock,
-                                                          environ)
+                                                          environ, scopes)
         
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
@@ -880,7 +880,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         result_response = handler.process(request_mock, responseMock, environ)
         
         site_adapter_mock.authenticate.assert_called_with(request_mock,
-                                                          environ)
+                                                          environ, scopes)
         site_adapter_mock.render_auth_page.assert_called_with(request_mock,
                                                               responseMock,
                                                               environ,
@@ -1019,7 +1019,8 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         handler.client_id = client_id
         result = handler.process(request_mock, response_mock, {})
         
-        site_adapter_mock.authenticate.assert_called_with(request_mock, {})
+        site_adapter_mock.authenticate.assert_called_with(request_mock, {},
+                                                          scopes)
         token_generator_mock.generate.assert_called_with()
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
