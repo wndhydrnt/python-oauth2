@@ -28,7 +28,7 @@ So there are two remaining parties:
 
 """
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
-    ClientNotFoundError
+    ClientNotFoundError, UserNotAuthenticated
 from oauth2.compatibility import urlencode, quote
 import json
 import time
@@ -223,10 +223,10 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
         A form to authorize the access of the application can be displayed with
         the help of `oauth2.web.SiteAdapter`.
         """
-        user_data = self.site_adapter.authenticate(request, environ,
-                                                   self.scope_handler.scopes)
-        
-        if user_data is None:
+        try:
+            user_data = self.site_adapter.authenticate(request, environ,
+                                                       self.scope_handler.scopes)
+        except UserNotAuthenticated:
             return self.site_adapter.render_auth_page(request, response,
                                                       environ,
                                                       self.scope_handler.scopes)
@@ -473,10 +473,10 @@ class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
             raise OAuthUserError(error="access_denied",
                                  explanation="Authorization denied by user")
         
-        user_data = self.site_adapter.authenticate(request, environ,
-                                                   self.scope_handler.scopes)
-        
-        if user_data is None:
+        try:
+            user_data = self.site_adapter.authenticate(request, environ,
+                                                       self.scope_handler.scopes)
+        except UserNotAuthenticated:
             return self.site_adapter.render_auth_page(request, response,
                                                       environ,
                                                       self.scope_handler.scopes)

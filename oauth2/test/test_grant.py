@@ -8,7 +8,7 @@ from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler,\
     Scope
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
-    ClientNotFoundError
+    ClientNotFoundError, UserNotAuthenticated
 from oauth2 import AuthorizationController, Client, AuthorizationCode,\
     AccessToken
 
@@ -301,7 +301,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         scope_handler_mock.scopes = scopes
         
         site_adapter_mock = Mock(spec=SiteAdapter)
-        site_adapter_mock.authenticate.return_value = None
+        site_adapter_mock.authenticate.side_effect = UserNotAuthenticated
         site_adapter_mock.render_auth_page.return_value = response_mock
         
         handler = AuthorizationCodeAuthHandler(
@@ -869,7 +869,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         scope_handler_mock.scopes = scopes
         
         site_adapter_mock = Mock(spec=SiteAdapter)
-        site_adapter_mock.authenticate.return_value = None
+        site_adapter_mock.authenticate.side_effect = UserNotAuthenticated
         site_adapter_mock.render_auth_page.return_value = confirmation_page_result
         
         handler = ImplicitGrantHandler(
