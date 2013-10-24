@@ -14,6 +14,7 @@ Example Authorization server::
     
     from wsgiref.simple_server import make_server
     import oauth2
+    import oauth2.grant
     import oauth2.error
     import oauth2.store
     import oauth2.tokengenerator
@@ -28,7 +29,7 @@ Example Authorization server::
 
             raise oauth2.error.UserNotAuthenticated
 
-        def render_auth_page(self, request, response, environ):
+        def render_auth_page(self, request, response, environ, scopes):
             response.body = '''
     <html>
         <body>
@@ -45,7 +46,7 @@ Example Authorization server::
     # Add a client
     client_store.add_client(client_id="abc", client_secret="xyz",
                             redirect_uris=["http://localhost/callback"])
-    
+
     # Create an in-memory storage to store issued tokens.
     # LocalTokenStore can store access and auth tokens
     token_store = oauth2.store.LocalTokenStore()
@@ -58,17 +59,17 @@ Example Authorization server::
         site_adapter=ExampleSiteAdapter(),
         token_generator=oauth2.tokengenerator.Uuid4()
     )
-    
+
     # Add Grants you want to support
-    auth_controller.add_grant(AuthorizationCodeGrant())
-    auth_controller.add_grant(ImplicitGrant())
+    auth_controller.add_grant(oauth2.grant.AuthorizationCodeGrant())
+    auth_controller.add_grant(oauth2.grant.ImplicitGrant())
 
     # Wrap the controller with the Wsgi adapter
     app = oauth2.web.Wsgi(server=auth_controller)
 
     if __name__ == "__main__":
         httpd = make_server('', 8080, app)
-        httpd.server_forever()
+        httpd.serve_forever()
 
 Installation
 ============
@@ -151,13 +152,13 @@ class AuthorizationController(object):
     :param response_class: Class of the response object.
                            Default: :class:`oauth2.web.Response`.
     """
-    def __init__(self, access_token_store, auth_token_store, client_store,
+    def __init__(self, access_token_store, auth_code_store, client_store,
                  site_adapter, token_generator, response_class=Response):
         self.grant_types    = []
         self._input_handler = None
         
         self.access_token_store = access_token_store
-        self.auth_code_store   = auth_token_store
+        self.auth_code_store    = auth_code_store
         self.client_store       = client_store
         self.response_class     = response_class
         self.site_adapter       = site_adapter

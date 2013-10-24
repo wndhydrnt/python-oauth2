@@ -11,7 +11,7 @@ class AuthorizationControllerTestCase(unittest.TestCase):
         self.token_generator_mock = Mock()
         
         self.auth_server = AuthorizationController(access_token_store=Mock(),
-                                               auth_token_store=Mock(),
+                                               auth_code_store=Mock(),
                                                client_store=self.client_store_mock,
                                                site_adapter=Mock(),
                                                token_generator=self.token_generator_mock,
