@@ -116,6 +116,16 @@ Instead your application should use the API defined by
 Changelog
 *********
 
+New in version 0.3.1
+====================
+- Fixed a bug causing a supplied redirect uri being ignored if it is not the first entry in the list of a client object.
+
+New in version 0.3.0
+====================
+- Headers of a response are returned as a dictionary
+- Status code of a response is an integer
+- Streamlining the integration of storage classes and site adapters by requiring them to raise specified errors
+
 New in version 0.2.0
 ====================
 - Support for scopes
