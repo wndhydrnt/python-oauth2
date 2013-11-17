@@ -232,7 +232,12 @@ class MemcacheTokenStore(AccessTokenStore, AuthCodeStore):
         """
         key = self._generate_cache_key(authorization_code.code)
         
-        self.mc.set(key, authorization_code)
+        self.mc.set(key, {"client_id": authorization_code.client_id,
+                          "code": authorization_code.code,
+                          "expires_at": authorization_code.expires_at,
+                          "redirect_uri": authorization_code.redirect_uri,
+                          "scopes": authorization_code.scopes,
+                          "data": authorization_code.data})
     
     def save_token(self, access_token):
         """
@@ -243,7 +248,10 @@ class MemcacheTokenStore(AccessTokenStore, AuthCodeStore):
         """
         key = self._generate_cache_key(access_token.token)
         
-        self.mc.set(key, access_token)
+        self.mc.set(key, {"client_id": access_token.client_id,
+                          "token": access_token.token,
+                          "data": access_token.data,
+                          "scopes": access_token.scopes})
     
     def _generate_cache_key(self, identifier):
         return self.prefix + "_" + identifier
