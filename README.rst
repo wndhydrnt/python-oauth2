@@ -116,6 +116,10 @@ Instead your application should use the API defined by
 Changelog
 *********
 
+New in version 0.3.2
+====================
+- Fixed a bug where MemcacheTokenStore saved objects instead of dictionaries.
+
 New in version 0.3.1
 ====================
 - Fixed a bug causing a supplied redirect uri being ignored if it is not the first entry in the list of a client object.
