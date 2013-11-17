@@ -117,12 +117,13 @@ class MemcacheTokenStoreTestCase(unittest.TestCase):
         
         store.save_code(auth_code)
         
-        mc_mock.set.assert_called_with(cache_key, auth_code)
+        mc_mock.set.assert_called_with(cache_key, data)
     
     def test_save_token(self):
-        access_token = AccessToken(client_id="myclient", token="xyz",
-                                   data={"name": "test"},
-                                   scopes=["foo_read", "foo_write"],)
+        data = {"client_id": "myclient", "token": "xyz",
+                "data": {"name": "test"}, "scopes": ["foo_read", "foo_write"]}
+        
+        access_token = AccessToken(**data)
         
         cache_key = self._generate_test_cache_key(access_token.token)
         
@@ -132,4 +133,4 @@ class MemcacheTokenStoreTestCase(unittest.TestCase):
         
         store.save_token(access_token)
         
-        mc_mock.set.assert_called_with(cache_key, access_token)
+        mc_mock.set.assert_called_with(cache_key, data)

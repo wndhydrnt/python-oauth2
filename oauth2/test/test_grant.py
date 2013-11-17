@@ -97,7 +97,7 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         client_mock.redirect_uris = [redirect_uri]
         
         request_mock = Mock(spec=Request)
-        request_mock.get_param.side_effect = [client_id, redirect_uri, state]
+        request_mock.get_param.side_effect = [client_id, None, state]
         
         scope_handler_mock = Mock(Scope)
         
@@ -197,6 +197,43 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         clientStoreMock.fetch_by_client_id.assert_called_with(client_id)
         self.assertEqual(e.error, "invalid_request")
         self.assertEqual(e.explanation, "redirect_uri is not registered for this client")
+    
+    def test_read_validate_params_default_redirect_uri(self):
+        """
+        AuthRequestMixin.read_validate_params should use the correct redirect uri when the client has registered more than one
+        """
+        client_id    = "cid"
+        redirect_uri = "http://somewhere"
+        state        = "state"
+        
+        client_mock = Mock(Client)
+        client_mock.redirect_uris = ["http://somewhere-else", redirect_uri]
+        
+        request_mock = Mock(spec=Request)
+        request_mock.get_param.side_effect = [client_id, redirect_uri, state]
+        
+        scope_handler_mock = Mock(Scope)
+        
+        clientStoreMock = Mock(spec=ClientStore)
+        clientStoreMock.fetch_by_client_id.return_value = client_mock
+        
+        handler = AuthRequestMixin(client_store=clientStoreMock,
+                                   site_adapter=Mock(),
+                                   scope_handler=scope_handler_mock,
+                                   token_generator=Mock())
+        
+        result = handler.read_validate_params(request_mock)
+        
+        request_mock.get_param.assert_has_calls([call("client_id"),
+                                                call("redirect_uri"),
+                                                call("state")])
+        scope_handler_mock.parse.assert_called_with(request_mock)
+        clientStoreMock.fetch_by_client_id.assert_called_with(client_id)
+        self.assertEqual(handler.client_id, client_id)
+        self.assertEqual(handler.redirect_uri, redirect_uri)
+        self.assertEqual(handler.state, state)
+        self.assertTrue(result)
+
 
 class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
     def test_process(self):

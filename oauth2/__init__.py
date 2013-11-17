@@ -88,7 +88,7 @@ from oauth2.error import OAuthInvalidError, OAuthUserError
 from oauth2.web import Request, Response
 from oauth2.tokengenerator import Uuid4
 
-VERSION = "0.3.0"
+VERSION = "0.3.2"
 
 class AccessToken(object):
     """

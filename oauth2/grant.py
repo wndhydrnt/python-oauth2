@@ -188,11 +188,15 @@ class AuthRequestMixin(object):
         
         redirect_uri = request.get_param("redirect_uri")
         
-        if (redirect_uri is not None
-            and client_data.has_redirect_uri(redirect_uri) == False):
-            raise OAuthInvalidError(error="invalid_request",
-                                    explanation="redirect_uri is not registered for this client")
+        if redirect_uri is not None:
+            if client_data.has_redirect_uri(redirect_uri) == False:
+                raise OAuthInvalidError(error="invalid_request",
+                                        explanation="redirect_uri is not registered for this client")
+            else:
+                self.redirect_uri = redirect_uri
         else:
+            # redirect_uri is an optional param.
+            # If not supplied, we use the first entry stored in db as default.
             self.redirect_uri = client_data.redirect_uris[0]
         
         self.state = request.get_param("state")

@@ -1,6 +1,7 @@
 # IDE
 .project
 .pydevproject
+.idea/
 
 # Python
 *.pyc
