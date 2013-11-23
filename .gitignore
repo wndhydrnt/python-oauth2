@@ -10,3 +10,7 @@ dist/
 build/
 _build/
 
+# Vagrant
+.vagrant/
+Berksfile.lock
+
