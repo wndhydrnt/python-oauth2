@@ -633,3 +633,37 @@ class ResourceOwnerGrantHandler(GrantHandler):
         response.body = json.dumps(msg)
         
         return response
+
+class RefreshToken(GrantHandlerFactory):
+    def __call__(self, request, server):
+        if request.path != server.token_path:
+            return None
+        
+        if request.get_param("grant_type") != "refresh_token":
+            return None
+        
+        return RefreshTokenHandler(access_token_store=server.access_token_store,
+                                   client_store=server.client_store,
+                                   scope_handler=server.scope_handler,
+                                   token_generator=server.token_generator)
+
+class RefreshTokenHandler(GrantHandler):
+    def __init__(self, access_token_store, client_store, scope_handler,
+                 token_generator):
+        self.access_token_store = access_token_store
+        self.client_store       = client_store
+        self.scope_handler      = scope_handler
+        self.token_generator    = token_generator
+        
+        self.client_id     = None
+        self.password      = None
+        self.username      = None
+    
+    def process(self, request, response, environ):
+        pass
+    
+    def read_validate_params(self, request):
+        pass
+    
+    def redirect_oauth_error(self, error, response):
+        pass

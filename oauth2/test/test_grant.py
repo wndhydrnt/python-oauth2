@@ -5,7 +5,7 @@ from oauth2.web import Request, Response, SiteAdapter
 from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler,\
     AuthRequestMixin, AuthorizationCodeTokenHandler, ImplicitGrant,\
     AuthorizationCodeGrant, ResourceOwnerGrantHandler, ResourceOwnerGrant,\
-    Scope
+    Scope, RefreshToken, RefreshTokenHandler
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
     ClientNotFoundError, UserNotAuthenticated
@@ -1294,6 +1294,68 @@ class ScopeTestCase(unittest.TestCase):
         e = expected.exception
         
         self.assertEqual(e.error, "invalid_scope")
+
+class RefreshTokenTestCase(unittest.TestCase):
+    def test_call(self):
+        path = "/token"
+        
+        access_token_store_mock = Mock()
+        client_store_mock = Mock()
+        scope_handler_mock = Mock()
+        token_generator_mock = Mock()
+        
+        controller_mock = Mock(spec=AuthorizationController)
+        controller_mock.token_path = path
+        controller_mock.access_token_store = access_token_store_mock
+        controller_mock.client_store = client_store_mock
+        controller_mock.scope_handler = scope_handler_mock
+        controller_mock.token_generator = token_generator_mock
+        
+        request_mock = Mock(spec=Request)
+        request_mock.path = path
+        request_mock.get_param.return_value = "refresh_token"
+        
+        grant = RefreshToken()
+        
+        grant_handler = grant(request_mock, controller_mock)
+        
+        request_mock.get_param.assert_called_with("grant_type")
+        
+        self.assertTrue(isinstance(grant_handler, RefreshTokenHandler))
+        self.assertEqual(access_token_store_mock,
+                         grant_handler.access_token_store)
+        self.assertEqual(client_store_mock, grant_handler.client_store)
+        self.assertEqual(scope_handler_mock, grant_handler.scope_handler)
+        self.assertEqual(token_generator_mock, grant_handler.token_generator)
+    
+    def test_call_wrong_path(self):
+        controller_mock = Mock(spec=AuthorizationController)
+        controller_mock.token_path = "/token"
+        
+        request_mock = Mock(spec=Request)
+        request_mock.path = "/authorize"
+        
+        grant = RefreshToken()
+        
+        grant_handler = grant(request_mock, controller_mock)
+        
+        self.assertEqual(grant_handler, None)
+        
+    def test_call_other_grant_type(self):
+        path = "/token"
+        
+        controller_mock = Mock(spec=AuthorizationController)
+        controller_mock.token_path = path
+        
+        request_mock = Mock(spec=Request)
+        request_mock.path = path
+        request_mock.get_param.return_value = "authorization_code"
+        
+        grant = RefreshToken()
+        
+        grant_handler = grant(request_mock, controller_mock)
+        
+        self.assertEqual(grant_handler, None)
 
 if __name__ == "__main__":
     unittest.main()
