@@ -94,12 +94,14 @@ class AccessToken(object):
     """
     An access token and associated data.
     """
-    def __init__(self, client_id, token, data={}, expires_at=None, scopes=[]):
-        self.client_id  = client_id
-        self.token      = token
-        self.data       = data
-        self.expires_at = expires_at
-        self.scopes     = scopes
+    def __init__(self, client_id, token, data={}, expires_at=None,
+                 refresh_token=None, scopes=[]):
+        self.client_id     = client_id
+        self.token         = token
+        self.data          = data
+        self.expires_at    = expires_at
+        self.refresh_token = refresh_token
+        self.scopes        = scopes
 
 class AuthorizationCode(object):
     """
