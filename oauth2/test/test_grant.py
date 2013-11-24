@@ -1409,6 +1409,53 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         self.assertEqual(result, response)
         self.assertDictContainsSubset(expected_headers, result.headers)
         self.assertEqual(json.dumps(expected_response_body), result.body)
+    
+    def test_read_validate_params(self):
+        client_id = "client"
+        client_secret = "secret"
+        data = {"additional": "data"}
+        expires_in = 600
+        original_token = "sd3f3j"
+        refresh_token = "s74jf"
+        scopes=[]
+        
+        access_token = AccessToken(client_id=client_id, token=original_token,
+                                   data=data, expires_at=1234, scopes=scopes)
+        
+        access_token_store_mock = Mock(AccessTokenStore)
+        access_token_store_mock.fetch_by_refresh_token.return_value = access_token
+        
+        client = Client(identifier=client_id, secret=client_secret,
+                        redirect_uris=[])
+        
+        client_store_mock = Mock(spec=ClientStore)
+        client_store_mock.fetch_by_client_id.return_value = client
+        
+        request_mock = Mock(spec=Request)
+        request_mock.post_param.side_effect = [client_id, client_secret,
+                                               refresh_token]
+        
+        scope_handler_mock = Mock(spec=Scope)
+        
+        handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
+                                      client_store=client_store_mock,
+                                      expires_in=expires_in,
+                                      scope_handler=scope_handler_mock,
+                                      token_generator=Mock())
+        
+        handler.read_validate_params(request=request_mock)
+        
+        request_mock.post_param.assert_has_calls([call("client_id"),
+                                                  call("client_secret"),
+                                                  call("refresh_token")])
+        access_token_store_mock.fetch_by_refresh_token.assert_called_with(refresh_token)
+        client_store_mock.fetch_by_client_id.assert_called_with(client_id)
+        scope_handler_mock.parse.assert_called_with(request_mock)
+        scope_handler_mock.compare.assert_called_with(scopes)
+        
+        self.assertEqual(handler.client_id, client_id)
+        self.assertEqual(handler.data, data)
+        self.assertEqual(handler.refresh_token, refresh_token)
 
 if __name__ == "__main__":
     unittest.main()

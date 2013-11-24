@@ -56,6 +56,9 @@ class Scope(object):
         
         self.default = default
     
+    def compare(self, previous_scopes):
+        pass
+    
     def parse(self, request):
         """
         Parses scope value in given request.
@@ -679,7 +682,21 @@ class RefreshTokenHandler(GrantHandler):
         return response
     
     def read_validate_params(self, request):
-        pass
+        self.client_id = request.post_param("client_id")
+        client_secret = request.post_param("client_secret")
+        
+        client = self.client_store.fetch_by_client_id(self.client_id)
+        
+        self.refresh_token = request.post_param("refresh_token")
+        
+        access_token = self.access_token_store.fetch_by_refresh_token(
+            self.refresh_token
+        )
+        
+        self.data = access_token.data
+        
+        self.scope_handler.parse(request)
+        self.scope_handler.compare(access_token.scopes)
     
     def redirect_oauth_error(self, error, response):
         pass
