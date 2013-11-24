@@ -380,11 +380,13 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         client_id = "abc"
         client_secret = "t%gH"
         code = "defg"
+        data = {"additional": "data"}
         redirect_uri = "http://callback"
         scopes = ["scope"]
         
         auth_code = Mock(AuthorizationCode)
         auth_code.code = code
+        auth_code.data = data
         auth_code.is_expired.return_value = False
         auth_code.redirect_uri = redirect_uri
         auth_code.scopes = scopes
@@ -416,6 +418,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         self.assertEqual(handler.client_id, client_id)
         self.assertEqual(handler.client_secret, client_secret)
         self.assertEqual(handler.code, code)
+        self.assertEqual(handler.data, data)
         self.assertEqual(handler.redirect_uri, redirect_uri)
         self.assertEqual(handler.scopes, scopes)
         self.assertTrue(result)
@@ -679,6 +682,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
     def test_process(self):
         access_token = "abcd"
         client_id    = "efg"
+        data = {"additional": "data"}
         scopes       = ["scope"]
         
         expected_body = {"access_token": access_token, "token_type": "Bearer"}
@@ -697,11 +701,13 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
                                                 Mock(spec=ClientStore),
                                                 token_generator_mock)
         handler.client_id = client_id
-        handler.scopes    = scopes
+        handler.data = data
+        handler.scopes = scopes
         response = handler.process(Mock(spec=Request), response_mock, {})
         
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
+        self.assertEqual(access_token.data, data)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.body, json.dumps(expected_body))
         response_mock.add_header.assert_called_with("Content-type",
