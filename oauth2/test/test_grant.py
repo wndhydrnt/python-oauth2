@@ -1290,6 +1290,47 @@ class ScopeTestCase(unittest.TestCase):
         e = expected.exception
         
         self.assertEqual(e.error, "invalid_scope")
+    
+    def test_compare_scopes_equal(self):
+        """
+        Scope.compare should use the same scopes if new and old scopes do not differ
+        """
+        scope = Scope(available=["a", "b"])
+        
+        scope.scopes = ["a", "b"]
+        
+        result = scope.compare(["a", "b"])
+        
+        self.assertTrue(result)
+        self.assertListEqual(scope.scopes, ["a", "b"])
+    
+    def test_compare_valid_scope_subset(self):
+        """
+        Scope.compare should set a new value for scopes attribute if the new scopes are a subset of the previously issued scopes
+        """
+        scope = Scope(available=["a", "b", "c"])
+        
+        scope.scopes = ["b", "c"]
+        
+        result = scope.compare(["a", "b", "c"])
+        
+        self.assertTrue(result)
+        self.assertListEqual(scope.scopes, ["b", "c"])
+    
+    def test_compare_invalid_scope_requested(self):
+        """
+        Scope.compare should thow an error if a scope is requested that is not contained in the previous scopes.
+        """
+        scope = Scope(available=["a", "b", "c"])
+        
+        scope.scopes = ["b", "c"]
+        
+        with self.assertRaises(OAuthInvalidError) as expected:
+            scope.compare(["a", "b"])
+        
+        e = expected.exception
+        
+        self.assertEqual(e.error, "invalid_scope")
 
 class RefreshTokenTestCase(unittest.TestCase):
     def test_call(self):
