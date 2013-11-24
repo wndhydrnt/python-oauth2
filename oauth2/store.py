@@ -22,6 +22,15 @@ class AccessTokenStore(object):
         
         """
         raise NotImplementedError
+    
+    def fetch_by_refresh_token(self, refresh_token):
+        """
+        Fetches an access token from the store using its refresh token to
+        identify it.
+        
+        :param refresh_token: A string containing the refresh token.
+        """
+        raise NotImplementedError
 
 class AuthCodeStore(object):
     """
