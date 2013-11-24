@@ -644,23 +644,39 @@ class RefreshToken(GrantHandlerFactory):
         
         return RefreshTokenHandler(access_token_store=server.access_token_store,
                                    client_store=server.client_store,
+                                   expires_in=server.token_expires_in,
                                    scope_handler=server.scope_handler,
                                    token_generator=server.token_generator)
 
 class RefreshTokenHandler(GrantHandler):
-    def __init__(self, access_token_store, client_store, scope_handler,
-                 token_generator):
+    def __init__(self, access_token_store, client_store, expires_in,
+                 scope_handler, token_generator):
         self.access_token_store = access_token_store
         self.client_store       = client_store
+        self.expires_in         = expires_in
         self.scope_handler      = scope_handler
         self.token_generator    = token_generator
         
         self.client_id     = None
-        self.password      = None
-        self.username      = None
+        self.data          = {}
+        self.refresh_token = None
     
     def process(self, request, response, environ):
-        pass
+        expires_at = int(time.time()) + self.expires_in
+        token = self.token_generator.generate()
+        
+        access_token = AccessToken(client_id=self.client_id, token=token,
+                                   data=self.data, expires_at=expires_at,
+                                   scopes=self.scope_handler.scopes)
+        self.access_token_store.save_token(access_token)
+        
+        response_data = {"access_token": token, "expires_in": self.expires_in,
+                         "token_type": "Bearer"}
+        
+        response.add_header("Content-type", "application/json")
+        response.body = json.dumps(response_data)
+        
+        return response
     
     def read_validate_params(self, request):
         pass

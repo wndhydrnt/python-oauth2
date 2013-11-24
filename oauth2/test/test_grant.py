@@ -1,4 +1,4 @@
-from mock import Mock, call
+from mock import Mock, call, patch
 import json
 from oauth2.test import unittest
 from oauth2.web import Request, Response, SiteAdapter
@@ -12,12 +12,8 @@ from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
 from oauth2 import AuthorizationController, Client, AuthorizationCode,\
     AccessToken
 
-# Mock datetime.now()
-# see http://stackoverflow.com/questions/4481954/python-trying-to-mock-datetime-date-today-but-not-working
-import time
-def time():
+def mock_time():
     return 1000
-time.time = time
 
 class AuthorizationCodeGrantTestCase(unittest.TestCase):
     def test_create_auth_handler(self):
@@ -1297,7 +1293,11 @@ class ScopeTestCase(unittest.TestCase):
 
 class RefreshTokenTestCase(unittest.TestCase):
     def test_call(self):
+        """
+        RefreshToken should create a new instance of RefreshTokenHandler
+        """
         path = "/token"
+        expires_in = 600
         
         access_token_store_mock = Mock()
         client_store_mock = Mock()
@@ -1310,6 +1310,7 @@ class RefreshTokenTestCase(unittest.TestCase):
         controller_mock.client_store = client_store_mock
         controller_mock.scope_handler = scope_handler_mock
         controller_mock.token_generator = token_generator_mock
+        controller_mock.token_expires_in = expires_in
         
         request_mock = Mock(spec=Request)
         request_mock.path = path
@@ -1327,8 +1328,12 @@ class RefreshTokenTestCase(unittest.TestCase):
         self.assertEqual(client_store_mock, grant_handler.client_store)
         self.assertEqual(scope_handler_mock, grant_handler.scope_handler)
         self.assertEqual(token_generator_mock, grant_handler.token_generator)
+        self.assertEqual(expires_in, grant_handler.expires_in)
     
     def test_call_wrong_path(self):
+        """
+        RefreshToken should return 'None' if path in the request does not equal the token path
+        """
         controller_mock = Mock(spec=AuthorizationController)
         controller_mock.token_path = "/token"
         
@@ -1342,6 +1347,9 @@ class RefreshTokenTestCase(unittest.TestCase):
         self.assertEqual(grant_handler, None)
         
     def test_call_other_grant_type(self):
+        """
+        RefreshToken should return 'None' if another grant type is requested
+        """
         path = "/token"
         
         controller_mock = Mock(spec=AuthorizationController)
@@ -1356,6 +1364,51 @@ class RefreshTokenTestCase(unittest.TestCase):
         grant_handler = grant(request_mock, controller_mock)
         
         self.assertEqual(grant_handler, None)
+
+class RefreshTokenHandlerTestCase(unittest.TestCase):
+    @patch("time.time", mock_time)
+    def test_process(self):
+        client_id = "testclient"
+        data = {"additional": "data"}
+        expires_in = 600
+        scopes = []
+        token = "abcdefg"
+        expected_response_body = {"access_token": token,
+                                  "expires_in": expires_in,
+                                  "token_type": "Bearer"}
+        expected_headers = {"Content-type": "application/json"}
+        
+        access_token_store_mock = Mock(spec=AccessTokenStore)
+        
+        response = Response()
+        
+        scope_handler_mock = Mock(spec=Scope)
+        scope_handler_mock.scopes = scopes
+        
+        token_generator_mock = Mock(spec=["generate"])
+        token_generator_mock.generate.return_value = token
+        
+        handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
+                                      client_store=Mock(spec=ClientStore),
+                                      expires_in=expires_in,
+                                      scope_handler=scope_handler_mock,
+                                      token_generator=token_generator_mock)
+        handler.client_id = client_id
+        handler.data = data
+        
+        result = handler.process(request=Mock(spec=Request),
+                                 response=response, environ={})
+        
+        access_token, = access_token_store_mock.save_token.call_args[0]
+        self.assertEqual(access_token.client_id, client_id)
+        self.assertDictEqual(access_token.data, data)
+        self.assertEqual(access_token.token, token)
+        self.assertListEqual(access_token.scopes, scopes)
+        self.assertEqual(access_token.expires_at, 1600)
+        
+        self.assertEqual(result, response)
+        self.assertDictContainsSubset(expected_headers, result.headers)
+        self.assertEqual(json.dumps(expected_response_body), result.body)
 
 if __name__ == "__main__":
     unittest.main()
