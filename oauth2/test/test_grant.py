@@ -8,7 +8,7 @@ from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler,\
     Scope, RefreshToken, RefreshTokenHandler
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
-    ClientNotFoundError, UserNotAuthenticated
+    ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound
 from oauth2 import AuthorizationController, Client, AuthorizationCode,\
     AccessToken
 
@@ -706,24 +706,6 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         self.assertEqual(response.body, json.dumps(expected_body))
         response_mock.add_header.assert_called_with("Content-type",
                                                     "application/json")
-    
-    def test_redirect_oauth_error(self):
-        error_identifier = "eid"
-        expected_content = {"error": error_identifier}
-        
-        error_mock = Mock(spec=OAuthUserError)
-        error_mock.error = error_identifier
-        
-        response_mock = Mock(spec=Response)
-        
-        handler = AuthorizationCodeTokenHandler(Mock(), Mock(), Mock(), Mock())
-        result = handler.redirect_oauth_error(error_mock, response_mock)
-        
-        response_mock.add_header.assert_called_with("Content-type",
-                                                    "application/json")
-        self.assertEqual(response_mock.status_code, 400)
-        self.assertEqual(response_mock.body, json.dumps(expected_content))
-        self.assertEqual(result, response_mock)
 
 class ImplicitGrantTestCase(unittest.TestCase):
     def test_create_matching_response_type(self):
@@ -1497,6 +1479,133 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         self.assertEqual(handler.client_id, client_id)
         self.assertEqual(handler.data, data)
         self.assertEqual(handler.refresh_token, refresh_token)
+    
+    
+    def test_read_validate_params_no_client_id(self):
+        request_mock = Mock(spec=Request)
+        request_mock.post_param.return_value = None
+        
+        handler = RefreshTokenHandler(access_token_store=Mock(),
+                                      client_store=Mock(), expires_in=0,
+                                      scope_handler=Mock(),
+                                      token_generator=Mock())
+        
+        with self.assertRaises(OAuthInvalidError) as expected:
+            handler.read_validate_params(request_mock)
+        
+        e = expected.exception
+        
+        self.assertEqual(e.error, "invalid_request")
+        self.assertEqual(e.explanation, "Missing client_id in request body")
+    
+    def test_read_validate_params_no_client_secret(self):
+        request_mock = Mock(spec=Request)
+        request_mock.post_param.side_effect = ["abc", None]
+        
+        handler = RefreshTokenHandler(access_token_store=Mock(),
+                                      client_store=Mock(), expires_in=0,
+                                      scope_handler=Mock(),
+                                      token_generator=Mock())
+        
+        with self.assertRaises(OAuthInvalidError) as expected:
+            handler.read_validate_params(request_mock)
+        
+        e = expected.exception
+        
+        self.assertEqual(e.error, "invalid_request")
+        self.assertEqual(e.explanation, "Missing client_secret in request body")
+    
+    def test_read_validate_params_no_refresh_token(self):
+        request_mock = Mock(spec=Request)
+        request_mock.post_param.side_effect = ["abc", "xyz", None]
+        
+        handler = RefreshTokenHandler(access_token_store=Mock(),
+                                      client_store=Mock(), expires_in=0,
+                                      scope_handler=Mock(),
+                                      token_generator=Mock())
+        
+        with self.assertRaises(OAuthInvalidError) as expected:
+            handler.read_validate_params(request_mock)
+        
+        e = expected.exception
+        
+        self.assertEqual(e.error, "invalid_request")
+        self.assertEqual(e.explanation, "Missing refresh_token in request body")
+    
+    def test_read_validate_params_client_not_found(self):
+        request_mock = Mock(spec=Request)
+        request_mock.post_param.side_effect = ["abc", "xyz", "uuu"]
+        
+        client_store_mock = Mock(spec=ClientStore)
+        client_store_mock.fetch_by_client_id.side_effect = ClientNotFoundError
+        
+        handler = RefreshTokenHandler(access_token_store=Mock(),
+                                      client_store=client_store_mock,
+                                      expires_in=0, scope_handler=Mock(),
+                                      token_generator=Mock())
+        
+        with self.assertRaises(OAuthInvalidError) as expected:
+            handler.read_validate_params(request_mock)
+        
+        e = expected.exception
+        
+        self.assertEqual(e.error, "invalid_request")
+        self.assertEqual(e.explanation, "Unknown client")
+    
+    def test_read_validate_params_invalid_client_secret(self):
+        client_id = "abc"
+        secret_expected = "mno"
+        secret_actual = "xyz"
+        
+        request_mock = Mock(spec=Request)
+        request_mock.post_param.side_effect = [client_id, secret_actual, "uuu"]
+        
+        client = Client(identifier=client_id, secret=secret_expected,
+                        redirect_uris=[])
+        
+        client_store_mock = Mock(spec=ClientStore)
+        client_store_mock.fetch_by_client_id.return_value = client
+        
+        handler = RefreshTokenHandler(access_token_store=Mock(),
+                                      client_store=client_store_mock,
+                                      expires_in=0, scope_handler=Mock(),
+                                      token_generator=Mock())
+        
+        with self.assertRaises(OAuthInvalidError) as expected:
+            handler.read_validate_params(request_mock)
+        
+        e = expected.exception
+        
+        self.assertEqual(e.error, "invalid_request")
+        self.assertEqual(e.explanation, "Invalid client secret")
+    
+    def test_read_validate_params_invalid_refresh_token(self):
+        client_id = "abc"
+        secret = "xyz"
+        
+        access_token_store_mock = Mock(spec=AccessTokenStore)
+        access_token_store_mock.fetch_by_refresh_token.side_effect = AccessTokenNotFound
+        
+        request_mock = Mock(spec=Request)
+        request_mock.post_param.side_effect = [client_id, secret, "uuu"]
+        
+        client = Client(identifier=client_id, secret=secret, redirect_uris=[])
+        
+        client_store_mock = Mock(spec=ClientStore)
+        client_store_mock.fetch_by_client_id.return_value = client
+        
+        handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
+                                      client_store=client_store_mock,
+                                      expires_in=0, scope_handler=Mock(),
+                                      token_generator=Mock())
+        
+        with self.assertRaises(OAuthInvalidError) as expected:
+            handler.read_validate_params(request_mock)
+        
+        e = expected.exception
+        
+        self.assertEqual(e.error, "invalid_request")
+        self.assertEqual(e.explanation, "Invalid refresh token")
 
 if __name__ == "__main__":
     unittest.main()

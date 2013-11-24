@@ -28,11 +28,23 @@ So there are two remaining parties:
 
 """
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
-    ClientNotFoundError, UserNotAuthenticated
+    ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound
 from oauth2.compatibility import urlencode, quote
 import json
 import time
 from oauth2 import AuthorizationCode, AccessToken
+
+def json_error_response(error, response):
+    """
+    Formats an error as a response containing a JSON body.
+    """
+    msg = {"error": error.error, "description": error.explanation}
+
+    response.status_code = 400
+    response.add_header("Content-Type", "application/json")
+    response.body = json.dumps(msg)
+    
+    return response
 
 class Scope(object):
     """
@@ -355,17 +367,7 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         return response
     
     def redirect_oauth_error(self, error, response):
-        """
-        Returns a response with status "400" and the error as JSON in case an
-        error during the oauth process occurred.
-        """
-        msg = {"error": error.error}
-        
-        response.status_code = 400
-        response.add_header("Content-type", "application/json")
-        response.body = json.dumps(msg)
-        
-        return response
+        return json_error_response(error, response)
     
     def _read_params(self, request):
         self.client_id     = request.post_param("client_id")
@@ -637,16 +639,7 @@ class ResourceOwnerGrantHandler(GrantHandler):
         return True
     
     def redirect_oauth_error(self, error, response):
-        """
-        Formats an error as a response containing a JSON body.
-        """
-        msg = {"error": error.error, "description": error.explanation}
-        
-        response.status_code = 400
-        response.add_header("Content-Type", "application/json")
-        response.body = json.dumps(msg)
-        
-        return response
+        return json_error_response(error, response)
 
 class RefreshToken(GrantHandlerFactory):
     def __call__(self, request, server):
@@ -694,15 +687,40 @@ class RefreshTokenHandler(GrantHandler):
     
     def read_validate_params(self, request):
         self.client_id = request.post_param("client_id")
+        
+        if self.client_id is None:
+            raise OAuthInvalidError(error="invalid_request",
+                                    explanation="Missing client_id in request body")
+        
         client_secret = request.post_param("client_secret")
         
-        client = self.client_store.fetch_by_client_id(self.client_id)
+        if client_secret is None:
+            raise OAuthInvalidError(error="invalid_request",
+                                    explanation="Missing client_secret in request body")
         
         self.refresh_token = request.post_param("refresh_token")
         
-        access_token = self.access_token_store.fetch_by_refresh_token(
-            self.refresh_token
-        )
+        if self.refresh_token is None:
+            raise OAuthInvalidError(error="invalid_request",
+                                    explanation="Missing refresh_token in request body")
+        
+        try:
+            client = self.client_store.fetch_by_client_id(self.client_id)
+            
+            if client.secret != client_secret:
+                raise OAuthInvalidError(error="invalid_request",
+                                        explanation="Invalid client secret")
+        except ClientNotFoundError:
+            raise OAuthInvalidError(error="invalid_request",
+                                    explanation="Unknown client")
+        
+        try:
+            access_token = self.access_token_store.fetch_by_refresh_token(
+                self.refresh_token
+            )
+        except AccessTokenNotFound:
+            raise OAuthInvalidError(error="invalid_request",
+                                    explanation="Invalid refresh token")
         
         self.data = access_token.data
         
@@ -710,4 +728,4 @@ class RefreshTokenHandler(GrantHandler):
         self.scope_handler.compare(access_token.scopes)
     
     def redirect_oauth_error(self, error, response):
-        pass
+        return json_error_response(error, response)
