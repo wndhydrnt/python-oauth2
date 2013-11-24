@@ -2,6 +2,13 @@
 Errors raised during the OAuth 2.0 flow.
 """
 
+class AccessTokenNotFound(Exception):
+    """
+    Error indicating that an access token could not be read from the
+    storage backend by an instance of :class:`oauth2.store.AccessTokenStore`.
+    """
+    pass
+
 class AuthCodeNotFound(Exception):
     """
     Error indicating that an authorization code could not be read from the
