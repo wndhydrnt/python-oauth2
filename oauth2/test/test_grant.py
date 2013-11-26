@@ -11,6 +11,7 @@ from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
     ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound
 from oauth2 import AuthorizationController, Client, AuthorizationCode,\
     AccessToken
+from oauth2.tokengenerator import TokenGenerator
 
 def mock_time():
     return 1000
@@ -680,17 +681,15 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         self.assertEqual(error.explanation, "Authorization code has expired")
     
     def test_process(self):
-        access_token = "abcd"
+        token_data = {"access_token": "abcd", "token_type": "Bearer"}
         client_id    = "efg"
         data = {"additional": "data"}
         scopes       = ["scope"]
         
-        expected_body = {"access_token": access_token, "token_type": "Bearer"}
-        
         access_token_store_mock = Mock(spec=AccessTokenStore)
         
-        token_generator_mock = Mock(spec=["generate"])
-        token_generator_mock.generate.return_value = access_token
+        token_generator_mock = Mock(spec=TokenGenerator)
+        token_generator_mock.create_access_token_data.return_value = token_data
         
         response_mock = Mock(spec=Response)
         response_mock.body = None
@@ -709,7 +708,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         self.assertTrue(isinstance(access_token, AccessToken))
         self.assertEqual(access_token.data, data)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.body, json.dumps(expected_body))
+        self.assertEqual(response.body, json.dumps(token_data))
         response_mock.add_header.assert_called_with("Content-type",
                                                     "application/json")
 

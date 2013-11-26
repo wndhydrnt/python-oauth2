@@ -320,9 +320,9 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         self.scopes        = []
         
         self.access_token_store = access_token_store
-        self.auth_code_store   = auth_token_store
-        self.client_store       = client_store
-        self.token_generator    = token_generator
+        self.auth_code_store = auth_token_store
+        self.client_store = client_store
+        self.token_generator = token_generator
     
     def read_validate_params(self, request):
         """
@@ -351,16 +351,15 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         
         Calls `oauth2.store.AccessTokenStore` to persist the token.
         """
-        token = self.token_generator.generate()
-        
-        result = {"access_token": token, "token_type": "Bearer"}
+        token_data = self.token_generator.create_access_token_data()
         
         access_token = AccessToken(client_id=self.client_id, data=self.data,
-                                   token=token, scopes=self.scopes)
+                                   token=token_data["access_token"],
+                                   scopes=self.scopes)
         
         self.access_token_store.save_token(access_token)
         
-        response.body = json.dumps(result)
+        response.body = json.dumps(token_data)
         response.status_code = 200
         
         response.add_header("Content-type", "application/json")
