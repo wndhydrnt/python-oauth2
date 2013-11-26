@@ -357,6 +357,11 @@ class AuthorizationCodeTokenHandler(GrantHandler):
                                    token=token_data["access_token"],
                                    scopes=self.scopes)
         
+        if "refresh_token" in token_data:
+            expires_at = int(time.time()) + token_data["expires_in"]
+            access_token.expires_at = expires_at
+            access_token.refresh_token = token_data["refresh_token"]
+        
         self.access_token_store.save_token(access_token)
         
         response.body = json.dumps(token_data)
@@ -593,22 +598,26 @@ class ResourceOwnerGrantHandler(GrantHandler):
         user_data = self.site_adapter.authenticate(request, environ,
                                                    self.scope_handler.scopes)
         
-        token = self.token_generator.generate()
+        token_data = self.token_generator.create_access_token_data()
         
-        access_token = AccessToken(client_id=self.client_id, token=token,
+        access_token = AccessToken(client_id=self.client_id,
+                                   token=token_data["access_token"],
                                    data=user_data,
                                    scopes=self.scope_handler.scopes)
         
+        if "refresh_token" in token_data:
+            expires_at = int(time.time()) + token_data["expires_in"]
+            access_token.expires_at = expires_at
+            access_token.refresh_token = token_data["refresh_token"]
+        
         self.access_token_store.save_token(access_token)
         
-        response_body = {"access_token": token, "token_type": "bearer"}
-        
         if self.scope_handler.send_back is True:
-            response_body["scope"] = " ".join(self.scope_handler.scopes)
+            token_data["scope"] = " ".join(self.scope_handler.scopes)
         
         response.add_header("Content-Type", "application/json")
         response.status_code = 200
-        response.body = json.dumps(response_body)
+        response.body = json.dumps(token_data)
         
         return response
     

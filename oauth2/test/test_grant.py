@@ -680,7 +680,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         self.assertEqual(error.error, "invalid_grant")
         self.assertEqual(error.explanation, "Authorization code has expired")
     
-    def test_process(self):
+    def test_process_no_refresh_token(self):
         token_data = {"access_token": "abcd", "token_type": "Bearer"}
         client_id    = "efg"
         data = {"additional": "data"}
@@ -707,6 +707,42 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
         self.assertEqual(access_token.data, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.body, json.dumps(token_data))
+        response_mock.add_header.assert_called_with("Content-type",
+                                                    "application/json")
+    @patch("time.time", mock_time)
+    def test_process_with_refresh_token(self):
+        token_data = {"access_token": "abcd", "token_type": "Bearer",
+                      "refresh_token": "wxyz", "expires_in": 600}
+        client_id    = "efg"
+        data = {"additional": "data"}
+        scopes       = ["scope"]
+        
+        access_token_store_mock = Mock(spec=AccessTokenStore)
+        
+        token_generator_mock = Mock(spec=TokenGenerator)
+        token_generator_mock.create_access_token_data.return_value = token_data
+        
+        response_mock = Mock(spec=Response)
+        response_mock.body = None
+        response_mock.status_code = None
+        
+        handler = AuthorizationCodeTokenHandler(access_token_store_mock,
+                                                Mock(spec=AuthCodeStore),
+                                                Mock(spec=ClientStore),
+                                                token_generator_mock)
+        handler.client_id = client_id
+        handler.data = data
+        handler.scopes = scopes
+        response = handler.process(Mock(spec=Request), response_mock, {})
+        
+        access_token, = access_token_store_mock.save_token.call_args[0]
+        self.assertTrue(isinstance(access_token, AccessToken))
+        self.assertEqual(access_token.data, data)
+        self.assertEqual(access_token.expires_at, 1600)
+        self.assertEqual(access_token.refresh_token,
+                         token_data["refresh_token"])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.body, json.dumps(token_data))
         response_mock.add_header.assert_called_with("Content-type",
@@ -1011,8 +1047,9 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         access_token = "0aef"
         client_id    = "abcd"
         expected_response_body = {"access_token": access_token,
-                                  "token_type": "bearer"}
+                                  "token_type": "Bearer"}
         scopes       = ["scope"]
+        token_data = {"access_token": access_token, "token_type": "Bearer"}
         user         = {"id": 123}
         
         access_token_store_mock = Mock(AccessTokenStore)
@@ -1028,8 +1065,8 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         site_adapter_mock = Mock(SiteAdapter)
         site_adapter_mock.authenticate.return_value = user
         
-        token_generator_mock = Mock()
-        token_generator_mock.generate.return_value = access_token
+        token_generator_mock = Mock(spec=TokenGenerator)
+        token_generator_mock.create_access_token_data.return_value = token_data
         
         handler = ResourceOwnerGrantHandler(access_token_store_mock,
                                             Mock(ClientStore),
@@ -1041,9 +1078,58 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         
         site_adapter_mock.authenticate.assert_called_with(request_mock, {},
                                                           scopes)
-        token_generator_mock.generate.assert_called_with()
+        token_generator_mock.create_access_token_data.assert_called_with()
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
+        response_mock.add_header.assert_called_with("Content-Type",
+                                                    "application/json")
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(json.loads(result.body), expected_response_body)
+        self.assertEqual(result, response_mock)
+    
+    @patch("time.time", mock_time)
+    def test_process_with_refresh_token(self):
+        access_token = "0aef"
+        client_id    = "abcd"
+        expected_response_body = {"access_token": access_token,
+                                  "token_type": "Bearer",
+                                  "refresh_token": "wxyz", "expires_in": 600}
+        scopes       = ["scope"]
+        token_data = {"access_token": access_token, "token_type": "Bearer",
+                      "refresh_token": "wxyz", "expires_in": 600}
+        user         = {"id": 123}
+        
+        access_token_store_mock = Mock(AccessTokenStore)
+        
+        request_mock = Mock(Request)
+        
+        response_mock = Mock(Response)
+        
+        scope_handler_mock = Mock(Scope)
+        scope_handler_mock.scopes = scopes
+        scope_handler_mock.send_back = False
+        
+        site_adapter_mock = Mock(SiteAdapter)
+        site_adapter_mock.authenticate.return_value = user
+        
+        token_generator_mock = Mock(spec=TokenGenerator)
+        token_generator_mock.create_access_token_data.return_value = token_data
+        
+        handler = ResourceOwnerGrantHandler(access_token_store_mock,
+                                            Mock(ClientStore),
+                                            scope_handler_mock,
+                                            site_adapter_mock,
+                                            token_generator_mock)
+        handler.client_id = client_id
+        result = handler.process(request_mock, response_mock, {})
+        
+        site_adapter_mock.authenticate.assert_called_with(request_mock, {},
+                                                          scopes)
+        token_generator_mock.create_access_token_data.assert_called_with()
+        access_token, = access_token_store_mock.save_token.call_args[0]
+        self.assertTrue(isinstance(access_token, AccessToken))
+        self.assertEqual(access_token.refresh_token, token_data["refresh_token"])
+        self.assertEqual(access_token.expires_at, 1600)
         response_mock.add_header.assert_called_with("Content-Type",
                                                     "application/json")
         self.assertEqual(result.status_code, 200)
@@ -1055,8 +1141,9 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         client_id    = "abcd"
         scopes       = ["scope_read", "scope_write"]
         expected_response_body = {"access_token": access_token,
-                                  "token_type": "bearer",
+                                  "token_type": "Bearer",
                                   "scope": " ".join(scopes)}
+        token_data = {"access_token": access_token, "token_type": "Bearer"}
         
         response_mock = Mock(Response)
         
@@ -1064,8 +1151,8 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         scope_handler_mock.scopes = scopes
         scope_handler_mock.send_back = True
         
-        token_generator_mock = Mock()
-        token_generator_mock.generate.return_value = access_token
+        token_generator_mock = Mock(spec=TokenGenerator)
+        token_generator_mock.create_access_token_data.return_value = token_data
         
         handler = ResourceOwnerGrantHandler(Mock(AccessTokenStore),
                                             Mock(ClientStore),
@@ -1075,7 +1162,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         handler.client_id = client_id
         result = handler.process(Mock(Request), response_mock, {})
         
-        token_generator_mock.generate.assert_called_with()
+        token_generator_mock.create_access_token_data.assert_called_with()
         response_mock.add_header.assert_called_with("Content-Type",
                                                     "application/json")
         self.assertEqual(result.status_code, 200)
