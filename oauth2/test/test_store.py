@@ -121,7 +121,8 @@ class MemcacheTokenStoreTestCase(unittest.TestCase):
     
     def test_save_token(self):
         data = {"client_id": "myclient", "token": "xyz",
-                "data": {"name": "test"}, "scopes": ["foo_read", "foo_write"]}
+                "data": {"name": "test"}, "scopes": ["foo_read", "foo_write"],
+                "expires_at": None, "refresh_token": None}
         
         access_token = AccessToken(**data)
         

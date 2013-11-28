@@ -5,8 +5,9 @@ This module provides base classes that can be extended to implement your own
 solution specific to your needs.
 It also includes implementations for popular storage systems like memcache.
 """
-from oauth2.error import ClientNotFoundError, AuthCodeNotFound
-from oauth2 import AuthorizationCode, Client
+from oauth2.error import ClientNotFoundError, AuthCodeNotFound,\
+    AccessTokenNotFound
+from oauth2 import AuthorizationCode, Client, AccessToken
 
 class AccessTokenStore(object):
     """
@@ -121,6 +122,7 @@ class LocalTokenStore(AccessTokenStore, AuthCodeStore):
     def __init__(self):
         self.access_tokens = {}
         self.auth_codes   = {}
+        self.refresh_tokens = {}
     
     def fetch_by_code(self, code):
         """
@@ -157,7 +159,24 @@ class LocalTokenStore(AccessTokenStore, AuthCodeStore):
         """
         self.access_tokens[access_token.token] = access_token
         
+        if access_token.refresh_token is not None:
+            self.refresh_tokens[access_token.refresh_token] = access_token
+        
         return True
+    
+    def fetch_by_refresh_token(self, refresh_token):
+        """
+        Find an access token by its refresh token.
+        
+        :param refresh_token: The refresh token that was assigned to an
+                              ``AccessToken``.
+        :return: The :class:`oauth2.AccessToken`.
+        :raises: :class:`oauth2.error.AccessTokenNotFound`
+        """
+        if refresh_token not in self.refresh_tokens:
+            raise AccessTokenNotFound
+        
+        return self.refresh_tokens[refresh_token]
     
     def fetch_by_token(self, token):
         """
@@ -171,7 +190,7 @@ class LocalTokenStore(AccessTokenStore, AuthCodeStore):
         :return: An instance of :class:`oauth2.AccessToken`.
         """
         if token not in self.access_tokens:
-            return None
+            raise AccessTokenNotFound
         
         return self.access_tokens[token]
 
@@ -257,10 +276,19 @@ class MemcacheTokenStore(AccessTokenStore, AuthCodeStore):
         """
         key = self._generate_cache_key(access_token.token)
         
-        self.mc.set(key, {"client_id": access_token.client_id,
-                          "token": access_token.token,
-                          "data": access_token.data,
-                          "scopes": access_token.scopes})
+        self.mc.set(key, access_token.__dict__)
+        
+        if access_token.refresh_token is not None:
+            rft_key = self._generate_cache_key(access_token.refresh_token)
+            self.mc.set(rft_key, access_token.__dict__)
+    
+    def fetch_by_refresh_token(self, refresh_token):
+        token_data = self.mc.get(refresh_token)
+        
+        if token_data is None:
+            raise AccessTokenNotFound
+        
+        return AccessToken(**token_data)
     
     def _generate_cache_key(self, identifier):
         return self.prefix + "_" + identifier
