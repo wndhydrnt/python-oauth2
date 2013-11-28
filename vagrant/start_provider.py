@@ -2,12 +2,15 @@ from pymongo import MongoClient
 
 from wsgiref.simple_server import make_server
 
-from oauth2 import AuthorizationController, AuthorizationCode, Client
+from oauth2 import AuthorizationController, AuthorizationCode, Client,\
+    AccessToken
 from oauth2.store import AccessTokenStore, AuthCodeStore, ClientStore
-from oauth2.error import AuthCodeNotFound, ClientNotFoundError
+from oauth2.error import AuthCodeNotFound, ClientNotFoundError,\
+    AccessTokenNotFound
 from oauth2.tokengenerator import Uuid4
 from oauth2.web import SiteAdapter, Wsgi
-from oauth2.grant import AuthorizationCodeGrant, ImplicitGrant, ResourceOwnerGrant
+from oauth2.grant import AuthorizationCodeGrant, ImplicitGrant, ResourceOwnerGrant,\
+    RefreshToken
 
 class MongoDbStore(AccessTokenStore, AuthCodeStore, ClientStore):
     def __init__(self, db):
@@ -22,6 +25,18 @@ class MongoDbStore(AccessTokenStore, AuthCodeStore, ClientStore):
             raise ClientNotFoundError
 
         return Client(client["client_id"], client["client_secret"], client["redirect_uris"])
+
+    def fetch_by_refresh_token(self, refresh_token):
+        access_tokens = self.db.access_tokens
+        
+        access_token = access_tokens.find_one({"refresh_token": refresh_token})
+        
+        if access_token is None:
+            raise AccessTokenNotFound
+        
+        del access_token["_id"]
+        
+        return AccessToken(**access_token)
 
     def fetch_by_code(self, code):
         auth_codes = self.db.auth_codes
@@ -50,7 +65,9 @@ class MongoDbStore(AccessTokenStore, AuthCodeStore, ClientStore):
         access_tokens.insert({"client_id": access_token.client_id,
                              "token": access_token.token,
                              "data": access_token.data,
-                             "scopes": access_token.scopes})
+                             "scopes": access_token.scopes,
+                             "refresh_token": access_token.refresh_token,
+                             "expires_at": access_token.expires_at})
 
 class TestSiteAdapter(SiteAdapter):
     def authenticate(self, request, environ, response):
@@ -71,12 +88,13 @@ def main():
         auth_code_store=store,
         client_store=store,
         site_adapter=TestSiteAdapter(),
-        token_generator=Uuid4()
+        token_generator=Uuid4(expires_in=120)
     )
 
     controller.add_grant(AuthorizationCodeGrant())
     controller.add_grant(ImplicitGrant())
     controller.add_grant(ResourceOwnerGrant())
+    controller.add_grant(RefreshToken())
 
     app = Wsgi(server=controller)
 
