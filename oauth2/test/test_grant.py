@@ -1429,13 +1429,13 @@ class RefreshTokenTestCase(unittest.TestCase):
         
         request_mock = Mock(spec=Request)
         request_mock.path = path
-        request_mock.get_param.return_value = "refresh_token"
+        request_mock.post_param.return_value = "refresh_token"
         
         grant = RefreshToken()
         
         grant_handler = grant(request_mock, controller_mock)
         
-        request_mock.get_param.assert_called_with("grant_type")
+        request_mock.post_param.assert_called_with("grant_type")
         
         self.assertTrue(isinstance(grant_handler, RefreshTokenHandler))
         self.assertEqual(access_token_store_mock,

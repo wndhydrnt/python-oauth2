@@ -656,7 +656,7 @@ class RefreshToken(GrantHandlerFactory):
         if request.path != server.token_path:
             return None
         
-        if request.get_param("grant_type") != "refresh_token":
+        if request.post_param("grant_type") != "refresh_token":
             return None
         
         return RefreshTokenHandler(access_token_store=server.access_token_store,
