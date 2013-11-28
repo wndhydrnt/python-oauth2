@@ -732,6 +732,10 @@ class RefreshTokenHandler(GrantHandler):
             raise OAuthInvalidError(error="invalid_request",
                                     explanation="Invalid refresh token")
         
+        if access_token.expires_at < int(time.time()):
+            raise OAuthInvalidError(error="invalid_request",
+                                    explanation="Invalid refresh token")
+        
         self.data = access_token.data
         
         self.scope_handler.parse(request)

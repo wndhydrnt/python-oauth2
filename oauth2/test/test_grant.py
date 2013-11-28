@@ -1525,6 +1525,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         self.assertDictContainsSubset(expected_headers, result.headers)
         self.assertEqual(json.dumps(expected_response_body), result.body)
     
+    @patch("time.time", mock_time)
     def test_read_validate_params(self):
         client_id = "client"
         client_secret = "secret"
@@ -1677,6 +1678,38 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         
         access_token_store_mock = Mock(spec=AccessTokenStore)
         access_token_store_mock.fetch_by_refresh_token.side_effect = AccessTokenNotFound
+        
+        request_mock = Mock(spec=Request)
+        request_mock.post_param.side_effect = [client_id, secret, "uuu"]
+        
+        client = Client(identifier=client_id, secret=secret, redirect_uris=[])
+        
+        client_store_mock = Mock(spec=ClientStore)
+        client_store_mock.fetch_by_client_id.return_value = client
+        
+        handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
+                                      client_store=client_store_mock,
+                                      expires_in=0, scope_handler=Mock(),
+                                      token_generator=Mock())
+        
+        with self.assertRaises(OAuthInvalidError) as expected:
+            handler.read_validate_params(request_mock)
+        
+        e = expected.exception
+        
+        self.assertEqual(e.error, "invalid_request")
+        self.assertEqual(e.explanation, "Invalid refresh token")
+    
+    @patch("time.time", mock_time)
+    def test_read_validate_params_expired_access_token(self):
+        client_id = "abc"
+        secret = "xyz"
+        
+        access_token_mock = Mock(spec=AccessToken)
+        access_token_mock.expires_at = 900
+        
+        access_token_store_mock = Mock(spec=AccessTokenStore)
+        access_token_store_mock.fetch_by_refresh_token.return_value = access_token_mock
         
         request_mock = Mock(spec=Request)
         request_mock.post_param.side_effect = [client_id, secret, "uuu"]

@@ -167,6 +167,8 @@ class AuthorizationController(object):
         self.response_class     = response_class
         self.site_adapter       = site_adapter
         self.token_generator    = token_generator
+        
+        self.token_generator.expires_in = self.token_expires_in
     
     def add_grant(self, grant):
         """
