@@ -82,13 +82,15 @@ def main():
     db = client.testdb
 
     store = MongoDbStore(db=db)
+    
+    AuthorizationController.token_expires_in = 600
 
     controller = AuthorizationController(
         access_token_store=store,
         auth_code_store=store,
         client_store=store,
         site_adapter=TestSiteAdapter(),
-        token_generator=Uuid4(expires_in=120)
+        token_generator=Uuid4()
     )
 
     controller.add_grant(AuthorizationCodeGrant())
