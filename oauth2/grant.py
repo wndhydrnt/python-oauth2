@@ -651,7 +651,7 @@ class ResourceOwnerGrantHandler(GrantHandler):
     def redirect_oauth_error(self, error, response):
         return json_error_response(error, response)
 
-class RefreshToken(GrantHandlerFactory):
+class RefreshToken(GrantHandlerFactory, ScopeGrant):
     def __call__(self, request, server):
         if request.path != server.token_path:
             return None
@@ -662,7 +662,7 @@ class RefreshToken(GrantHandlerFactory):
         return RefreshTokenHandler(access_token_store=server.access_token_store,
                                    client_store=server.client_store,
                                    expires_in=server.token_expires_in,
-                                   scope_handler=server.scope_handler,
+                                   scope_handler=self._create_scope_handler(),
                                    token_generator=server.token_generator)
 
 class RefreshTokenHandler(GrantHandler):

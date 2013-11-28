@@ -5,7 +5,7 @@ from oauth2.web import Request, Response, SiteAdapter
 from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler,\
     AuthRequestMixin, AuthorizationCodeTokenHandler, ImplicitGrant,\
     AuthorizationCodeGrant, ResourceOwnerGrantHandler, ResourceOwnerGrant,\
-    Scope, RefreshToken, RefreshTokenHandler
+    Scope, RefreshToken, RefreshTokenHandler, ScopeGrant
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
     ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound
@@ -1438,10 +1438,10 @@ class RefreshTokenTestCase(unittest.TestCase):
         request_mock.post_param.assert_called_with("grant_type")
         
         self.assertTrue(isinstance(grant_handler, RefreshTokenHandler))
+        self.assertTrue(isinstance(grant_handler.scope_handler, Scope))
         self.assertEqual(access_token_store_mock,
                          grant_handler.access_token_store)
         self.assertEqual(client_store_mock, grant_handler.client_store)
-        self.assertEqual(scope_handler_mock, grant_handler.scope_handler)
         self.assertEqual(token_generator_mock, grant_handler.token_generator)
         self.assertEqual(expires_in, grant_handler.expires_in)
     
