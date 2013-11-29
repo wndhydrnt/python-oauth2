@@ -652,7 +652,18 @@ class ResourceOwnerGrantHandler(GrantHandler):
         return json_error_response(error, response)
 
 class RefreshToken(GrantHandlerFactory, ScopeGrant):
+    """
+    Handles requests for refresk tokens as defined in
+    http://tools.ietf.org/html/rfc6749#section-6.
+    
+    Dispatches to :class:`RefreshTokenHandler` for the actual processing.
+    """
     def __call__(self, request, server):
+        """
+        Determines if the current request is a request for a refresh token.
+        
+        :return: An instance of :class:`RefreshTokenHandler`.
+        """
         if request.path != server.token_path:
             return None
         
@@ -666,6 +677,9 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
                                    token_generator=server.token_generator)
 
 class RefreshTokenHandler(GrantHandler):
+    """
+    Validates an incoming request and issues a new access token.
+    """
     def __init__(self, access_token_store, client_store, expires_in,
                  scope_handler, token_generator):
         self.access_token_store = access_token_store
@@ -679,6 +693,17 @@ class RefreshTokenHandler(GrantHandler):
         self.refresh_token = None
     
     def process(self, request, response, environ):
+        """
+        Create a new access token.
+        
+        :param request: The incoming :class:`oauth2.web.Request`.
+        :param response: The :class:`oauth2.web.Response` that will be returned
+                         to the client.
+        :param environ: A ``dict`` containing daa of the environment.
+        
+        :return: :class:`oauth2.web.Response`
+        
+        """
         expires_at = int(time.time()) + self.expires_in
         token = self.token_generator.generate()
         
@@ -696,6 +721,16 @@ class RefreshTokenHandler(GrantHandler):
         return response
     
     def read_validate_params(self, request):
+        """
+        Validate the incoming request.
+        
+        :param request: The incoming :class:`oauth2.web.Request`.
+        
+        :return: Returns ``True`` if data is valid.
+        
+        :raises: :class:`oauth2.error.OAuthInvalidError`
+        
+        """
         self.client_id = request.post_param("client_id")
         
         if self.client_id is None:
