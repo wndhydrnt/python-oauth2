@@ -1425,7 +1425,7 @@ class RefreshTokenTestCase(unittest.TestCase):
         controller_mock.client_store = client_store_mock
         controller_mock.scope_handler = scope_handler_mock
         controller_mock.token_generator = token_generator_mock
-        controller_mock.token_expires_in = expires_in
+        controller_mock.tokens_expire_in = expires_in
         
         request_mock = Mock(spec=Request)
         request_mock.path = path

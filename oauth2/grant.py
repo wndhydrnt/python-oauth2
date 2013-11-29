@@ -661,7 +661,7 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
         
         return RefreshTokenHandler(access_token_store=server.access_token_store,
                                    client_store=server.client_store,
-                                   expires_in=server.token_expires_in,
+                                   expires_in=server.tokens_expire_in,
                                    scope_handler=self._create_scope_handler(),
                                    token_generator=server.token_generator)
 

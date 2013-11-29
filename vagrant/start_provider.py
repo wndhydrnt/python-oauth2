@@ -83,7 +83,7 @@ def main():
 
     store = MongoDbStore(db=db)
     
-    AuthorizationController.token_expires_in = 600
+    AuthorizationController.tokens_expire_in = 600
 
     controller = AuthorizationController(
         access_token_store=store,

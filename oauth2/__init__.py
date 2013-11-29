@@ -140,7 +140,7 @@ class AuthorizationController(object):
     
     authorize_path = "/authorize"
     token_path = "/token"
-    token_expires_in = 2592000
+    tokens_expire_in = 2592000
     """
     Endpoint of requests to the OAuth 2.0 server.
     
@@ -168,7 +168,7 @@ class AuthorizationController(object):
         self.site_adapter       = site_adapter
         self.token_generator    = token_generator
         
-        self.token_generator.expires_in = self.token_expires_in
+        self.token_generator.expires_in = self.tokens_expire_in
     
     def add_grant(self, grant):
         """
