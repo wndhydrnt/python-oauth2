@@ -82,8 +82,6 @@ def main():
     db = client.testdb
 
     store = MongoDbStore(db=db)
-    
-    AuthorizationController.tokens_expire_in = 600
 
     controller = AuthorizationController(
         access_token_store=store,
@@ -96,7 +94,7 @@ def main():
     controller.add_grant(AuthorizationCodeGrant())
     controller.add_grant(ImplicitGrant())
     controller.add_grant(ResourceOwnerGrant())
-    controller.add_grant(RefreshToken())
+    controller.add_grant(RefreshToken(expires_in=600))
 
     app = Wsgi(server=controller)
 
