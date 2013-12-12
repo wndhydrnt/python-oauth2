@@ -658,9 +658,16 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
     
     Dispatches to :class:`RefreshTokenHandler` for the actual processing.
     """
+    
+    def __init__(self, expires_in, default_scope=None, scopes=None,
+                 scope_class=Scope):
+        self.expires_in = expires_in
+        
+        ScopeGrant.__init__(self, default_scope=default_scope, scopes=scopes,
+                            scope_class=scope_class)
     def __call__(self, request, server):
         """
-        Determines if the current request is a request for a refresh token.
+        Determines if the current request requests a refresh token.
         
         :return: An instance of :class:`RefreshTokenHandler`.
         """
@@ -672,7 +679,6 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
         
         return RefreshTokenHandler(access_token_store=server.access_token_store,
                                    client_store=server.client_store,
-                                   expires_in=server.tokens_expire_in,
                                    scope_handler=self._create_scope_handler(),
                                    token_generator=server.token_generator)
 
@@ -680,11 +686,10 @@ class RefreshTokenHandler(GrantHandler):
     """
     Validates an incoming request and issues a new access token.
     """
-    def __init__(self, access_token_store, client_store, expires_in,
-                 scope_handler, token_generator):
+    def __init__(self, access_token_store, client_store, scope_handler,
+                 token_generator):
         self.access_token_store = access_token_store
         self.client_store       = client_store
-        self.expires_in         = expires_in
         self.scope_handler      = scope_handler
         self.token_generator    = token_generator
         
@@ -699,12 +704,13 @@ class RefreshTokenHandler(GrantHandler):
         :param request: The incoming :class:`oauth2.web.Request`.
         :param response: The :class:`oauth2.web.Response` that will be returned
                          to the client.
-        :param environ: A ``dict`` containing daa of the environment.
+        :param environ: A ``dict`` containing data of the environment.
         
         :return: :class:`oauth2.web.Response`
         
         """
-        expires_at = int(time.time()) + self.expires_in
+        expires_in = self.token_generator.expires_in
+        expires_at = int(time.time()) + expires_in
         token = self.token_generator.generate()
         
         access_token = AccessToken(client_id=self.client_id, token=token,
@@ -712,7 +718,7 @@ class RefreshTokenHandler(GrantHandler):
                                    scopes=self.scope_handler.scopes)
         self.access_token_store.save_token(access_token)
         
-        response_data = {"access_token": token, "expires_in": self.expires_in,
+        response_data = {"access_token": token, "expires_in": expires_in,
                          "token_type": "Bearer"}
         
         response.add_header("Content-type", "application/json")

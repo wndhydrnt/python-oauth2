@@ -10,14 +10,14 @@ class TokenGenerator(object):
     """
     Base class of every token generator.
     """
-    def __init__(self, expires_in=0):
+    def __init__(self):
         """
         Create a new instance of a token generator.
         
         :param expires_in: Timeframe in seconds that defines how long a
                            generated token will be valid. Default: 0
         """
-        self.expires_in = expires_in
+        self.expires_in = 0
     
     def create_access_token_data(self):
         """
@@ -45,9 +45,9 @@ class URandomTokenGenerator(TokenGenerator):
     """
     Create a token using ``os.urandom()``.
     """
-    def __init__(self, expires_in=0, length=40):
+    def __init__(self, length=40):
         self.token_length = length
-        TokenGenerator.__init__(self, expires_in=expires_in)
+        TokenGenerator.__init__(self)
     
     def generate(self):
         """

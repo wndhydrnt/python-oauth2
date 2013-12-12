@@ -4,6 +4,7 @@ from oauth2.test import unittest
 from oauth2 import AuthorizationController
 from oauth2.store import ClientStore
 from oauth2.web import Response, Request, SiteAdapter
+from oauth2.grant import RefreshToken
 
 class AuthorizationControllerTestCase(unittest.TestCase):
     def setUp(self):
@@ -16,6 +17,14 @@ class AuthorizationControllerTestCase(unittest.TestCase):
                                                site_adapter=Mock(),
                                                token_generator=self.token_generator_mock,
                                                response_class=Mock())
+    
+    def test_add_grant_set_expire_time(self):
+        """
+        AuthorizationController.add_grant() should set the expiration time on the instance of TokenGenerator
+        """
+        self.auth_server.add_grant(RefreshToken(expires_in=600))
+        
+        self.assertEqual(self.token_generator_mock.expires_in, 600)
     
     def test_dispatch(self):
         environ        = {"session": "data"}

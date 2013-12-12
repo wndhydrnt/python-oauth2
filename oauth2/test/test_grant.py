@@ -1431,7 +1431,7 @@ class RefreshTokenTestCase(unittest.TestCase):
         request_mock.path = path
         request_mock.post_param.return_value = "refresh_token"
         
-        grant = RefreshToken()
+        grant = RefreshToken(expires_in=0)
         
         grant_handler = grant(request_mock, controller_mock)
         
@@ -1443,7 +1443,6 @@ class RefreshTokenTestCase(unittest.TestCase):
                          grant_handler.access_token_store)
         self.assertEqual(client_store_mock, grant_handler.client_store)
         self.assertEqual(token_generator_mock, grant_handler.token_generator)
-        self.assertEqual(expires_in, grant_handler.expires_in)
     
     def test_call_wrong_path(self):
         """
@@ -1455,7 +1454,7 @@ class RefreshTokenTestCase(unittest.TestCase):
         request_mock = Mock(spec=Request)
         request_mock.path = "/authorize"
         
-        grant = RefreshToken()
+        grant = RefreshToken(expires_in=0)
         
         grant_handler = grant(request_mock, controller_mock)
         
@@ -1474,7 +1473,7 @@ class RefreshTokenTestCase(unittest.TestCase):
         request_mock.path = path
         request_mock.get_param.return_value = "authorization_code"
         
-        grant = RefreshToken()
+        grant = RefreshToken(expires_in=0)
         
         grant_handler = grant(request_mock, controller_mock)
         
@@ -1501,11 +1500,11 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         scope_handler_mock.scopes = scopes
         
         token_generator_mock = Mock(spec=["generate"])
+        token_generator_mock.expires_in = expires_in
         token_generator_mock.generate.return_value = token
         
         handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
                                       client_store=Mock(spec=ClientStore),
-                                      expires_in=expires_in,
                                       scope_handler=scope_handler_mock,
                                       token_generator=token_generator_mock)
         handler.client_id = client_id
@@ -1530,7 +1529,6 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         client_id = "client"
         client_secret = "secret"
         data = {"additional": "data"}
-        expires_in = 600
         original_token = "sd3f3j"
         refresh_token = "s74jf"
         scopes=[]
@@ -1555,7 +1553,6 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         
         handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
                                       client_store=client_store_mock,
-                                      expires_in=expires_in,
                                       scope_handler=scope_handler_mock,
                                       token_generator=Mock())
         
@@ -1579,7 +1576,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         request_mock.post_param.return_value = None
         
         handler = RefreshTokenHandler(access_token_store=Mock(),
-                                      client_store=Mock(), expires_in=0,
+                                      client_store=Mock(),
                                       scope_handler=Mock(),
                                       token_generator=Mock())
         
@@ -1596,7 +1593,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         request_mock.post_param.side_effect = ["abc", None]
         
         handler = RefreshTokenHandler(access_token_store=Mock(),
-                                      client_store=Mock(), expires_in=0,
+                                      client_store=Mock(),
                                       scope_handler=Mock(),
                                       token_generator=Mock())
         
@@ -1613,7 +1610,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         request_mock.post_param.side_effect = ["abc", "xyz", None]
         
         handler = RefreshTokenHandler(access_token_store=Mock(),
-                                      client_store=Mock(), expires_in=0,
+                                      client_store=Mock(),
                                       scope_handler=Mock(),
                                       token_generator=Mock())
         
@@ -1634,7 +1631,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         
         handler = RefreshTokenHandler(access_token_store=Mock(),
                                       client_store=client_store_mock,
-                                      expires_in=0, scope_handler=Mock(),
+                                      scope_handler=Mock(),
                                       token_generator=Mock())
         
         with self.assertRaises(OAuthInvalidError) as expected:
@@ -1661,7 +1658,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         
         handler = RefreshTokenHandler(access_token_store=Mock(),
                                       client_store=client_store_mock,
-                                      expires_in=0, scope_handler=Mock(),
+                                      scope_handler=Mock(),
                                       token_generator=Mock())
         
         with self.assertRaises(OAuthInvalidError) as expected:
@@ -1689,7 +1686,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         
         handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
                                       client_store=client_store_mock,
-                                      expires_in=0, scope_handler=Mock(),
+                                      scope_handler=Mock(),
                                       token_generator=Mock())
         
         with self.assertRaises(OAuthInvalidError) as expected:
@@ -1721,7 +1718,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         
         handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
                                       client_store=client_store_mock,
-                                      expires_in=0, scope_handler=Mock(),
+                                      scope_handler=Mock(),
                                       token_generator=Mock())
         
         with self.assertRaises(OAuthInvalidError) as expected:

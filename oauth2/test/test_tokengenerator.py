@@ -26,7 +26,8 @@ class Uuid4TestCase(unittest.TestCase):
         self.assertEqual(result["token_type"], "Bearer")
     
     def test_create_access_token_data_with_expiration(self):
-        generator = Uuid4(expires_in=600)
+        generator = Uuid4()
+        generator.expires_in = 600
         
         result = generator.create_access_token_data()
         

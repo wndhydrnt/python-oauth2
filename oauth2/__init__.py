@@ -137,27 +137,27 @@ class Client(object):
         return uri in self.redirect_uris
 
 class AuthorizationController(object):
-    
     authorize_path = "/authorize"
     token_path = "/token"
-    tokens_expire_in = 2592000
-    """
-    Endpoint of requests to the OAuth 2.0 server.
     
-    :param access_token_store: An object that implements methods defiend by
-                               :class:`oauth2.store.AccessTokenStore`.
-    :param auth_code_store: An object that implements methods defiend by
-                            :class:`oauth2.store.AuthTokenStore`.
-    :param client_store: An object that implements methods defiend by
-                         :class:`oauth2.store.ClientStore`.
-    :param site_adapter: An object that implements methods defiend by
-                         :class:`oauth2.web.SiteAdapter`.
-    :param token_generator: Object to generate unique tokens.
-    :param response_class: Class of the response object.
-                           Default: :class:`oauth2.web.Response`.
-    """
     def __init__(self, access_token_store, auth_code_store, client_store,
                  site_adapter, token_generator, response_class=Response):
+        """
+        Endpoint of requests to the OAuth 2.0 server.
+        
+        :param access_token_store: An object that implements methods defiend by
+                                   :class:`oauth2.store.AccessTokenStore`.
+        :param auth_code_store: An object that implements methods defiend by
+                                :class:`oauth2.store.AuthTokenStore`.
+        :param client_store: An object that implements methods defiend by
+                             :class:`oauth2.store.ClientStore`.
+        :param site_adapter: An object that implements methods defiend by
+                             :class:`oauth2.web.SiteAdapter`.
+        :param token_generator: Object to generate unique tokens.
+        :param response_class: Class of the response object.
+                               Default: :class:`oauth2.web.Response`.
+    
+        """
         self.grant_types    = []
         self._input_handler = None
         
@@ -167,13 +167,14 @@ class AuthorizationController(object):
         self.response_class     = response_class
         self.site_adapter       = site_adapter
         self.token_generator    = token_generator
-        
-        self.token_generator.expires_in = self.tokens_expire_in
     
     def add_grant(self, grant):
         """
         Adds a Grant that the server should support.
         """
+        if hasattr(grant, "expires_in"):
+            self.token_generator.expires_in = grant.expires_in
+        
         self.grant_types.append(grant)
     
     def dispatch(self, request, environ):
