@@ -118,6 +118,10 @@ Instead your application should use the API defined by
 Changelog
 *********
 
+New in version 0.4.0
+====================
+- Added support for refresh tokens
+
 New in version 0.3.2
 ====================
 - Fixed a bug where MemcacheTokenStore saved objects instead of dictionaries.
