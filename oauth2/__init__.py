@@ -63,6 +63,10 @@ Example Authorization server::
     # Add Grants you want to support
     auth_controller.add_grant(oauth2.grant.AuthorizationCodeGrant())
     auth_controller.add_grant(oauth2.grant.ImplicitGrant())
+    
+    # Add refresh token capability and set expiration time of access tokens
+    # to 30 days
+    auth_controller.add_grant(oauth2.grant.RefreshToken(expires_in=2592000))
 
     # Wrap the controller with the Wsgi adapter
     app = oauth2.web.Wsgi(server=auth_controller)

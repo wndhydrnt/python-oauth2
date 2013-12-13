@@ -25,3 +25,6 @@ Grant classes
 
 .. autoclass:: ResourceOwnerGrant
    :show-inheritance:
+
+.. autoclass:: RefreshToken
+   :show-inheritance:

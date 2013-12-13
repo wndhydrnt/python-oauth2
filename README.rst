@@ -17,8 +17,6 @@ While the basic implementations work already pretty well, some types of
 authorization Grants
 `defined in the RFC <http://tools.ietf.org/html/rfc6749#section-1.3>`_ are
 still missing.
-Also some features like `Refreh Tokens <http://tools.ietf.org/html/rfc6749#section-1.5>`_
-have not been implemented yet.
 
 Installation
 ************
@@ -84,6 +82,10 @@ Example Authorization server::
     # Add Grants you want to support
     auth_controller.add_grant(oauth2.grant.AuthorizationCodeGrant())
     auth_controller.add_grant(oauth2.grant.ImplicitGrant())
+    
+    # Add refresh token capability and set expiration time of access tokens
+    # to 30 days
+    auth_controller.add_grant(oauth2.grant.RefreshToken(expires_in=2592000))
 
     # Wrap the controller with the Wsgi adapter
     app = oauth2.web.Wsgi(server=auth_controller)

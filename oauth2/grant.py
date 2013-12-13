@@ -669,7 +669,16 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
     Handles requests for refresk tokens as defined in
     http://tools.ietf.org/html/rfc6749#section-6.
     
-    Dispatches to :class:`RefreshTokenHandler` for the actual processing.
+    Adding a Refresh Token to the :class:`oauth2.AuthorizationController` like
+    this::
+    
+        auth_controller = AuthorizationController()
+        
+        auth_controller.add_grant_type(RefreshToken(expires_in=600))
+        
+    will cause :class:`oauth2.grant.AuthorizationCodeGrant` and
+    :class:`oauth2.grant.ResourceOwnerGrant` to include a refresh token and
+    expiration in the response.
     """
     
     grant_type = "refresh_token"
