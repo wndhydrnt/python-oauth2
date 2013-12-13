@@ -33,7 +33,8 @@ class LocalTokenStoreTestCase(unittest.TestCase):
         self.access_token_data = {"client_id": "myclient",
                                   "token": "xyz",
                                   "scopes": ["foo_read", "foo_write"],
-                                  "data": {"name": "test"}}
+                                  "data": {"name": "test"},
+                                  "grant_type": "authorization_code"}
         self.auth_code = AuthorizationCode("myclient", "abc", 100,
                                            "http://localhost",
                                            ["foo_read", "foo_write"],
@@ -122,7 +123,8 @@ class MemcacheTokenStoreTestCase(unittest.TestCase):
     def test_save_token(self):
         data = {"client_id": "myclient", "token": "xyz",
                 "data": {"name": "test"}, "scopes": ["foo_read", "foo_write"],
-                "expires_at": None, "refresh_token": None}
+                "expires_at": None, "refresh_token": None,
+                "grant_type": "authorization_code"}
         
         access_token = AccessToken(**data)
         

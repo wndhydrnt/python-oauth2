@@ -354,6 +354,7 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         token_data = self.token_generator.create_access_token_data()
         
         access_token = AccessToken(client_id=self.client_id, data=self.data,
+                                   grant_type=AuthorizationCodeGrant.grant_type,
                                    token=token_data["access_token"],
                                    scopes=self.scopes)
         
@@ -440,6 +441,9 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
         
         auth_controller.add_grant_type(AuthorizationCodeGrant())
     """
+    
+    grant_type = "authorization_code"
+    
     def __call__(self, request, server):
         if (request.post_param("grant_type") == "authorization_code"
             and request.path == server.token_path):
@@ -461,6 +465,7 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
         return None
 
 class ImplicitGrant(GrantHandlerFactory, ScopeGrant):
+    
     """
     Implementation of the Implicit Grant auth flow.
     
@@ -473,6 +478,9 @@ class ImplicitGrant(GrantHandlerFactory, ScopeGrant):
         
         auth_controller.add_grant_type(ImplicitGrant())
     """
+    
+    grant_type = "implicit"
+    
     def __call__(self, request, server):
         response_type = request.get_param("response_type")
         
@@ -509,8 +517,9 @@ class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
         
         token = self.token_generator.generate()
         
-        access_token = AccessToken(client_id=self.client_id, token=token,
-                                   data=user_data,
+        access_token = AccessToken(client_id=self.client_id,
+                                   grant_type=ImplicitGrant.grant_type,
+                                   token=token, data=user_data,
                                    scopes=self.scope_handler.scopes)
         
         self.access_token_store.save_token(access_token)
@@ -556,6 +565,9 @@ class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant):
         
         auth_controller.add_grant_type(ResourceOwnerGrant())
     """
+    
+    grant_type = "password"
+    
     def __call__(self, request, server):
         """
         Checks if the incoming request can be handled by the
@@ -602,6 +614,7 @@ class ResourceOwnerGrantHandler(GrantHandler):
         
         access_token = AccessToken(client_id=self.client_id,
                                    token=token_data["access_token"],
+                                   grant_type=ResourceOwnerGrant.grant_type,
                                    data=user_data,
                                    scopes=self.scope_handler.scopes)
         
@@ -659,6 +672,8 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
     Dispatches to :class:`RefreshTokenHandler` for the actual processing.
     """
     
+    grant_type = "refresh_token"
+    
     def __init__(self, expires_in, default_scope=None, scopes=None,
                  scope_class=Scope):
         self.expires_in = expires_in
@@ -714,6 +729,7 @@ class RefreshTokenHandler(GrantHandler):
         token = self.token_generator.generate()
         
         access_token = AccessToken(client_id=self.client_id, token=token,
+                                   grant_type=RefreshToken.grant_type,
                                    data=self.data, expires_at=expires_at,
                                    scopes=self.scope_handler.scopes)
         self.access_token_store.save_token(access_token)

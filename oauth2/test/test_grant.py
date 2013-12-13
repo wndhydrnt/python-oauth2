@@ -707,6 +707,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
         self.assertEqual(access_token.data, data)
+        self.assertEqual(access_token.grant_type, "authorization_code")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.body, json.dumps(token_data))
         response_mock.add_header.assert_called_with("Content-type",
@@ -740,6 +741,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
         self.assertEqual(access_token.data, data)
+        self.assertEqual(access_token.grant_type, "authorization_code")
         self.assertEqual(access_token.expires_at, 1600)
         self.assertEqual(access_token.refresh_token,
                          token_data["refresh_token"])
@@ -825,6 +827,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
+        self.assertEqual(access_token.grant_type, "implicit")
         
         responseMock.add_header.assert_called_with("Location",
                                                    redirect_uri_with_token)
@@ -1081,6 +1084,8 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         token_generator_mock.create_access_token_data.assert_called_with()
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
+        self.assertEqual(access_token.grant_type,
+                         ResourceOwnerGrant.grant_type)
         response_mock.add_header.assert_called_with("Content-Type",
                                                     "application/json")
         self.assertEqual(result.status_code, 200)
@@ -1515,6 +1520,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertEqual(access_token.client_id, client_id)
+        self.assertEqual(access_token.grant_type, "refresh_token")
         self.assertDictEqual(access_token.data, data)
         self.assertEqual(access_token.token, token)
         self.assertListEqual(access_token.scopes, scopes)
@@ -1534,6 +1540,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         scopes=[]
         
         access_token = AccessToken(client_id=client_id, token=original_token,
+                                   grant_type=RefreshToken.grant_type,
                                    data=data, expires_at=1234, scopes=scopes)
         
         access_token_store_mock = Mock(AccessTokenStore)
