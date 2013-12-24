@@ -811,3 +811,24 @@ class RefreshTokenHandler(GrantHandler):
     
     def redirect_oauth_error(self, error, response):
         return json_error_response(error, response)
+
+class ClientCredentialsGrant(GrantHandlerFactory, ScopeGrant):
+    grant_type = "client_credentials"
+    
+    def __call__(self, request, server):
+        if request.get_param("grant_type") == self.grant_type:
+            return ClientCredentialsHandler(client_store=server.client_store)
+        return None
+
+class ClientCredentialsHandler(GrantHandler):
+    def __init__(self, client_store):
+        self.client_store = client_store
+    
+    def process(self, request, response, environ):
+        pass
+    
+    def read_validate_params(self, request):
+        pass
+    
+    def redirect_oauth_error(self, error, response):
+        return json_error_response(error, response)

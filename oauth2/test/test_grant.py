@@ -5,7 +5,8 @@ from oauth2.web import Request, Response, SiteAdapter
 from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler,\
     AuthRequestMixin, AuthorizationCodeTokenHandler, ImplicitGrant,\
     AuthorizationCodeGrant, ResourceOwnerGrantHandler, ResourceOwnerGrant,\
-    Scope, RefreshToken, RefreshTokenHandler, ScopeGrant
+    Scope, RefreshToken, RefreshTokenHandler, ScopeGrant,\
+    ClientCredentialsGrant, ClientCredentialsHandler
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
     ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound
@@ -1735,6 +1736,32 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         
         self.assertEqual(e.error, "invalid_request")
         self.assertEqual(e.explanation, "Invalid refresh token")
+
+class ClientCredentialsGrantTestCase(unittest.TestCase):
+    def test_call(self):
+        request_mock = Mock(spec=Request)
+        request_mock.get_param.return_value = "client_credentials"
+        
+        client_store_mock = Mock()
+        
+        server_mock = Mock()
+        server_mock.client_store = client_store_mock
+        
+        grant = ClientCredentialsGrant()
+        handler = grant(request_mock, server_mock)
+        
+        request_mock.get_param.assert_called_with("grant_type")
+        self.assertTrue(isinstance(handler, ClientCredentialsHandler))
+        self.assertEqual(handler.client_store, client_store_mock)
+    
+    def test_call_other_grant_type(self):
+        request_mock = Mock(spec=Request)
+        request_mock.get_param.return_value = "other_grant"
+        
+        grant = ClientCredentialsGrant()
+        handler = grant(request_mock, Mock())
+        
+        self.assertEqual(handler, None)
 
 if __name__ == "__main__":
     unittest.main()
