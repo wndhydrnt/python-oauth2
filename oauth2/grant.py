@@ -825,6 +825,9 @@ class ClientCredentialsGrant(GrantHandlerFactory, ScopeGrant):
     grant_type = "client_credentials"
     
     def __call__(self, request, server):
+        if request.path != server.token_path:
+            return None
+        
         if request.post_param("grant_type") == self.grant_type:
             return ClientCredentialsHandler(
                 access_token_store=server.access_token_store,
