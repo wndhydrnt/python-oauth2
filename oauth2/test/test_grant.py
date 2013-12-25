@@ -112,7 +112,7 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         request_mock.get_param.assert_has_calls([call("client_id"),
                                                 call("redirect_uri"),
                                                 call("state")])
-        scope_handler_mock.parse.assert_called_with(request_mock)
+        scope_handler_mock.parse.assert_called_with(request_mock, "query")
         clientStoreMock.fetch_by_client_id.assert_called_with(client_id)
         self.assertEqual(handler.client_id, client_id)
         self.assertEqual(handler.redirect_uri, redirect_uri)
@@ -225,7 +225,7 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         request_mock.get_param.assert_has_calls([call("client_id"),
                                                 call("redirect_uri"),
                                                 call("state")])
-        scope_handler_mock.parse.assert_called_with(request_mock)
+        scope_handler_mock.parse.assert_called_with(request_mock, "query")
         clientStoreMock.fetch_by_client_id.assert_called_with(client_id)
         self.assertEqual(handler.client_id, client_id)
         self.assertEqual(handler.redirect_uri, redirect_uri)
@@ -1202,7 +1202,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         
         client_store_mock.fetch_by_client_id.assert_called_with(client_id)
         scope_handler_mock.parse.assert_called_with(request=request_mock,
-                                                    source="POST")
+                                                    source="body")
         
         self.assertEqual(handler.client_id, client_id)
         self.assertEqual(handler.username, username)
@@ -1281,7 +1281,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         self.assertEqual(error.explanation, "Could not authenticate client")
 
 class ScopeTestCase(unittest.TestCase):
-    def test_parse_scope_scope_present(self):
+    def test_parse_scope_scope_present_in_query(self):
         """
         Scope.parse should return a list of requested scopes
         """
@@ -1292,12 +1292,22 @@ class ScopeTestCase(unittest.TestCase):
         
         scope = Scope(available=["user_read", "friends_write", "friends_read"])
         
-        scope.parse(request=request_mock)
+        scope.parse(request=request_mock, source="query")
         
         request_mock.get_param.assert_called_with("scope")
         
         self.assertListEqual(expected_scopes, scope.scopes)
         self.assertFalse(scope.send_back)
+    
+    def test_parse_scope_scope_present_in_body(self):
+        scope = Scope()
+        
+        request_mock = Mock(Request)
+        request_mock.post_param.return_value = None
+        
+        scope.parse(request=request_mock, source="body")
+        
+        request_mock.post_param.assert_called_with("scope")
     
     def test_parse_scope_default_on_no_scope(self):
         """
@@ -1311,7 +1321,7 @@ class ScopeTestCase(unittest.TestCase):
         scope = Scope(available=["user_read", "friends_write", "friends_read"],
                       default="all")
         
-        scope.parse(request=request_mock)
+        scope.parse(request=request_mock, source="query")
         
         request_mock.get_param.assert_called_with("scope")
         
@@ -1330,7 +1340,7 @@ class ScopeTestCase(unittest.TestCase):
         scope = Scope(available=["user_read", "friends_write", "friends_read"],
                       default="all")
         
-        scope.parse(request=request_mock)
+        scope.parse(request=request_mock, source="query")
         
         request_mock.get_param.assert_called_with("scope")
         
@@ -1348,7 +1358,7 @@ class ScopeTestCase(unittest.TestCase):
         
         scope = Scope()
         
-        scope.parse(request=request_mock)
+        scope.parse(request=request_mock, source="query")
         
         request_mock.get_param.assert_called_with("scope")
         
@@ -1365,7 +1375,7 @@ class ScopeTestCase(unittest.TestCase):
         scope = Scope(available=["user_read", "friends_write", "friends_read"])
         
         with self.assertRaises(OAuthInvalidError) as expected:
-            scope.parse(request_mock)
+            scope.parse(request_mock, source="query")
         
         e = expected.exception
         
@@ -1571,7 +1581,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
                                                   call("refresh_token")])
         access_token_store_mock.fetch_by_refresh_token.assert_called_with(refresh_token)
         client_store_mock.fetch_by_client_id.assert_called_with(client_id)
-        scope_handler_mock.parse.assert_called_with(request_mock)
+        scope_handler_mock.parse.assert_called_with(request_mock, "body")
         scope_handler_mock.compare.assert_called_with(scopes)
         
         self.assertEqual(handler.client_id, client_id)
@@ -1740,28 +1750,114 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
 class ClientCredentialsGrantTestCase(unittest.TestCase):
     def test_call(self):
         request_mock = Mock(spec=Request)
-        request_mock.get_param.return_value = "client_credentials"
+        request_mock.post_param.return_value = "client_credentials"
         
+        access_token_store_mock = Mock()
         client_store_mock = Mock()
+        token_generator_mock = Mock()
+        
+        scope_handler_mock = Mock(spec=Scope)
         
         server_mock = Mock()
+        server_mock.access_token_store = access_token_store_mock
         server_mock.client_store = client_store_mock
+        server_mock.scope_handler = scope_handler_mock
+        server_mock.token_generator = token_generator_mock
         
         grant = ClientCredentialsGrant()
         handler = grant(request_mock, server_mock)
         
-        request_mock.get_param.assert_called_with("grant_type")
+        request_mock.post_param.assert_called_with("grant_type")
         self.assertTrue(isinstance(handler, ClientCredentialsHandler))
+        self.assertEqual(handler.access_token_store, access_token_store_mock)
         self.assertEqual(handler.client_store, client_store_mock)
+        self.assertTrue(isinstance(handler.scope_handler, Scope))
+        self.assertEqual(handler.token_generator, token_generator_mock)
     
     def test_call_other_grant_type(self):
         request_mock = Mock(spec=Request)
-        request_mock.get_param.return_value = "other_grant"
+        request_mock.post_param.return_value = "other_grant"
         
         grant = ClientCredentialsGrant()
         handler = grant(request_mock, Mock())
         
         self.assertEqual(handler, None)
+
+class ClientCredentialsHandlerTestCase(unittest.TestCase):
+    @patch("time.time", mock_time)
+    def test_process(self):
+        client_id = "xyz"
+        expires_in = 600
+        token = "abcd"
+        scopes = ["foo", "bar"]
+        
+        expected_response_body = {"access_token": token,
+                                  "expires_in": expires_in,
+                                  "token_type": "Bearer",
+                                  "scope": scopes}
+        
+        access_token_store_mock = Mock(spec=AccessTokenStore)
+        
+        response_mock = Mock(spec=Response)
+        
+        scope_handler_mock = Mock(spec=Scope)
+        scope_handler_mock.send_back = True
+        scope_handler_mock.scopes = scopes
+        
+        token_generator_mock = Mock(spec=TokenGenerator)
+        token_generator_mock.generate.return_value = token
+        token_generator_mock.expires_in = expires_in
+        
+        handler = ClientCredentialsHandler(
+            access_token_store=access_token_store_mock,
+            client_store=Mock(),
+            scope_handler=scope_handler_mock,
+            token_generator=token_generator_mock)
+        handler.client_id = client_id
+        result_response = handler.process(request=Mock(),
+                                          response=response_mock, environ={})
+        
+        access_token, = access_token_store_mock.save_token.call_args[0]
+        self.assertTrue(isinstance(access_token, AccessToken))
+        self.assertEqual(access_token.client_id, client_id)
+        self.assertEqual(access_token.grant_type, "client_credentials")
+        self.assertEqual(access_token.token, token)
+        self.assertEqual(access_token.data, {})
+        self.assertEqual(access_token.expires_at, expires_in + 1000)
+        self.assertEqual(access_token.refresh_token, None)
+        self.assertEqual(access_token.scopes, scopes)
+        
+        response_mock.add_header.assert_called_with("Content-type",
+                                                    "application/json")
+        self.assertDictEqual(json.loads(result_response.body),
+                             expected_response_body)
+    
+    def test_read_validate_params(self):
+        client_id = "abc"
+        client_secret = "xyz"
+        
+        client_store_mock = Mock(spec=ClientStore)
+        client_store_mock.fetch_by_client_id.return_value = Client(
+            identifier=client_id,
+            secret=client_secret,
+            redirect_uris=[])
+        
+        scope_handler_mock = Mock(spec=Scope)
+        
+        request_mock = Mock(spec=Request)
+        request_mock.post_param.side_effect = [client_id, client_secret]
+        
+        handler = ClientCredentialsHandler(access_token_store=Mock(),
+                                           client_store=client_store_mock,
+                                           scope_handler=scope_handler_mock,
+                                           token_generator=Mock())
+        handler.read_validate_params(request_mock)
+        
+        client_store_mock.fetch_by_client_id.assert_called_with(client_id)
+        request_mock.post_param.assert_has_calls([call("client_id"),
+                                                  call("client_secret")])
+        scope_handler_mock.parse.assert_called_with(request=request_mock,
+                                                    source="body")
 
 if __name__ == "__main__":
     unittest.main()

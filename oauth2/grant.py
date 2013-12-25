@@ -82,7 +82,7 @@ class Scope(object):
         
         return True
     
-    def parse(self, request):
+    def parse(self, request, source):
         """
         Parses scope value in given request.
         
@@ -96,8 +96,17 @@ class Scope(object):
             "profile_read profile_write"
         
         :param request: An instance of :class:`oauth2.web.Request`.
+        :param source: Where to read the scope from. Pass "body" in case of a
+                       application/x-www-form-urlencoded body and "query" in
+                       case the scope is supplied as a query parameter in the
+                       URL of a request.
         """
-        req_scope = request.get_param("scope")
+        if source == "body":
+            req_scope = request.post_param("scope")
+        elif source == "query":
+            req_scope = request.get_param("scope")
+        else:
+            raise ValueError("Unknown scope source '" + source + "'")
         
         if req_scope is None:
             if self.default is not None:
@@ -227,7 +236,7 @@ class AuthRequestMixin(object):
         
         self.state = request.get_param("state")
         
-        self.scope_handler.parse(request)
+        self.scope_handler.parse(request, "query")
         
         return True
 
@@ -657,7 +666,7 @@ class ResourceOwnerGrantHandler(GrantHandler):
         self.password = request.post_param("password")
         self.username = request.post_param("username")
         
-        self.scope_handler.parse(request=request, source="POST")
+        self.scope_handler.parse(request=request, source="body")
         
         return True
     
@@ -804,7 +813,7 @@ class RefreshTokenHandler(GrantHandler):
         
         self.data = access_token.data
         
-        self.scope_handler.parse(request)
+        self.scope_handler.parse(request, "body")
         self.scope_handler.compare(access_token.scopes)
         
         return True
@@ -816,19 +825,69 @@ class ClientCredentialsGrant(GrantHandlerFactory, ScopeGrant):
     grant_type = "client_credentials"
     
     def __call__(self, request, server):
-        if request.get_param("grant_type") == self.grant_type:
-            return ClientCredentialsHandler(client_store=server.client_store)
+        if request.post_param("grant_type") == self.grant_type:
+            return ClientCredentialsHandler(
+                access_token_store=server.access_token_store,
+                client_store=server.client_store,
+                scope_handler=self._create_scope_handler(),
+                token_generator=server.token_generator)
         return None
 
 class ClientCredentialsHandler(GrantHandler):
-    def __init__(self, client_store):
+    def __init__(self, access_token_store, client_store, scope_handler,
+                 token_generator):
+        self.access_token_store = access_token_store
         self.client_store = client_store
+        self.scope_handler = scope_handler
+        self.token_generator = token_generator
     
     def process(self, request, response, environ):
-        pass
+        body = {"token_type": "Bearer"}
+        
+        token = self.token_generator.generate()
+        expires_at = int(time.time()) + self.token_generator.expires_in
+        
+        access_token = AccessToken(client_id=self.client_id,
+                                   grant_type=ClientCredentialsGrant.grant_type,
+                                   token=token, expires_at=expires_at,
+                                   scopes=self.scope_handler.scopes)
+        self.access_token_store.save_token(access_token)
+        
+        body["access_token"] = token
+        body["expires_in"] = self.token_generator.expires_in
+        
+        if self.scope_handler.send_back:
+            body["scope"] = self.scope_handler.scopes
+        
+        response.add_header("Content-type", "application/json")
+        response.body = json.dumps(body)
+        
+        return response
     
     def read_validate_params(self, request):
-        pass
+        self.client_id = request.post_param("client_id")
+        
+        if self.client_id is None:
+            raise OAuthInvalidError(error="invalid_request",
+                                    explanation="Missing client_id in request body")
+        
+        client_secret = request.post_param("client_secret")
+        
+        if client_secret is None:
+            raise OAuthInvalidError(error="invalid_request",
+                                    explanation="Missing client_secret in request body")
+        
+        try:
+            client = self.client_store.fetch_by_client_id(self.client_id)
+            
+            if client.secret != client_secret:
+                raise OAuthInvalidError(error="invalid_request",
+                                        explanation="Invalid client secret")
+        except ClientNotFoundError:
+            raise OAuthInvalidError(error="invalid_request",
+                                    explanation="Unknown client")
+        
+        self.scope_handler.parse(request=request, source="body")
     
     def redirect_oauth_error(self, error, response):
         return json_error_response(error, response)
