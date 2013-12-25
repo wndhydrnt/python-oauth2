@@ -10,7 +10,7 @@ from oauth2.error import AuthCodeNotFound, ClientNotFoundError,\
 from oauth2.tokengenerator import Uuid4
 from oauth2.web import SiteAdapter, Wsgi
 from oauth2.grant import AuthorizationCodeGrant, ImplicitGrant, ResourceOwnerGrant,\
-    RefreshToken
+    RefreshToken, ClientCredentialsGrant
 
 class MongoDbStore(AccessTokenStore, AuthCodeStore, ClientStore):
     def __init__(self, db):
@@ -94,6 +94,7 @@ def main():
     controller.add_grant(AuthorizationCodeGrant())
     controller.add_grant(ImplicitGrant())
     controller.add_grant(ResourceOwnerGrant())
+    controller.add_grant(ClientCredentialsGrant())
     controller.add_grant(RefreshToken(expires_in=600))
 
     app = Wsgi(server=controller)
