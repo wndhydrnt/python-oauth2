@@ -1749,7 +1749,10 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
 
 class ClientCredentialsGrantTestCase(unittest.TestCase):
     def test_call(self):
+        token_path = "token"
+        
         request_mock = Mock(spec=Request)
+        request_mock.path = token_path
         request_mock.post_param.return_value = "client_credentials"
         
         access_token_store_mock = Mock()
@@ -1759,6 +1762,7 @@ class ClientCredentialsGrantTestCase(unittest.TestCase):
         scope_handler_mock = Mock(spec=Scope)
         
         server_mock = Mock()
+        server_mock.token_path = token_path
         server_mock.access_token_store = access_token_store_mock
         server_mock.client_store = client_store_mock
         server_mock.scope_handler = scope_handler_mock
@@ -1774,12 +1778,30 @@ class ClientCredentialsGrantTestCase(unittest.TestCase):
         self.assertTrue(isinstance(handler.scope_handler, Scope))
         self.assertEqual(handler.token_generator, token_generator_mock)
     
-    def test_call_other_grant_type(self):
+    def test_call_wrong_request_path(self):
         request_mock = Mock(spec=Request)
-        request_mock.post_param.return_value = "other_grant"
+        request_mock.path = "authorize"
+        
+        server_mock = Mock()
+        server_mock.token_path = "token"
         
         grant = ClientCredentialsGrant()
-        handler = grant(request_mock, Mock())
+        handler = grant(request_mock, server_mock)
+        
+        self.assertEqual(handler, None)
+    
+    def test_call_other_grant_type(self):
+        token_path = "token"
+        
+        request_mock = Mock(spec=Request)
+        request_mock.path = token_path
+        request_mock.post_param.return_value = "other_grant"
+        
+        server_mock = Mock()
+        server_mock.token_path = token_path
+        
+        grant = ClientCredentialsGrant()
+        handler = grant(request_mock, server_mock)
         
         self.assertEqual(handler, None)
 
