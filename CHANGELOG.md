@@ -2,9 +2,13 @@
 
 ## 0.4.0
 
+Features:
+
   - Added support for refresh tokens
 
 ## 0.3.2
+
+Bugfixes:
 
   - Fixed a bug where MemcacheTokenStore saved objects instead of dictionaries.
 
@@ -16,11 +20,15 @@ Bugfixes:
 
 ## 0.3.0
 
+Features:
+
   - Headers of a response are returned as a dictionary
   - Status code of a response is an integer
   - Streamlining the integration of storage classes and site adapters by requiring them to raise specified errors
 
 ## 0.2.0
+
+Features:
 
   - Support for scopes
   - Local token and client stores
