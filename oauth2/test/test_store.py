@@ -2,7 +2,7 @@ from oauth2.test import unittest
 from oauth2.store import MemcacheTokenStore, LocalTokenStore, LocalClientStore
 from mock import Mock
 from oauth2.error import ClientNotFoundError, AuthCodeNotFound
-from oauth2 import AuthorizationCode, AccessToken
+from oauth2.datatype import AuthorizationCode, AccessToken
 
 class LocalClientStoreTestCase(unittest.TestCase):
     def test_add_client_and_fetch_by_client_id(self):

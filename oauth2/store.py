@@ -7,7 +7,7 @@ It also includes implementations for popular storage systems like memcache.
 """
 from oauth2.error import ClientNotFoundError, AuthCodeNotFound,\
     AccessTokenNotFound
-from oauth2 import AuthorizationCode, Client, AccessToken
+from oauth2.datatype import AuthorizationCode, Client, AccessToken
 
 class AccessTokenStore(object):
     """

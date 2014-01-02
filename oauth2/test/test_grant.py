@@ -10,8 +10,8 @@ from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler,\
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
     ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound
-from oauth2 import AuthorizationController, Client, AuthorizationCode,\
-    AccessToken
+from oauth2 import AuthorizationController
+from oauth2.datatype import Client, AuthorizationCode, AccessToken
 from oauth2.tokengenerator import TokenGenerator
 
 def mock_time():

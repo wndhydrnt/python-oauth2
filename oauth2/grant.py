@@ -32,7 +32,7 @@ from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
 from oauth2.compatibility import urlencode, quote
 import json
 import time
-from oauth2 import AuthorizationCode, AccessToken
+from oauth2.datatype import AuthorizationCode, AccessToken
 
 def json_error_response(error, response):
     """
