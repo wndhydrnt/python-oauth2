@@ -57,6 +57,9 @@ class Scope(object):
     :param default: Value to fall back to in case no scope is present in a
                     request.
     """
+    
+    separator = " "
+    
     def __init__(self, available=None, default=None):
         self.scopes     = []
         self.send_back  = False
@@ -119,7 +122,7 @@ class Scope(object):
             else:
                 return
         
-        req_scopes = req_scope.split(" ")
+        req_scopes = req_scope.split(self.separator)
         
         self.scopes = [scope for scope in req_scopes if scope in self.available_scopes]
         
