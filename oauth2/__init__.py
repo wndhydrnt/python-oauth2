@@ -91,6 +91,7 @@ import urllib
 from oauth2.error import OAuthInvalidError, OAuthUserError
 from oauth2.web import Request, Response
 from oauth2.tokengenerator import Uuid4
+from oauth2.grant import Scope
 
 VERSION = "0.5.0"
 
@@ -165,6 +166,12 @@ class AuthorizationController(object):
             
             response.body = json.dumps(json_body)
             return response
+    
+    def scope_separator(self, separator):
+        """
+        Sets the separator of values in scope query parameter.
+        """
+        Scope.separator = separator
     
     def _determine_grant_type(self, request):
         for grant in self.grant_types:
