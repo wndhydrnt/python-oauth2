@@ -1,0 +1,73 @@
+"""
+Store adapters to persist and retrieve data during the OAuth 2.0 process or
+for later use.
+This module provides base classes that can be extended to implement your own
+solution specific to your needs.
+It also includes implementations for popular storage systems like memcache.
+"""
+
+class AccessTokenStore(object):
+    """
+    Base class for persisting an access token after it has been generated.
+    
+    Used in two-legged and three-legged authentication flows.
+    """
+    def save_token(self, access_token):
+        """
+        Stores an access token and additional data.
+        
+        :param access_token: An instance of :class:`oauth2.AccessToken`.
+        
+        """
+        raise NotImplementedError
+    
+    def fetch_by_refresh_token(self, refresh_token):
+        """
+        Fetches an access token from the store using its refresh token to
+        identify it.
+        
+        :param refresh_token: A string containing the refresh token.
+        """
+        raise NotImplementedError
+
+class AuthCodeStore(object):
+    """
+    Base class for writing and retrieving an auth token during the
+    Authorization Code Grant flow.
+    """
+    def fetch_by_code(self, code):
+        """
+        Returns an AuthorizationCode fetched from a storage.
+        
+        :param code: The authorization code.
+        :return: An instance of :class:`oauth2.AuthorizationCode`.
+        :raises: :class:`AuthCodeNotFound` if no data could be retrieved for
+                 given code.
+        
+        """
+        raise NotImplementedError
+    
+    def save_code(self, authorization_code):
+        """
+        Stores the data belonging to an authorization code token.
+        
+        :param authorization_code: An instance of
+                                   :class:`oauth2.AuthorizationCode`.
+        
+        """
+        raise NotImplementedError
+
+class ClientStore(object):
+    """
+    Base class for handling OAuth2 clients.
+    """
+    def fetch_by_client_id(self, client_id):
+        """
+        Retrieve a client by its identifier.
+        
+        :param client_id: Identifier of a client app.
+        :return: An instance of :class:`oauth2.Client`.
+        :raises: ClientNotFoundError
+        
+        """
+        raise NotImplementedError
