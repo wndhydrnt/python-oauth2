@@ -10,7 +10,7 @@ from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler,\
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError,\
     ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound
-from oauth2 import AuthorizationController
+from oauth2 import Provider
 from oauth2.datatype import Client, AuthorizationCode, AccessToken
 from oauth2.tokengenerator import TokenGenerator
 
@@ -1020,7 +1020,7 @@ class ResourceOwnerGrantTestCase(unittest.TestCase):
         site_adapter_mock = Mock(SiteAdapter)
         token_generator_mock = Mock()
         
-        server_mock = Mock(AuthorizationController)
+        server_mock = Mock(Provider)
         server_mock.access_token_store = access_token_store_mock
         server_mock.client_store = client_store_mock
         server_mock.site_adapter = site_adapter_mock
@@ -1037,7 +1037,7 @@ class ResourceOwnerGrantTestCase(unittest.TestCase):
         request_mock = Mock(Request)
         request_mock.post_param.return_value = "other"
         
-        server_mock = Mock(AuthorizationController)
+        server_mock = Mock(Provider)
         
         factory = ResourceOwnerGrant()
         
@@ -1435,7 +1435,7 @@ class RefreshTokenTestCase(unittest.TestCase):
         scope_handler_mock = Mock()
         token_generator_mock = Mock()
         
-        controller_mock = Mock(spec=AuthorizationController)
+        controller_mock = Mock(spec=Provider)
         controller_mock.token_path = path
         controller_mock.access_token_store = access_token_store_mock
         controller_mock.client_store = client_store_mock
@@ -1464,7 +1464,7 @@ class RefreshTokenTestCase(unittest.TestCase):
         """
         RefreshToken should return 'None' if path in the request does not equal the token path
         """
-        controller_mock = Mock(spec=AuthorizationController)
+        controller_mock = Mock(spec=Provider)
         controller_mock.token_path = "/token"
         
         request_mock = Mock(spec=Request)
@@ -1482,7 +1482,7 @@ class RefreshTokenTestCase(unittest.TestCase):
         """
         path = "/token"
         
-        controller_mock = Mock(spec=AuthorizationController)
+        controller_mock = Mock(spec=Provider)
         controller_mock.token_path = path
         
         request_mock = Mock(spec=Request)

@@ -1,7 +1,7 @@
 from oauth2.test import unittest
 from mock import Mock
 from oauth2.web import Request, Response, Wsgi
-from oauth2 import AuthorizationController
+from oauth2 import Provider
 
 class RequestTestCase(unittest.TestCase):
     def test_initialization_no_post_data(self):
@@ -107,7 +107,7 @@ class WsgiTestCase(unittest.TestCase):
         responseMock.headers = headers
         responseMock.status_code = status_code
         
-        server_mock = Mock(spec=AuthorizationController)
+        server_mock = Mock(spec=Provider)
         server_mock.dispatch.return_value = responseMock
         
         start_response_mock = Mock()

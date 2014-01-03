@@ -52,7 +52,7 @@ Example Authorization server::
     token_store = oauth2.store.LocalTokenStore()
 
     # Create the controller.
-    auth_controller = oauth2.AuthorizationController(
+    auth_controller = oauth2.Provider(
         access_token_store=token_store,
         auth_code_store=token_store,
         client_store=client_store,
@@ -95,7 +95,7 @@ from oauth2.grant import Scope
 
 VERSION = "0.5.0"
 
-class AuthorizationController(object):
+class Provider(object):
     authorize_path = "/authorize"
     token_path = "/token"
     

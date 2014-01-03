@@ -1,5 +1,9 @@
 ## 0.5.0 (unreleased)
 
+Features:
+
+  - Added Client Credentials Grant
+
 ## 0.4.0
 
 Features:
