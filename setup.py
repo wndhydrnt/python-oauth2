@@ -9,7 +9,7 @@ setup(name="python-oauth2",
       author="Markus Meyer",
       author_email="hydrantanderwand@gmail.com",
       url="https://github.com/wndhydrnt/python-oauth2",
-      packages = ["oauth2", "oauth2.test"],
+      packages = ["oauth2", "oauth2.store", "oauth2.test"],
       classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: MIT License",
