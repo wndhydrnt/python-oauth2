@@ -26,6 +26,7 @@ Usage
 *****
 
 Example Authorization server::
+
     from wsgiref.simple_server import make_server
     import oauth2
     import oauth2.grant
