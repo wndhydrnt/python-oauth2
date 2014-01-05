@@ -16,7 +16,7 @@ class AccessTokenStore(object):
         """
         Stores an access token and additional data.
         
-        :param access_token: An instance of :class:`oauth2.AccessToken`.
+        :param access_token: An instance of :class:`oauth2.datatype.AccessToken`.
         
         """
         raise NotImplementedError
@@ -40,7 +40,7 @@ class AuthCodeStore(object):
         Returns an AuthorizationCode fetched from a storage.
         
         :param code: The authorization code.
-        :return: An instance of :class:`oauth2.AuthorizationCode`.
+        :return: An instance of :class:`oauth2.datatype.AuthorizationCode`.
         :raises: :class:`AuthCodeNotFound` if no data could be retrieved for
                  given code.
         

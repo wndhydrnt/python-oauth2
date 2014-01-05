@@ -1,3 +1,10 @@
+"""
+Read or write data from or to local memory.
+
+Though not very valuable in a production setup, these store adapters are great
+for testing purposes.
+"""
+
 from oauth2.store import AccessTokenStore, AuthCodeStore, ClientStore
 from oauth2.error import AccessTokenNotFound, AuthCodeNotFound,\
                          ClientNotFoundError
@@ -57,7 +64,7 @@ class MemoryTokenStore(AccessTokenStore, AuthCodeStore):
         Returns an AuthorizationCode.
         
         :param code: The authorization code.
-        :return: An instance of :class:`oauth2.AuthorizationCode`.
+        :return: An instance of :class:`oauth2.datatype.AuthorizationCode`.
         :raises: :class:`AuthCodeNotFound` if no data could be retrieved for
                  given code.
         
@@ -72,7 +79,7 @@ class MemoryTokenStore(AccessTokenStore, AuthCodeStore):
         Stores the data belonging to an authorization code token.
         
         :param authorization_code: An instance of
-                                   :class:`oauth2.AuthorizationCode`.
+                                   :class:`oauth2.datatype.AuthorizationCode`.
         
         """
         self.auth_codes[authorization_code.code] = authorization_code
@@ -83,7 +90,7 @@ class MemoryTokenStore(AccessTokenStore, AuthCodeStore):
         """
         Stores an access token and additional data in memory.
         
-        :param client_id: An instance of :class:`oauth2.AccessToken`.
+        :param access_token: An instance of :class:`oauth2.datatype.AccessToken`.
         """
         self.access_tokens[access_token.token] = access_token
         
@@ -98,7 +105,7 @@ class MemoryTokenStore(AccessTokenStore, AuthCodeStore):
         
         :param refresh_token: The refresh token that was assigned to an
                               ``AccessToken``.
-        :return: The :class:`oauth2.AccessToken`.
+        :return: The :class:`oauth2.datatype.AccessToken`.
         :raises: :class:`oauth2.error.AccessTokenNotFound`
         """
         if refresh_token not in self.refresh_tokens:
@@ -115,7 +122,7 @@ class MemoryTokenStore(AccessTokenStore, AuthCodeStore):
         read again.
 
         :param token: A access token code.
-        :return: An instance of :class:`oauth2.AccessToken`.
+        :return: An instance of :class:`oauth2.datatype.AccessToken`.
         """
         if token not in self.access_tokens:
             raise AccessTokenNotFound

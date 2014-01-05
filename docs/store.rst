@@ -6,11 +6,11 @@
 Data types
 ----------
 
-.. autoclass:: oauth2.AccessToken
+.. autoclass:: oauth2.datatype.AccessToken
 
-.. autoclass:: oauth2.AuthorizationCode
+.. autoclass:: oauth2.datatype.AuthorizationCode
 
-.. autoclass:: oauth2.Client
+.. autoclass:: oauth2.datatype.Client
 
 Base classes
 ------------
@@ -24,17 +24,12 @@ Base classes
 .. autoclass:: ClientStore
    :members:
 
-Concrete classes
-----------------
+Implementations
+---------------
 
-.. autoclass:: LocalClientStore
-   :show-inheritance:
-   :members:
+.. toctree::
+   :maxdepth: 2
 
-.. autoclass:: LocalTokenStore
-   :show-inheritance:
-   :members:
-
-.. autoclass:: MemcacheTokenStore
-   :show-inheritance:
-   :members:
+   store/memcache.rst
+   store/memory.rst
+   store/mongodb.rst
