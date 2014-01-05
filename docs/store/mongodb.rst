@@ -5,8 +5,8 @@
 
 .. autoclass:: MongodbStore
 
-.. autoclass:: MongodbAccessTokenStore
+.. autoclass:: AccessTokenStore
 
-.. autoclass:: MongodbAuthCodeStore
+.. autoclass:: AuthCodeStore
 
-.. autoclass:: MongodbClientStore
+.. autoclass:: ClientStore

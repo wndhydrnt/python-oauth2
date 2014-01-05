@@ -3,4 +3,4 @@
 
 .. automodule:: oauth2.store.memcache
 
-.. autoclass:: MemcacheTokenStore
+.. autoclass:: TokenStore

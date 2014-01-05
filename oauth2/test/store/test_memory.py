@@ -1,6 +1,6 @@
 from oauth2.datatype import AuthorizationCode, AccessToken
 from oauth2.error import ClientNotFoundError, AuthCodeNotFound
-from oauth2.store.memory import MemoryClientStore, MemoryTokenStore
+from oauth2.store.memory import ClientStore, TokenStore
 from oauth2.test import unittest
 
 class MemoryClientStoreTestCase(unittest.TestCase):
@@ -8,7 +8,7 @@ class MemoryClientStoreTestCase(unittest.TestCase):
         expected_client_data = {"client_id": "abc", "client_secret": "xyz",
                                 "redirect_uris": ["http://localhost"]}
         
-        store = MemoryClientStore()
+        store = ClientStore()
         
         success = store.add_client(expected_client_data["client_id"],
                                    expected_client_data["client_secret"],
@@ -22,7 +22,7 @@ class MemoryClientStoreTestCase(unittest.TestCase):
         self.assertEqual(client.redirect_uris, expected_client_data["redirect_uris"])
     
     def test_fetch_by_client_id_no_client(self):
-        store = MemoryClientStore()
+        store = ClientStore()
         
         with self.assertRaises(ClientNotFoundError):
             store.fetch_by_client_id("abc")
@@ -39,7 +39,7 @@ class MemoryTokenStoreTestCase(unittest.TestCase):
                                            ["foo_read", "foo_write"],
                                            {"name": "test"})
         
-        self.test_store = MemoryTokenStore()
+        self.test_store = TokenStore()
     
     def test_fetch_by_code(self):
         with self.assertRaises(AuthCodeNotFound):

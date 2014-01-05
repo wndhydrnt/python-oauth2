@@ -1,6 +1,6 @@
 from oauth2.test import unittest
-from oauth2.store.mongodb import MongodbAccessTokenStore, MongodbAuthCodeStore,\
-    MongodbClientStore
+from oauth2.store.mongodb import AccessTokenStore, AuthCodeStore,\
+    ClientStore
 from mock import Mock
 from oauth2.datatype import AccessToken, AuthorizationCode, Client
 from oauth2.error import AccessTokenNotFound, AuthCodeNotFound,\
@@ -24,7 +24,7 @@ class MongodbAccessTokenStoreTestCase(unittest.TestCase):
         collection_mock = Mock(spec=["find_one"])
         collection_mock.find_one.return_value = self.access_token_data
         
-        store = MongodbAccessTokenStore(collection=collection_mock)
+        store = AccessTokenStore(collection=collection_mock)
         token = store.fetch_by_refresh_token(refresh_token=refresh_token)
         
         collection_mock.find_one.assert_called_with(
@@ -36,7 +36,7 @@ class MongodbAccessTokenStoreTestCase(unittest.TestCase):
         collection_mock = Mock(spec=["find_one"])
         collection_mock.find_one.return_value = None
         
-        store = MongodbAccessTokenStore(collection=collection_mock)
+        store = AccessTokenStore(collection=collection_mock)
         
         with self.assertRaises(AccessTokenNotFound):
             store.fetch_by_refresh_token(refresh_token="abcd")
@@ -46,7 +46,7 @@ class MongodbAccessTokenStoreTestCase(unittest.TestCase):
         
         collection_mock = Mock(spec=["insert"])
         
-        store = MongodbAccessTokenStore(collection=collection_mock)
+        store = AccessTokenStore(collection=collection_mock)
         store.save_token(access_token)
         
         collection_mock.insert.assert_called_with(self.access_token_data)
@@ -66,7 +66,7 @@ class MongodbAuthCodeStoreTestCase(unittest.TestCase):
         
         self.auth_code_data["code"] = "abcd"
         
-        store = MongodbAuthCodeStore(collection=self.collection_mock)
+        store = AuthCodeStore(collection=self.collection_mock)
         auth_code = store.fetch_by_code(code=code)
         
         self.collection_mock.find_one.assert_called_with({"code": "abcd"})
@@ -76,7 +76,7 @@ class MongodbAuthCodeStoreTestCase(unittest.TestCase):
     def test_fetch_by_code_no_data(self):
         self.collection_mock.find_one.return_value = None
         
-        store = MongodbAuthCodeStore(collection=self.collection_mock)
+        store = AuthCodeStore(collection=self.collection_mock)
         
         with self.assertRaises(AuthCodeNotFound):
             store.fetch_by_code(code="abcd")
@@ -86,7 +86,7 @@ class MongodbAuthCodeStoreTestCase(unittest.TestCase):
         
         auth_code = AuthorizationCode(**self.auth_code_data)
         
-        store = MongodbAuthCodeStore(collection=self.collection_mock)
+        store = AuthCodeStore(collection=self.collection_mock)
         store.save_code(auth_code)
         
         self.collection_mock.insert.assert_called_with(self.auth_code_data)
@@ -99,7 +99,7 @@ class MongodbClientStoreTestCase(unittest.TestCase):
         collection_mock = Mock(spec=["find_one"])
         collection_mock.find_one.return_value = client_data
         
-        store = MongodbClientStore(collection=collection_mock)
+        store = ClientStore(collection=collection_mock)
         client = store.fetch_by_client_id(client_id=client_data["identifier"])
         
         collection_mock.find_one.assert_called_with({
@@ -111,7 +111,7 @@ class MongodbClientStoreTestCase(unittest.TestCase):
         collection_mock = Mock(spec=["find_one"])
         collection_mock.find_one.return_value = None
         
-        store = MongodbClientStore(collection=collection_mock)
+        store = ClientStore(collection=collection_mock)
         
         with self.assertRaises(ClientNotFoundError):
             store.fetch_by_client_id(client_id="testclient")

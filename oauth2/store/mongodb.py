@@ -15,7 +15,7 @@ class MongodbStore(object):
     def __init__(self, collection):
         self.collection = collection
 
-class MongodbAccessTokenStore(AccessTokenStore, MongodbStore):
+class AccessTokenStore(AccessTokenStore, MongodbStore):
     """
     Create a new instance like this::
     
@@ -25,7 +25,7 @@ class MongodbAccessTokenStore(AccessTokenStore, MongodbStore):
         
         db = client.test_database
         
-        access_token_store = MongodbAccessTokenStore(collection=db["access_tokens"])
+        access_token_store = AccessTokenStore(collection=db["access_tokens"])
     
     """
     
@@ -55,7 +55,7 @@ class MongodbAccessTokenStore(AccessTokenStore, MongodbStore):
         
         return True
 
-class MongodbAuthCodeStore(AuthCodeStore, MongodbStore):
+class AuthCodeStore(AuthCodeStore, MongodbStore):
     """
     Create a new instance like this::
     
@@ -65,7 +65,7 @@ class MongodbAuthCodeStore(AuthCodeStore, MongodbStore):
         
         db = client.test_database
         
-        access_token_store = MongodbAuthCodeStore(collection=db["auth_codes"])
+        access_token_store = AuthCodeStore(collection=db["auth_codes"])
     
     """
     
@@ -93,7 +93,7 @@ class MongodbAuthCodeStore(AuthCodeStore, MongodbStore):
         
         return True
 
-class MongodbClientStore(ClientStore, MongodbStore):
+class ClientStore(ClientStore, MongodbStore):
     """
     Create a new instance like this::
     
@@ -103,7 +103,7 @@ class MongodbClientStore(ClientStore, MongodbStore):
         
         db = client.test_database
         
-        access_token_store = MongodbClientStore(collection=db["clients"])
+        access_token_store = ClientStore(collection=db["clients"])
     
     """
     

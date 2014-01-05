@@ -1,5 +1,5 @@
 python-oauth2
-###############
+#############
 
 python-oauth2 is a framework that aims at making it easy to provide authentication
 via `OAuth 2.0 <http://tools.ietf.org/html/rfc6749>`_ within an application stack. 
@@ -12,11 +12,7 @@ Status
 .. image:: https://travis-ci.org/wndhydrnt/python-oauth2.png?branch=master
    :target: https://travis-ci.org/wndhydrnt/python-oauth2
 
-python-oauth2 is currently not ready for use in production environments.
-While the basic implementations work already pretty well, some types of
-authorization Grants
-`defined in the RFC <http://tools.ietf.org/html/rfc6749#section-1.3>`_ are
-still missing.
+python-oauth2 has reached its beta phase. All main parts of the `OAuth 2.0 RFC <http://tools.ietf.org/html/rfc6749>`_ such as the various types of Grants, Refresh Token and Scopes have been implemented. However, bugs might occur or implementation details might be wrong.
 
 Installation
 ************
@@ -30,12 +26,11 @@ Usage
 *****
 
 Example Authorization server::
-    
     from wsgiref.simple_server import make_server
     import oauth2
     import oauth2.grant
     import oauth2.error
-    import oauth2.store
+    import oauth2.store.memory
     import oauth2.tokengenerator
     import oauth2.web
 
@@ -61,17 +56,17 @@ Example Authorization server::
             return response
 
     # Create an in-memory storage to store your client apps.
-    client_store = oauth2.store.LocalClientStore()
+    client_store = oauth2.store.memory.ClientStore()
     # Add a client
     client_store.add_client(client_id="abc", client_secret="xyz",
                             redirect_uris=["http://localhost/callback"])
 
     # Create an in-memory storage to store issued tokens.
     # LocalTokenStore can store access and auth tokens
-    token_store = oauth2.store.LocalTokenStore()
+    token_store = oauth2.store.memory.TokenStore()
 
     # Create the controller.
-    auth_controller = oauth2.AuthorizationController(
+    auth_controller = oauth2.Provider(
         access_token_store=token_store,
         auth_code_store=token_store,
         client_store=client_store,
@@ -82,7 +77,7 @@ Example Authorization server::
     # Add Grants you want to support
     auth_controller.add_grant(oauth2.grant.AuthorizationCodeGrant())
     auth_controller.add_grant(oauth2.grant.ImplicitGrant())
-    
+
     # Add refresh token capability and set expiration time of access tokens
     # to 30 days
     auth_controller.add_grant(oauth2.grant.RefreshToken(expires_in=2592000))

@@ -1,8 +1,10 @@
-## 0.5.0 (unreleased)
+## 0.5.0
 
 Features:
 
   - Added Client Credentials Grant
+  - Renamed `oauth2.AuthorizationController` to `oauth2.Provider`
+  - Added mongodb store
 
 ## 0.4.0
 

@@ -10,8 +10,9 @@ from wsgiref.simple_server import make_server, WSGIRequestHandler
 
 sys.path.insert(0, os.path.abspath(os.path.realpath(__file__) + '/../../'))
 
-from oauth2 import AuthorizationController
-from oauth2.store import LocalClientStore, LocalTokenStore
+from oauth2 import Provider
+from oauth2.error import UserNotAuthenticated
+from oauth2.store.memory import ClientStore, TokenStore
 from oauth2.tokengenerator import Uuid4
 from oauth2.web import SiteAdapter, Wsgi
 from oauth2.grant import AuthorizationCodeGrant
@@ -64,11 +65,11 @@ class TestSiteAdapter(SiteAdapter):
         
         return response
     
-    def authenticate(self, request, environ):
+    def authenticate(self, request, environ, scopes):
         if request.method == "POST":
             if request.post_param("confirm") is "1":
-                return True
-        return None
+                return
+        raise UserNotAuthenticated
     
     def user_has_denied_access(self, request):
         if request.method == "POST":
@@ -174,15 +175,15 @@ def run_app_server():
 
 def run_auth_server():
     try:
-        client_store = LocalClientStore()
+        client_store = ClientStore()
         client_store.add_client(client_id="abc", client_secret="xyz",
                                 redirect_uris=["http://localhost:8081/callback"])
         
-        token_store = LocalTokenStore()
+        token_store = TokenStore()
         
-        auth_controller = AuthorizationController(
+        auth_controller = Provider(
             access_token_store=token_store,
-            auth_token_store=token_store,
+            auth_code_store=token_store,
             client_store=client_store,
             site_adapter=TestSiteAdapter(),
             token_generator=Uuid4())

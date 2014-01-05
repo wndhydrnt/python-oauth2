@@ -1,5 +1,5 @@
-``oauth2`` --- Controller classes
-========================================
+``oauth2`` --- Provider class
+=============================
 
 .. autoclass:: oauth2.Provider
 

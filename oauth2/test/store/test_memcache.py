@@ -1,7 +1,7 @@
 from mock import Mock
 from oauth2.datatype import AuthorizationCode, AccessToken
 from oauth2.error import AuthCodeNotFound
-from oauth2.store.memcache import MemcacheTokenStore
+from oauth2.store.memcache import TokenStore
 from oauth2.test import unittest
 
 class MemcacheTokenStoreTestCase(unittest.TestCase):
@@ -21,7 +21,7 @@ class MemcacheTokenStoreTestCase(unittest.TestCase):
         mc_mock = Mock(spec=["get"])
         mc_mock.get.return_value = saved_data
         
-        store = MemcacheTokenStore(mc=mc_mock, prefix=self.cache_prefix)
+        store = TokenStore(mc=mc_mock, prefix=self.cache_prefix)
         
         auth_code = store.fetch_by_code(code)
         
@@ -37,7 +37,7 @@ class MemcacheTokenStoreTestCase(unittest.TestCase):
         mc_mock = Mock(spec=["get"])
         mc_mock.get.return_value = None
         
-        store = MemcacheTokenStore(mc=mc_mock, prefix=self.cache_prefix)
+        store = TokenStore(mc=mc_mock, prefix=self.cache_prefix)
         
         with self.assertRaises(AuthCodeNotFound):
             store.fetch_by_code("abc")
@@ -54,7 +54,7 @@ class MemcacheTokenStoreTestCase(unittest.TestCase):
         
         mc_mock = Mock(spec=["set"])
         
-        store = MemcacheTokenStore(mc=mc_mock, prefix=self.cache_prefix)
+        store = TokenStore(mc=mc_mock, prefix=self.cache_prefix)
         
         store.save_code(auth_code)
         
@@ -72,7 +72,7 @@ class MemcacheTokenStoreTestCase(unittest.TestCase):
         
         mc_mock = Mock(spec=["set"])
         
-        store = MemcacheTokenStore(mc=mc_mock, prefix=self.cache_prefix)
+        store = TokenStore(mc=mc_mock, prefix=self.cache_prefix)
         
         store.save_token(access_token)
         

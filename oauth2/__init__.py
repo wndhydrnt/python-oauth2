@@ -10,25 +10,25 @@ an application stack.
 Usage
 =====
 
-Example Authorization server::
+Example::
     
     from wsgiref.simple_server import make_server
     import oauth2
     import oauth2.grant
     import oauth2.error
-    import oauth2.store
+    import oauth2.store.memory
     import oauth2.tokengenerator
     import oauth2.web
-
+    
     # Create a SiteAdapter to interact with the user.
     # This can be used to display confirmation dialogs and the like.
     class ExampleSiteAdapter(oauth2.web.SiteAdapter):
         def authenticate(self, request, environ, scopes):
             if request.post_param("confirm") == "1":
                 return {}
-
+    
             raise oauth2.error.UserNotAuthenticated
-
+    
         def render_auth_page(self, request, response, environ, scopes):
             response.body = '''
     <html>
@@ -40,17 +40,17 @@ Example Authorization server::
         </body>
     </html>'''
             return response
-
+    
     # Create an in-memory storage to store your client apps.
-    client_store = oauth2.store.LocalClientStore()
+    client_store = oauth2.store.memory.ClientStore()
     # Add a client
     client_store.add_client(client_id="abc", client_secret="xyz",
                             redirect_uris=["http://localhost/callback"])
-
+    
     # Create an in-memory storage to store issued tokens.
     # LocalTokenStore can store access and auth tokens
-    token_store = oauth2.store.LocalTokenStore()
-
+    token_store = oauth2.store.memory.TokenStore()
+    
     # Create the controller.
     auth_controller = oauth2.Provider(
         access_token_store=token_store,
@@ -59,7 +59,7 @@ Example Authorization server::
         site_adapter=ExampleSiteAdapter(),
         token_generator=oauth2.tokengenerator.Uuid4()
     )
-
+    
     # Add Grants you want to support
     auth_controller.add_grant(oauth2.grant.AuthorizationCodeGrant())
     auth_controller.add_grant(oauth2.grant.ImplicitGrant())
@@ -67,10 +67,10 @@ Example Authorization server::
     # Add refresh token capability and set expiration time of access tokens
     # to 30 days
     auth_controller.add_grant(oauth2.grant.RefreshToken(expires_in=2592000))
-
+    
     # Wrap the controller with the Wsgi adapter
     app = oauth2.web.Wsgi(server=auth_controller)
-
+    
     if __name__ == "__main__":
         httpd = make_server('', 8080, app)
         httpd.serve_forever()
@@ -102,7 +102,7 @@ class Provider(object):
     def __init__(self, access_token_store, auth_code_store, client_store,
                  site_adapter, token_generator, response_class=Response):
         """
-        Endpoint of requests to the OAuth 2.0 server.
+        Endpoint of requests to the OAuth 2.0 provider.
         
         :param access_token_store: An object that implements methods defiend by
                                    :class:`oauth2.store.AccessTokenStore`.
@@ -129,7 +129,7 @@ class Provider(object):
     
     def add_grant(self, grant):
         """
-        Adds a Grant that the server should support.
+        Adds a Grant that the provider should support.
         """
         if hasattr(grant, "expires_in"):
             self.token_generator.expires_in = grant.expires_in
@@ -167,6 +167,7 @@ class Provider(object):
             response.body = json.dumps(json_body)
             return response
     
+    @property
     def scope_separator(self, separator):
         """
         Sets the separator of values in scope query parameter.

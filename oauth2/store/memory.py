@@ -10,7 +10,7 @@ from oauth2.error import AccessTokenNotFound, AuthCodeNotFound,\
                          ClientNotFoundError
 from oauth2.datatype import Client
 
-class MemoryClientStore(ClientStore):
+class ClientStore(ClientStore):
     """
     Stores clients in memory.
     """
@@ -23,7 +23,7 @@ class MemoryClientStore(ClientStore):
         
         :param client_id: Identifier of the client app.
         :param client_secret: Secret the client app uses for authentication
-                              against the OAuth 2.0 server.
+                              against the OAuth 2.0 provider.
         :param redirect_uris: A ``list`` of URIs to redirect to.
         
         """
@@ -47,7 +47,7 @@ class MemoryClientStore(ClientStore):
         
         return self.clients[client_id]
 
-class MemoryTokenStore(AccessTokenStore, AuthCodeStore):
+class TokenStore(AccessTokenStore, AuthCodeStore):
     """
     Stores tokens in memory.
     

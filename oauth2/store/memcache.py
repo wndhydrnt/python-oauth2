@@ -4,7 +4,7 @@ from oauth2.datatype import AccessToken, AuthorizationCode
 from oauth2.error import AccessTokenNotFound, AuthCodeNotFound
 from oauth2.store import AccessTokenStore, AuthCodeStore
 
-class MemcacheTokenStore(AccessTokenStore, AuthCodeStore):
+class TokenStore(AccessTokenStore, AuthCodeStore):
     """
     Uses memcache to store access tokens and auth tokens.
     
@@ -19,11 +19,11 @@ class MemcacheTokenStore(AccessTokenStore, AuthCodeStore):
         # Somewhere in your application
         mc = memcache.Client(servers=['127.0.0.1:11211'], debug=0)
         # ...
-        token_store = MemcacheTokenStore(mc=mc)
+        token_store = TokenStore(mc=mc)
         
     Initialization using ``python-memcached``::
         
-        token_store = MemcacheTokenStore(servers=['127.0.0.1:11211'], debug=0)
+        token_store = TokenStore(servers=['127.0.0.1:11211'], debug=0)
 
     """
     def __init__(self, mc=None, prefix="oauth2", *args, **kwargs):

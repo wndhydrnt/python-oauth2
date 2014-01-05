@@ -3,8 +3,8 @@
 
 .. automodule:: oauth2.store.memory
 
-.. autoclass:: MemoryClientStore
+.. autoclass:: ClientStore
    :members:
 
-.. autoclass:: MemoryTokenStore
+.. autoclass:: TokenStore
    :members:
