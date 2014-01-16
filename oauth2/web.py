@@ -27,13 +27,15 @@ class SiteAdapter(object):
         """
         raise NotImplementedError
     
-    def render_auth_page(self, request, response, environ):
+    def render_auth_page(self, request, response, environ, scopes):
         """
         Defines how to display a confirmation page to the user.
 
         :param request: An instance of :class:`oauth2.web.Request`.
         :param response: An instance of :class:`oauth2.web.Response`.
         :param environ: Environment variables of the request.
+        :param scopes: A list of strings with each string being one requested
+                       scope.
         :return: The response passed in as a parameter.
                  It can contain HTML or issue a redirect.
         """

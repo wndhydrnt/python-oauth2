@@ -86,14 +86,13 @@ python-oauth2 is available on
 """
 
 import json
-import time
-import urllib
 from oauth2.error import OAuthInvalidError, OAuthUserError
 from oauth2.web import Request, Response
 from oauth2.tokengenerator import Uuid4
 from oauth2.grant import Scope
 
 VERSION = "0.5.0"
+
 
 class Provider(object):
     authorize_path = "/authorize"
@@ -181,5 +180,5 @@ class Provider(object):
                 return grant_handler
         
         raise OAuthInvalidError(error="unsupported_response_type",
-                              explanation="Server does not support given " \
-                              "response_type")
+                                explanation="Server does not support given "
+                                "response_type")

@@ -6,6 +6,7 @@ solution specific to your needs.
 It also includes implementations for popular storage systems like memcache.
 """
 
+
 class AccessTokenStore(object):
     """
     Base class for persisting an access token after it has been generated.
@@ -27,8 +28,12 @@ class AccessTokenStore(object):
         identify it.
         
         :param refresh_token: A string containing the refresh token.
+        :return: An instance of :class:`oauth2.datatype.AccessToken`.
+        :raises: :class:`oauth2.error.AccessTokenNotFound` if no data could be retrieved for
+                 given refresh_token.
         """
         raise NotImplementedError
+
 
 class AuthCodeStore(object):
     """
@@ -41,7 +46,7 @@ class AuthCodeStore(object):
         
         :param code: The authorization code.
         :return: An instance of :class:`oauth2.datatype.AuthorizationCode`.
-        :raises: :class:`AuthCodeNotFound` if no data could be retrieved for
+        :raises: :class:`oauth2.error.AuthCodeNotFound` if no data could be retrieved for
                  given code.
         
         """
@@ -52,10 +57,10 @@ class AuthCodeStore(object):
         Stores the data belonging to an authorization code token.
         
         :param authorization_code: An instance of
-                                   :class:`oauth2.AuthorizationCode`.
-        
+                                   :class:`oauth2.datatype.AuthorizationCode`.
         """
         raise NotImplementedError
+
 
 class ClientStore(object):
     """
@@ -66,8 +71,8 @@ class ClientStore(object):
         Retrieve a client by its identifier.
         
         :param client_id: Identifier of a client app.
-        :return: An instance of :class:`oauth2.Client`.
-        :raises: ClientNotFoundError
-        
+        :return: An instance of :class:`oauth2.datatype.Client`.
+        :raises: :class:`oauth2.error.ClientNotFoundError` if no data could be retrieved for
+                 given client_id.
         """
         raise NotImplementedError
