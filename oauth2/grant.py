@@ -384,6 +384,8 @@ class AuthorizationCodeTokenHandler(GrantHandler):
 
         self.access_token_store.save_token(access_token)
 
+        self.auth_code_store.delete_code(self.code)
+
         response.body = json.dumps(token_data)
         response.status_code = 200
 

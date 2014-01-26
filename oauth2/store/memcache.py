@@ -64,7 +64,14 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
                           "redirect_uri": authorization_code.redirect_uri,
                           "scopes": authorization_code.scopes,
                           "data": authorization_code.data})
-    
+
+    def delete_code(self, code):
+        """
+        Deletes an authorization code after use
+        :param code: The authorization code.
+        """
+        self.mc.delete(self._generate_cache_key(code))
+
     def save_token(self, access_token):
         """
         Stores the access token and additional data in memcache.

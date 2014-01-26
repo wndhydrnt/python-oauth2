@@ -61,6 +61,16 @@ class AuthCodeStore(object):
         """
         raise NotImplementedError
 
+    def delete_code(self, code):
+        """
+        Deletes an authorization code after it's use per section 4.1.2.
+
+        http://tools.ietf.org/html/rfc6749#section-4.1.2
+
+        :param code: The authorization code.
+        """
+        raise NotImplementedError
+
 
 class ClientStore(object):
     """
