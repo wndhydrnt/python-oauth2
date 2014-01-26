@@ -376,12 +376,13 @@ class AuthorizationCodeTokenHandler(GrantHandler):
             access_token.refresh_token = token_data["refresh_token"]
         
         self.access_token_store.save_token(access_token)
-        
+        self.auth_code_store.delete_code(self.code)
+
         response.body = json.dumps(token_data)
         response.status_code = 200
         
         response.add_header("Content-type", "application/json")
-        
+
         return response
     
     def redirect_oauth_error(self, error, response):

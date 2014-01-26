@@ -688,6 +688,8 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         scopes       = ["scope"]
         
         access_token_store_mock = Mock(spec=AccessTokenStore)
+        auth_code_store_mock = Mock(spec=AuthCodeStore)
+        client_store_mock = Mock(spec=ClientStore)
         
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.create_access_token_data.return_value = token_data
@@ -697,14 +699,15 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         response_mock.status_code = None
         
         handler = AuthorizationCodeTokenHandler(access_token_store_mock,
-                                                Mock(spec=AuthCodeStore),
-                                                Mock(spec=ClientStore),
+                                                auth_code_store_mock,
+                                                client_store_mock,
                                                 token_generator_mock)
         handler.client_id = client_id
         handler.data = data
         handler.scopes = scopes
         response = handler.process(Mock(spec=Request), response_mock, {})
-        
+
+        self.assertIsNotNone(auth_code_store_mock.delete_code.call_args)
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
         self.assertEqual(access_token.data, data)
@@ -722,7 +725,9 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         scopes       = ["scope"]
         
         access_token_store_mock = Mock(spec=AccessTokenStore)
-        
+        auth_code_store_mock = Mock(spec=AuthCodeStore)
+        client_store_mock = Mock(spec=ClientStore)
+
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.create_access_token_data.return_value = token_data
         
@@ -731,14 +736,15 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         response_mock.status_code = None
         
         handler = AuthorizationCodeTokenHandler(access_token_store_mock,
-                                                Mock(spec=AuthCodeStore),
-                                                Mock(spec=ClientStore),
+                                                auth_code_store_mock,
+                                                client_store_mock,
                                                 token_generator_mock)
         handler.client_id = client_id
         handler.data = data
         handler.scopes = scopes
         response = handler.process(Mock(spec=Request), response_mock, {})
-        
+
+        self.assertIsNotNone(auth_code_store_mock.delete_code.call_args)
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
         self.assertEqual(access_token.data, data)

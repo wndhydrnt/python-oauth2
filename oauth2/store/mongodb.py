@@ -93,6 +93,14 @@ class AuthCodeStore(AuthCodeStore, MongodbStore):
         
         return True
 
+    def delete_code(self, code):
+        """
+        Deletes an authorization code after use
+        :param code: The authorization code.
+        """
+        self.collection.remove({"code": code})
+
+
 class ClientStore(ClientStore, MongodbStore):
     """
     Create a new instance like this::

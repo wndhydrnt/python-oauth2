@@ -98,6 +98,14 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
             self.refresh_tokens[access_token.refresh_token] = access_token
         
         return True
+
+    def delete_code(self, code):
+        """
+        Deletes an authorization code after use
+        :param code: The authorization code.
+        """
+        if code in self.auth_codes:
+            del self.auth_codes[code]
     
     def fetch_by_refresh_token(self, refresh_token):
         """
