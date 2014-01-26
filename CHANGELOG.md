@@ -1,3 +1,14 @@
+## 0.6.0 (unreleased)
+
+Improvements:
+
+  - Corrected class references in doc strings (Josh Johnston)
+
+Bugfixes:
+
+  - Added missing `scopes` parameter in SiteAdapter base class (Josh Johnston)
+  - Deleting authorization token after usage (Josh Johnston)
+
 ## 0.5.0
 
 Features:
