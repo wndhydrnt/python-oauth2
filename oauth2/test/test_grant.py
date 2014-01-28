@@ -797,7 +797,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         self.assertEqual(access_token.grant_type, "authorization_code")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.body, json.dumps(token_data))
-        response_mock.add_header.assert_called_with("Content-type",
+        response_mock.add_header.assert_called_with("Content-Type",
                                                     "application/json")
     @patch("time.time", mock_time)
     def test_process_with_refresh_token(self):
@@ -838,7 +838,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
                          token_data["refresh_token"])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.body, json.dumps(token_data))
-        response_mock.add_header.assert_called_with("Content-type",
+        response_mock.add_header.assert_called_with("Content-Type",
                                                     "application/json")
 
 class ImplicitGrantTestCase(unittest.TestCase):
