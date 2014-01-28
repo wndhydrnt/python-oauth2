@@ -47,6 +47,19 @@ def json_error_response(error, response):
 
     return response
 
+def json_success_response(data, response):
+    """
+    Formats the response of a successful token request as JSON.
+    
+    Also adds default headers and status code.
+    """
+    response.body = json.dumps(data)
+    response.status_code = 200
+
+    response.add_header("Content-Type", "application/json")
+    response.add_header("Cache-Control", "no-store")
+    response.add_header("Pragma", "no-cache")
+
 class Scope(object):
     """
     Handling of the "scope" parameter in a request.
@@ -127,7 +140,8 @@ class Scope(object):
 
         req_scopes = req_scope.split(self.separator)
 
-        self.scopes = [scope for scope in req_scopes if scope in self.available_scopes]
+        self.scopes = [scope for scope in req_scopes
+                       if scope in self.available_scopes]
 
         if len(self.scopes) == 0 and self.default is not None:
             self.scopes = [self.default]
@@ -185,6 +199,13 @@ class GrantHandler(object):
         format defined for a specific grant handler.
         """
         raise NotImplementedError
+
+    def _encode_scopes(self, scopes, use_quote=False):
+        scopes_as_string = Scope.separator.join(scopes)
+
+        if use_quote:
+            return quote(scopes_as_string)
+        return scopes_as_string
 
 class GrantHandlerFactory(object):
     """
@@ -381,9 +402,6 @@ class AuthorizationCodeAuthHandler(AuthorizeMixin, AuthRequestMixin,
         if self.state is not None:
             query += "&state=" + self.state
 
-        if self.scope_handler.send_back is True:
-            query += "&scope=" + quote(" ".join(self.scope_handler.scopes))
-
         return "%s?%s" % (self.redirect_uri, query)
 
 class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
@@ -441,10 +459,10 @@ class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
 
         self.auth_code_store.delete_code(self.code)
 
-        response.body = json.dumps(token_data)
-        response.status_code = 200
+        if self.scopes:
+            token_data["scope"] = self._encode_scopes(self.scopes)
 
-        response.add_header("Content-Type", "application/json")
+        json_success_response(data=token_data, response=response)
 
         return response
 
@@ -524,6 +542,7 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
     def __call__(self, request, server):
         if (request.post_param("grant_type") == "authorization_code"
             and request.path == server.token_path):
+
             return AuthorizationCodeTokenHandler(
                 access_token_store=server.access_token_store,
                 auth_token_store=server.auth_code_store,
@@ -614,8 +633,9 @@ class ImplicitGrantHandler(AuthorizeMixin, AuthRequestMixin, GrantHandler):
             uri_with_fragment += "&state=" + self.state
 
         if self.scope_handler.send_back is True:
-            scope_param = "%20".join(self.scope_handler.scopes)
-            uri_with_fragment += "&scope=" + scope_param
+            scopes_as_string = self._encode_scopes(self.scope_handler.scopes,
+                                                   use_quote=True)
+            uri_with_fragment += "&scope=" + scopes_as_string
 
         response.status_code = 302
         response.add_header("Location", uri_with_fragment)
@@ -698,12 +718,10 @@ class ResourceOwnerGrantHandler(GrantHandler):
 
         self.access_token_store.save_token(access_token)
 
-        if self.scope_handler.send_back is True:
-            token_data["scope"] = " ".join(self.scope_handler.scopes)
+        if self.scope_handler.send_back:
+            token_data["scope"] = self._encode_scopes(self.scope_handler.scopes)
 
-        response.add_header("Content-Type", "application/json")
-        response.status_code = 200
-        response.body = json.dumps(token_data)
+        json_success_response(data=token_data, response=response)
 
         return response
 
@@ -818,8 +836,7 @@ class RefreshTokenHandler(GrantHandler):
         response_data = {"access_token": token, "expires_in": expires_in,
                          "token_type": "Bearer"}
 
-        response.add_header("Content-type", "application/json")
-        response.body = json.dumps(response_data)
+        json_success_response(data=response_data, response=response)
 
         return response
 
@@ -926,10 +943,9 @@ class ClientCredentialsHandler(GrantHandler):
         body["expires_in"] = self.token_generator.expires_in
 
         if self.scope_handler.send_back:
-            body["scope"] = self.scope_handler.scopes
+            body["scope"] = self._encode_scopes(self.scope_handler.scopes)
 
-        response.add_header("Content-type", "application/json")
-        response.body = json.dumps(body)
+        json_success_response(data=body, response=response)
 
         return response
 

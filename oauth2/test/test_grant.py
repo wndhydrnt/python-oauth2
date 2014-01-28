@@ -13,6 +13,7 @@ from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError, \
 from oauth2 import Provider
 from oauth2.datatype import Client, AuthorizationCode, AccessToken
 from oauth2.tokengenerator import TokenGenerator
+from copy import copy
 
 def mock_time():
     return 1000
@@ -337,47 +338,6 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         site_adapter_mock.authenticate.assert_called_with(request_mock,
                                                           environ, scopes)
         self.assertTrue(auth_code_store_mock.save_code.called)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.body, "")
-        response_mock.add_header.assert_called_with("Location", location_uri)
-
-    def test_process_redirect_with_scopes(self):
-        client_id = "foobar"
-        code = "abcd"
-        environ = {"session": "data"}
-        scopes = ["scope_read", "scope_write"]
-        scopes_uri = "%20".join(scopes)
-        state = "mystate"
-        redirect_uri = "https://callback"
-        user_data = {"user_id": 789}
-
-        location_uri = "%s?code=%s&state=%s&scope=%s" % (redirect_uri, code, state, scopes_uri)
-
-        response_mock = Mock(spec=Response)
-
-        scope_handler_mock = Mock(Scope)
-        scope_handler_mock.scopes = scopes
-        scope_handler_mock.send_back = True
-
-        site_adapter_mock = Mock(spec=SiteAdapter)
-        site_adapter_mock.authenticate.return_value = user_data
-
-        token_generator_mock = Mock(spec=["generate"])
-        token_generator_mock.generate.return_value = code
-
-        handler = AuthorizationCodeAuthHandler(
-            auth_token_store=Mock(spec=AuthCodeStore),
-            client_store=Mock(), scope_handler=scope_handler_mock,
-            site_adapter=site_adapter_mock,
-            token_generator=token_generator_mock
-        )
-
-        handler.client_id = client_id
-        handler.state = state
-        handler.redirect_uri = redirect_uri
-        response = handler.process(Mock(spec=Request), response_mock, environ)
-
-        token_generator_mock.generate.assert_called_with()
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.body, "")
         response_mock.add_header.assert_called_with("Location", location_uri)
@@ -764,10 +724,13 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         self.assertEqual(error.explanation, "Authorization code has expired")
 
     def test_process_no_refresh_token(self):
-        token_data = {"access_token": "abcd", "token_type": "Bearer"}
         client_id = "efg"
         data = {"additional": "data"}
-        scopes = ["scope"]
+        scopes = ["scope:one", "scope:two"]
+        token_data = {"access_token": "abcd", "token_type": "Bearer"}
+
+        response_body = copy(token_data)
+        response_body["scope"] = " ".join(scopes)
 
         access_token_store_mock = Mock(spec=AccessTokenStore)
         auth_code_store_mock = Mock(spec=AuthCodeStore)
@@ -797,8 +760,11 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         self.assertEqual(access_token.grant_type, "authorization_code")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.body, json.dumps(token_data))
-        response_mock.add_header.assert_called_with("Content-Type",
-                                                    "application/json")
+        response_mock.add_header.assert_has_calls([call("Content-Type",
+                                                        "application/json"),
+                                                   call("Cache-Control",
+                                                        "no-store"),
+                                                   call("Pragma", "no-cache")])
     @patch("time.time", mock_time)
     def test_process_with_refresh_token(self):
         token_data = {"access_token": "abcd", "token_type": "Bearer",
@@ -838,8 +804,11 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
                          token_data["refresh_token"])
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.body, json.dumps(token_data))
-        response_mock.add_header.assert_called_with("Content-Type",
-                                                    "application/json")
+        response_mock.add_header.assert_has_calls([call("Content-Type",
+                                                        "application/json"),
+                                                   call("Cache-Control",
+                                                        "no-store"),
+                                                   call("Pragma", "no-cache")])
 
 class ImplicitGrantTestCase(unittest.TestCase):
     def test_create_matching_response_type(self):
@@ -1039,6 +1008,31 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
                                                               scopes)
         self.assertEqual(result_response, response_mock)
 
+    def test_process_user_denied_access(self):
+        request_mock = Mock(spec=Request)
+
+        responseMock = Mock(spec=Response)
+
+        site_adapter_mock = Mock(spec=SiteAdapter)
+        site_adapter_mock.user_has_denied_access.return_value = True
+
+        handler = ImplicitGrantHandler(
+            Mock(spec=AccessTokenStore), client_store=Mock(),
+            scope_handler=Mock(Scope), site_adapter=site_adapter_mock,
+            token_generator=Mock()
+        )
+
+        with self.assertRaises(OAuthUserError) as expected:
+            handler.process(request_mock, responseMock, {})
+
+        e = expected.exception
+
+        site_adapter_mock.user_has_denied_access.assert_called_with(
+            request_mock
+        )
+        self.assertEqual(e.error, "access_denied")
+        self.assertEqual(e.explanation, "Authorization denied by user")
+
     def test_redirect_oauth_error(self):
         error_code = "error_code"
         client_id = "cid"
@@ -1154,8 +1148,11 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         self.assertTrue(isinstance(access_token, AccessToken))
         self.assertEqual(access_token.grant_type,
                          ResourceOwnerGrant.grant_type)
-        response_mock.add_header.assert_called_with("Content-Type",
-                                                    "application/json")
+        response_mock.add_header.assert_has_calls([call("Content-Type",
+                                                        "application/json"),
+                                                   call("Cache-Control",
+                                                        "no-store"),
+                                                   call("Pragma", "no-cache")])
         self.assertEqual(result.status_code, 200)
         self.assertEqual(json.loads(result.body), expected_response_body)
         self.assertEqual(result, response_mock)
@@ -1203,8 +1200,11 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         self.assertTrue(isinstance(access_token, AccessToken))
         self.assertEqual(access_token.refresh_token, token_data["refresh_token"])
         self.assertEqual(access_token.expires_at, 1600)
-        response_mock.add_header.assert_called_with("Content-Type",
-                                                    "application/json")
+        response_mock.add_header.assert_has_calls([call("Content-Type",
+                                                        "application/json"),
+                                                   call("Cache-Control",
+                                                        "no-store"),
+                                                   call("Pragma", "no-cache")])
         self.assertEqual(result.status_code, 200)
         self.assertEqual(json.loads(result.body), expected_response_body)
         self.assertEqual(result, response_mock)
@@ -1236,8 +1236,11 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         result = handler.process(Mock(Request), response_mock, {})
 
         token_generator_mock.create_access_token_data.assert_called_with()
-        response_mock.add_header.assert_called_with("Content-Type",
-                                                    "application/json")
+        response_mock.add_header.assert_has_calls([call("Content-Type",
+                                                        "application/json"),
+                                                   call("Cache-Control",
+                                                        "no-store"),
+                                                   call("Pragma", "no-cache")])
         self.assertEqual(result.status_code, 200)
         self.assertDictEqual(expected_response_body, json.loads(result.body))
         self.assertEqual(result, response_mock)
@@ -1573,7 +1576,8 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         expected_response_body = {"access_token": token,
                                   "expires_in": expires_in,
                                   "token_type": "Bearer"}
-        expected_headers = {"Content-type": "application/json"}
+        expected_headers = {"Content-Type": "application/json",
+                            "Cache-Control": "no-store", "Pragma": "no-cache"}
 
         access_token_store_mock = Mock(spec=AccessTokenStore)
 
@@ -1883,7 +1887,7 @@ class ClientCredentialsHandlerTestCase(unittest.TestCase):
         expected_response_body = {"access_token": token,
                                   "expires_in": expires_in,
                                   "token_type": "Bearer",
-                                  "scope": scopes}
+                                  "scope": " ".join(scopes)}
 
         access_token_store_mock = Mock(spec=AccessTokenStore)
 
@@ -1916,8 +1920,11 @@ class ClientCredentialsHandlerTestCase(unittest.TestCase):
         self.assertEqual(access_token.refresh_token, None)
         self.assertEqual(access_token.scopes, scopes)
 
-        response_mock.add_header.assert_called_with("Content-type",
-                                                    "application/json")
+        response_mock.add_header.assert_has_calls([call("Content-Type",
+                                                        "application/json"),
+                                                   call("Cache-Control",
+                                                        "no-store"),
+                                                   call("Pragma", "no-cache")])
         self.assertDictEqual(json.loads(result_response.body),
                              expected_response_body)
 
