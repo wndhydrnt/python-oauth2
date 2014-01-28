@@ -33,6 +33,7 @@ from oauth2.compatibility import urlencode, quote
 import json
 import time
 from oauth2.datatype import AuthorizationCode, AccessToken
+from oauth2.web import Response
 
 def json_error_response(error, response):
     """
@@ -200,15 +201,13 @@ class AuthRequestMixin(object):
     `oauth2.grant.AuthorizationCodeAuthHandler` and
     `oauth2.grant.ImplicitGrantHandler`.
     """
-    def __init__(self, client_store, scope_handler, site_adapter,
-                 token_generator, **kwargs):
+    def __init__(self, client_store, scope_handler, token_generator, **kwargs):
         self.client_id = None
         self.redirect_uri = None
         self.state = None
 
         self.client_store = client_store
         self.scope_handler = scope_handler
-        self.site_adapter = site_adapter
         self.token_generator = token_generator
 
         super(AuthRequestMixin, self).__init__(**kwargs)
@@ -251,7 +250,73 @@ class AuthRequestMixin(object):
 
         return True
 
-class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
+class AuthorizeMixin(object):
+    """
+    Used by all grants that involve user interaction.
+    """
+    def __init__(self, site_adapter, **kwargs):
+        self.site_adapter = site_adapter
+
+        super(AuthorizeMixin, self).__init__(**kwargs)
+
+    def authorize(self, request, response, environ, scopes):
+        """
+        Controls all steps to authorize a request by a user.
+        
+        :param request: The incoming :class:`oauth2.web.Request`
+        :param response: The :class:`oauth2.web.Response` that will be returned
+                         eventually
+        :param environ: The environment variables of this request
+        :param scopes: The scopes requested by an application
+        :return: A tuple containing (`dict`, `int`) or the response.
+        
+        """
+        if self.site_adapter.user_has_denied_access(request) == True:
+            raise OAuthUserError(error="access_denied",
+                                 explanation="Authorization denied by user")
+
+        try:
+            result = self.site_adapter.authenticate(request, environ, scopes)
+
+            return self._sanitize_return_value(result)
+        except UserNotAuthenticated:
+            return self.site_adapter.render_auth_page(request, response,
+                                                      environ, scopes)
+
+    def _sanitize_return_value(self, value):
+        if isinstance(value, tuple):
+            return value
+
+        if isinstance(value, dict):
+            return value, None
+
+class AccessTokenMixin(object):
+    def __init__(self, access_token_store, token_generator, **kwargs):
+        self.access_token_store = access_token_store
+        self.token_generator = token_generator
+
+        super(AccessTokenMixin, self).__init__(**kwargs)
+
+    def create_token(self, client_id, data, grant_type, scopes, user_id):
+        token_data = self.token_generator.create_access_token_data()
+
+        access_token = AccessToken(client_id=client_id, data=data,
+                                   grant_type=grant_type,
+                                   token=token_data["access_token"],
+                                   scopes=scopes,
+                                   user_id=user_id)
+
+        if "refresh_token" in token_data:
+            expires_at = int(time.time()) + token_data["expires_in"]
+            access_token.expires_at = expires_at
+            access_token.refresh_token = token_data["refresh_token"]
+
+        self.access_token_store.save_token(access_token)
+
+        return access_token
+
+class AuthorizationCodeAuthHandler(AuthorizeMixin, AuthRequestMixin,
+                                   GrantHandler):
     """
     Implementation of the first step of the Authorization Code Grant
     (three-legged).
@@ -271,14 +336,11 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
         A form to authorize the access of the application can be displayed with
         the help of `oauth2.web.SiteAdapter`.
         """
-        try:
-            user_data = self.site_adapter.authenticate(
-                request, environ,
-                self.scope_handler.scopes)
-        except UserNotAuthenticated:
-            return self.site_adapter.render_auth_page(request, response,
-                                                      environ,
-                                                      self.scope_handler.scopes)
+        data = self.authorize(request, response, environ,
+                              self.scope_handler.scopes)
+
+        if isinstance(data, Response):
+            return data
 
         code = self.token_generator.generate()
         expires = int(time.time()) + self.token_expiration
@@ -287,7 +349,7 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
                                       expires_at=expires,
                                       redirect_uri=self.redirect_uri,
                                       scopes=self.scope_handler.scopes,
-                                      data=user_data)
+                                      data=data[0], user_id=data[1])
 
         self.auth_code_store.save_code(auth_code)
 
@@ -324,13 +386,12 @@ class AuthorizationCodeAuthHandler(AuthRequestMixin, GrantHandler):
 
         return "%s?%s" % (self.redirect_uri, query)
 
-class AuthorizationCodeTokenHandler(GrantHandler):
+class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
     """
     Implementation of the second step of the Authorization Code Grant
     (three-legged).
     """
-    def __init__(self, access_token_store, auth_token_store, client_store,
-                 token_generator):
+    def __init__(self, auth_token_store, client_store, **kwargs):
         self.client_id = None
         self.client_secret = None
         self.code = None
@@ -338,10 +399,10 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         self.redirect_uri = None
         self.scopes = []
 
-        self.access_token_store = access_token_store
         self.auth_code_store = auth_token_store
         self.client_store = client_store
-        self.token_generator = token_generator
+
+        super(AuthorizationCodeTokenHandler, self).__init__(**kwargs)
 
     def read_validate_params(self, request):
         """
@@ -468,10 +529,11 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
     def __call__(self, request, server):
         if (request.post_param("grant_type") == "authorization_code"
             and request.path == server.token_path):
-            return AuthorizationCodeTokenHandler(server.access_token_store,
-                                                 server.auth_code_store,
-                                                 server.client_store,
-                                                 server.token_generator)
+            return AuthorizationCodeTokenHandler(
+                access_token_store=server.access_token_store,
+                auth_token_store=server.auth_code_store,
+                client_store=server.client_store,
+                token_generator=server.token_generator)
 
         if (request.get_param("response_type") == "code"
             and request.path == server.authorize_path):
@@ -516,31 +578,24 @@ class ImplicitGrant(GrantHandlerFactory, ScopeGrant):
                 token_generator=server.token_generator)
         return None
 
-class ImplicitGrantHandler(AuthRequestMixin, GrantHandler):
+class ImplicitGrantHandler(AuthorizeMixin, AuthRequestMixin, GrantHandler):
     def __init__(self, access_token_store, **kwargs):
         self.access_token_store = access_token_store
 
         super(ImplicitGrantHandler, self).__init__(**kwargs)
 
     def process(self, request, response, environ):
-        if self.site_adapter.user_has_denied_access(request) == True:
-            raise OAuthUserError(error="access_denied",
-                                 explanation="Authorization denied by user")
+        data = self.authorize(request, response, environ,
+                              self.scope_handler.scopes)
 
-        try:
-            user_data = self.site_adapter.authenticate(
-                request, environ,
-                self.scope_handler.scopes)
-        except UserNotAuthenticated:
-            return self.site_adapter.render_auth_page(request, response,
-                                                      environ,
-                                                      self.scope_handler.scopes)
+        if isinstance(data, Response):
+            return data
 
         token = self.token_generator.generate()
 
         access_token = AccessToken(client_id=self.client_id,
                                    grant_type=ImplicitGrant.grant_type,
-                                   token=token, data=user_data,
+                                   token=token, data=data[0],
                                    scopes=self.scope_handler.scopes)
 
         self.access_token_store.save_token(access_token)

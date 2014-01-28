@@ -28,12 +28,12 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
     """
     def __init__(self, mc=None, prefix="oauth2", *args, **kwargs):
         self.prefix = prefix
-        
+
         if mc is not None:
             self.mc = mc
         else:
             self.mc = memcache.Client(*args, **kwargs)
-    
+
     def fetch_by_code(self, code):
         """
         Returns data belonging to an authorization code from memcache or
@@ -43,12 +43,12 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
         
         """
         code_data = self.mc.get(self._generate_cache_key(code))
-        
+
         if code_data is None:
             raise AuthCodeNotFound
-        
+
         return AuthorizationCode(**code_data)
-    
+
     def save_code(self, authorization_code):
         """
         Stores the data belonging to an authorization code token in memcache.
@@ -57,13 +57,14 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
         
         """
         key = self._generate_cache_key(authorization_code.code)
-        
+
         self.mc.set(key, {"client_id": authorization_code.client_id,
                           "code": authorization_code.code,
                           "expires_at": authorization_code.expires_at,
                           "redirect_uri": authorization_code.redirect_uri,
                           "scopes": authorization_code.scopes,
-                          "data": authorization_code.data})
+                          "data": authorization_code.data,
+                          "user_id": authorization_code.user_id})
 
     def delete_code(self, code):
         """
@@ -80,20 +81,20 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
         
         """
         key = self._generate_cache_key(access_token.token)
-        
+
         self.mc.set(key, access_token.__dict__)
-        
+
         if access_token.refresh_token is not None:
             rft_key = self._generate_cache_key(access_token.refresh_token)
             self.mc.set(rft_key, access_token.__dict__)
-    
+
     def fetch_by_refresh_token(self, refresh_token):
         token_data = self.mc.get(refresh_token)
-        
+
         if token_data is None:
             raise AccessTokenNotFound
-        
+
         return AccessToken(**token_data)
-    
+
     def _generate_cache_key(self, identifier):
         return self.prefix + "_" + identifier
