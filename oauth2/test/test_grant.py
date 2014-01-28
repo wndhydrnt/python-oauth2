@@ -445,6 +445,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         data = {"additional": "data"}
         redirect_uri = "http://callback"
         scopes = ["scope"]
+        user_id = 123
 
         auth_code = Mock(AuthorizationCode)
         auth_code.code = code
@@ -452,6 +453,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         auth_code.is_expired.return_value = False
         auth_code.redirect_uri = redirect_uri
         auth_code.scopes = scopes
+        auth_code.user_id = user_id
 
         auth_code_store_mock = Mock(spec=AuthCodeStore)
         auth_code_store_mock.fetch_by_code.return_value = auth_code
@@ -486,6 +488,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         self.assertEqual(handler.data, data)
         self.assertEqual(handler.redirect_uri, redirect_uri)
         self.assertEqual(handler.scopes, scopes)
+        self.assertEqual(handler.user_id, user_id)
         self.assertTrue(result)
 
     def test_read_validate_params_missing_code(self):

@@ -313,7 +313,7 @@ class AccessTokenMixin(object):
 
         self.access_token_store.save_token(access_token)
 
-        return access_token
+        return token_data
 
 class AuthorizationCodeAuthHandler(AuthorizeMixin, AuthRequestMixin,
                                    GrantHandler):
@@ -398,6 +398,7 @@ class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
         self.data = {}
         self.redirect_uri = None
         self.scopes = []
+        self.user_id = None
 
         self.auth_code_store = auth_token_store
         self.client_store = client_store
@@ -431,26 +432,19 @@ class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
         
         Calls `oauth2.store.AccessTokenStore` to persist the token.
         """
-        token_data = self.token_generator.create_access_token_data()
-
-        access_token = AccessToken(client_id=self.client_id, data=self.data,
-                                   grant_type=AuthorizationCodeGrant.grant_type,
-                                   token=token_data["access_token"],
-                                   scopes=self.scopes)
-
-        if "refresh_token" in token_data:
-            expires_at = int(time.time()) + token_data["expires_in"]
-            access_token.expires_at = expires_at
-            access_token.refresh_token = token_data["refresh_token"]
-
-        self.access_token_store.save_token(access_token)
+        token_data = self.create_token(
+            client_id=self.client_id,
+            data=self.data,
+            grant_type=AuthorizationCodeGrant.grant_type,
+            scopes=self.scopes,
+            user_id=self.user_id)
 
         self.auth_code_store.delete_code(self.code)
 
         response.body = json.dumps(token_data)
         response.status_code = 200
 
-        response.add_header("Content-type", "application/json")
+        response.add_header("Content-Type", "application/json")
 
         return response
 
@@ -509,6 +503,7 @@ class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
 
         self.data = stored_code.data
         self.scopes = stored_code.scopes
+        self.user_id = stored_code.user_id
 
 class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
     """
