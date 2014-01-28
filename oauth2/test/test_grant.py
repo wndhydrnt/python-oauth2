@@ -1013,12 +1013,15 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
 
         responseMock = Mock(spec=Response)
 
+        scope_handler_mock = Mock(spec=Scope)
+        scope_handler_mock.scopes = []
+
         site_adapter_mock = Mock(spec=SiteAdapter)
         site_adapter_mock.user_has_denied_access.return_value = True
 
         handler = ImplicitGrantHandler(
             Mock(spec=AccessTokenStore), client_store=Mock(),
-            scope_handler=Mock(Scope), site_adapter=site_adapter_mock,
+            scope_handler=scope_handler_mock, site_adapter=site_adapter_mock,
             token_generator=Mock()
         )
 
