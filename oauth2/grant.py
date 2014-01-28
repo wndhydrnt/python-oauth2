@@ -46,6 +46,19 @@ def json_error_response(error, response):
 
     return response
 
+def json_success_response(data, response):
+    """
+    Formats the response of a successful token request as JSON.
+    
+    Also adds default headers and status code.
+    """
+    response.body = json.dumps(data)
+    response.status_code = 200
+
+    response.add_header("Content-Type", "application/json")
+    response.add_header("Cache-Control", "no-store")
+    response.add_header("Pragma", "no-cache")
+
 class Scope(object):
     """
     Handling of the "scope" parameter in a request.
@@ -387,10 +400,7 @@ class AuthorizationCodeTokenHandler(GrantHandler):
         if self.scopes:
             token_data["scope"] = self._encode_scopes(self.scopes)
 
-        response.body = json.dumps(token_data)
-        response.status_code = 200
-
-        response.add_header("Content-type", "application/json")
+        json_success_response(data=token_data, response=response)
 
         return response
 
@@ -652,9 +662,7 @@ class ResourceOwnerGrantHandler(GrantHandler):
         if self.scope_handler.send_back:
             token_data["scope"] = self._encode_scopes(self.scope_handler.scopes)
 
-        response.add_header("Content-Type", "application/json")
-        response.status_code = 200
-        response.body = json.dumps(token_data)
+        json_success_response(data=token_data, response=response)
 
         return response
 
@@ -770,8 +778,7 @@ class RefreshTokenHandler(GrantHandler):
         response_data = {"access_token": token, "expires_in": expires_in,
                          "token_type": "Bearer"}
 
-        response.add_header("Content-type", "application/json")
-        response.body = json.dumps(response_data)
+        json_success_response(data=response_data, response=response)
 
         return response
 
@@ -877,8 +884,7 @@ class ClientCredentialsHandler(GrantHandler):
         if self.scope_handler.send_back:
             body["scope"] = self._encode_scopes(self.scope_handler.scopes)
 
-        response.add_header("Content-type", "application/json")
-        response.body = json.dumps(body)
+        json_success_response(data=body, response=response)
 
         return response
 
