@@ -8,6 +8,7 @@ Bugfixes:
 
   - Added missing `scopes` parameter in SiteAdapter base class (Josh Johnston)
   - Deleting authorization token after usage (Josh Johnston)
+  - Scope parameter not returned by access token response of Authorization Code Grant
 
 ## 0.5.0
 
