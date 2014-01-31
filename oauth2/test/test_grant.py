@@ -1136,11 +1136,12 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.create_access_token_data.return_value = token_data
 
-        handler = ResourceOwnerGrantHandler(access_token_store_mock,
-                                            Mock(ClientStore),
-                                            scope_handler_mock,
-                                            site_adapter_mock,
-                                            token_generator_mock)
+        handler = ResourceOwnerGrantHandler(
+            access_token_store=access_token_store_mock,
+            client_store=Mock(ClientStore),
+            scope_handler=scope_handler_mock,
+            site_adapter=site_adapter_mock,
+            token_generator=token_generator_mock)
         handler.client_id = client_id
         result = handler.process(request_mock, response_mock, {})
 
@@ -1170,7 +1171,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         scopes = ["scope"]
         token_data = {"access_token": access_token, "token_type": "Bearer",
                       "refresh_token": "wxyz", "expires_in": 600}
-        user = {"id": 123}
+        user = ({"test": "data"}, 123)
 
         access_token_store_mock = Mock(AccessTokenStore)
 
@@ -1188,11 +1189,12 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.create_access_token_data.return_value = token_data
 
-        handler = ResourceOwnerGrantHandler(access_token_store_mock,
-                                            Mock(ClientStore),
-                                            scope_handler_mock,
-                                            site_adapter_mock,
-                                            token_generator_mock)
+        handler = ResourceOwnerGrantHandler(
+            access_token_store=access_token_store_mock,
+            client_store=Mock(ClientStore),
+            scope_handler=scope_handler_mock,
+            site_adapter=site_adapter_mock,
+            token_generator=token_generator_mock)
         handler.client_id = client_id
         result = handler.process(request_mock, response_mock, {})
 
@@ -1201,6 +1203,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         token_generator_mock.create_access_token_data.assert_called_with()
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
+        self.assertEqual(access_token.user_id, user[1])
         self.assertEqual(access_token.refresh_token, token_data["refresh_token"])
         self.assertEqual(access_token.expires_at, 1600)
         response_mock.add_header.assert_has_calls([call("Content-Type",
@@ -1223,6 +1226,9 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
 
         response_mock = Mock(Response)
 
+        site_adapter_mock = Mock(SiteAdapter)
+        site_adapter_mock.authenticate.return_value = ({"test": "data"}, 123)
+
         scope_handler_mock = Mock(Scope)
         scope_handler_mock.scopes = scopes
         scope_handler_mock.send_back = True
@@ -1230,11 +1236,12 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.create_access_token_data.return_value = token_data
 
-        handler = ResourceOwnerGrantHandler(Mock(AccessTokenStore),
-                                            Mock(ClientStore),
-                                            scope_handler_mock,
-                                            Mock(SiteAdapter),
-                                            token_generator_mock)
+        handler = ResourceOwnerGrantHandler(
+            access_token_store=Mock(AccessTokenStore),
+            client_store=Mock(ClientStore),
+            scope_handler=scope_handler_mock,
+            site_adapter=site_adapter_mock,
+            token_generator=token_generator_mock)
         handler.client_id = client_id
         result = handler.process(Mock(Request), response_mock, {})
 
@@ -1266,11 +1273,12 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
 
         scope_handler_mock = Mock(Scope)
 
-        handler = ResourceOwnerGrantHandler(Mock(AccessTokenStore),
-                                            client_store_mock,
-                                            scope_handler_mock,
-                                            Mock(SiteAdapter),
-                                            Mock())
+        handler = ResourceOwnerGrantHandler(
+            access_token_store=Mock(AccessTokenStore),
+            client_store=client_store_mock,
+            scope_handler=scope_handler_mock,
+            site_adapter=Mock(SiteAdapter),
+            token_generator=Mock())
         result = handler.read_validate_params(request_mock)
 
         client_store_mock.fetch_by_client_id.assert_called_with(client_id)
@@ -1286,9 +1294,12 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         request_mock = Mock(Request)
         request_mock.post_param.return_value = None
 
-        handler = ResourceOwnerGrantHandler(Mock(AccessTokenStore),
-                                            Mock(ClientStore), Mock(Scope),
-                                            Mock(SiteAdapter), Mock())
+        handler = ResourceOwnerGrantHandler(
+            access_token_store=Mock(AccessTokenStore),
+            client_store=Mock(ClientStore),
+            scope_handler=Mock(Scope),
+            site_adapter=Mock(SiteAdapter),
+            token_generator=Mock())
 
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
@@ -1308,9 +1319,12 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         request_mock = Mock(Request)
         request_mock.post_param.return_value = client_id
 
-        handler = ResourceOwnerGrantHandler(Mock(AccessTokenStore),
-                                            client_store_mock, Mock(Scope),
-                                            Mock(SiteAdapter), Mock())
+        handler = ResourceOwnerGrantHandler(
+            access_token_store=Mock(AccessTokenStore),
+            client_store=client_store_mock,
+            scope_handler=Mock(Scope),
+            site_adapter=Mock(SiteAdapter),
+            token_generator=Mock())
 
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
@@ -1336,11 +1350,12 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         request_mock = Mock(Request)
         request_mock.post_param.side_effect = [client_id, client_secret_actual]
 
-        handler = ResourceOwnerGrantHandler(Mock(AccessTokenStore),
-                                            client_store_mock,
-                                            Mock(Scope),
-                                            Mock(SiteAdapter),
-                                            Mock())
+        handler = ResourceOwnerGrantHandler(
+            access_token_store=Mock(AccessTokenStore),
+            client_store=client_store_mock,
+            scope_handler=Mock(Scope),
+            site_adapter=Mock(SiteAdapter),
+            token_generator=Mock())
 
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)

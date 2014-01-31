@@ -19,7 +19,7 @@ The "three" symbolizes the parties that are involved:
 Two-legged OAuth
 ----------------
 The two-legged OAuth process differs from the three-legged process by one
-missing paricipant. The user cannot allow or deny access.
+missing participant. The user cannot allow or deny access.
 
 So there are two remaining parties:
 
@@ -676,23 +676,21 @@ class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant):
             site_adapter=server.site_adapter,
             token_generator=server.token_generator)
 
-class ResourceOwnerGrantHandler(GrantHandler):
+class ResourceOwnerGrantHandler(GrantHandler, AuthorizeMixin, AccessTokenMixin):
     """
     Class for handling Resource Owner authorization requests.
     
     See http://tools.ietf.org/html/rfc6749#section-4.3
     """
-    def __init__(self, access_token_store, client_store, scope_handler,
-                 site_adapter, token_generator):
-        self.access_token_store = access_token_store
+    def __init__(self, client_store, scope_handler, **kwargs):
         self.client_store = client_store
         self.scope_handler = scope_handler
-        self.site_adapter = site_adapter
-        self.token_generator = token_generator
 
         self.client_id = None
         self.password = None
         self.username = None
+
+        super(ResourceOwnerGrantHandler, self).__init__(**kwargs)
 
     def process(self, request, response, environ):
         """
@@ -700,23 +698,14 @@ class ResourceOwnerGrantHandler(GrantHandler):
         it and issues a new access token that is returned to the client on
         successful validation.
         """
-        user_data = self.site_adapter.authenticate(request, environ,
-                                                   self.scope_handler.scopes)
+        data = self.authorize(request=request, response=response,
+                              environ=environ,
+                              scopes=self.scope_handler.scopes)
 
-        token_data = self.token_generator.create_access_token_data()
-
-        access_token = AccessToken(client_id=self.client_id,
-                                   token=token_data["access_token"],
-                                   grant_type=ResourceOwnerGrant.grant_type,
-                                   data=user_data,
-                                   scopes=self.scope_handler.scopes)
-
-        if "refresh_token" in token_data:
-            expires_at = int(time.time()) + token_data["expires_in"]
-            access_token.expires_at = expires_at
-            access_token.refresh_token = token_data["refresh_token"]
-
-        self.access_token_store.save_token(access_token)
+        token_data = self.create_token(client_id=self.client_id, data=data[0],
+                                       grant_type=ResourceOwnerGrant.grant_type,
+                                       scopes=self.scope_handler.scopes,
+                                       user_id=data[1])
 
         if self.scope_handler.send_back:
             token_data["scope"] = self._encode_scopes(self.scope_handler.scopes)
@@ -810,6 +799,7 @@ class RefreshTokenHandler(GrantHandler):
         self.client_id = None
         self.data = {}
         self.refresh_token = None
+        self.user_id = None
 
     def process(self, request, response, environ):
         """
@@ -830,7 +820,8 @@ class RefreshTokenHandler(GrantHandler):
         access_token = AccessToken(client_id=self.client_id, token=token,
                                    grant_type=RefreshToken.grant_type,
                                    data=self.data, expires_at=expires_at,
-                                   scopes=self.scope_handler.scopes)
+                                   scopes=self.scope_handler.scopes,
+                                   user_id=self.user_id)
         self.access_token_store.save_token(access_token)
 
         response_data = {"access_token": token, "expires_in": expires_in,
@@ -895,6 +886,7 @@ class RefreshTokenHandler(GrantHandler):
                                     explanation="Invalid refresh token")
 
         self.data = access_token.data
+        self.user_id = access_token.user_id
 
         self.scope_handler.parse(request, "body")
         self.scope_handler.compare(access_token.scopes)
