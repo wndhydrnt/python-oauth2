@@ -35,6 +35,13 @@ import time
 from oauth2.datatype import AuthorizationCode, AccessToken
 from oauth2.web import Response
 
+def encode_scopes(scopes, use_quote=False):
+    scopes_as_string = Scope.separator.join(scopes)
+
+    if use_quote:
+        return quote(scopes_as_string)
+    return scopes_as_string
+
 def json_error_response(error, response):
     """
     Formats an error as a response containing a JSON body.
@@ -200,13 +207,6 @@ class GrantHandler(object):
         """
         raise NotImplementedError
 
-    def _encode_scopes(self, scopes, use_quote=False):
-        scopes_as_string = Scope.separator.join(scopes)
-
-        if use_quote:
-            return quote(scopes_as_string)
-        return scopes_as_string
-
 class GrantHandlerFactory(object):
     """
     Base class every handler factory can extend.
@@ -257,7 +257,8 @@ class AuthRequestMixin(object):
             if client_data.has_redirect_uri(redirect_uri) == False:
                 raise OAuthInvalidError(
                     error="invalid_request",
-                    explanation="redirect_uri is not registered for this client")
+                    explanation="redirect_uri is not registered for this " \
+                                "client")
             else:
                 self.redirect_uri = redirect_uri
         else:
@@ -460,7 +461,7 @@ class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
         self.auth_code_store.delete_code(self.code)
 
         if self.scopes:
-            token_data["scope"] = self._encode_scopes(self.scopes)
+            token_data["scope"] = encode_scopes(self.scopes)
 
         json_success_response(data=token_data, response=response)
 
@@ -633,8 +634,8 @@ class ImplicitGrantHandler(AuthorizeMixin, AuthRequestMixin, GrantHandler):
             uri_with_fragment += "&state=" + self.state
 
         if self.scope_handler.send_back is True:
-            scopes_as_string = self._encode_scopes(self.scope_handler.scopes,
-                                                   use_quote=True)
+            scopes_as_string = encode_scopes(self.scope_handler.scopes,
+                                             use_quote=True)
             uri_with_fragment += "&scope=" + scopes_as_string
 
         response.status_code = 302
@@ -702,13 +703,16 @@ class ResourceOwnerGrantHandler(GrantHandler, AuthorizeMixin, AccessTokenMixin):
                               environ=environ,
                               scopes=self.scope_handler.scopes)
 
+        if isinstance(data, Response):
+            return data
+
         token_data = self.create_token(client_id=self.client_id, data=data[0],
                                        grant_type=ResourceOwnerGrant.grant_type,
                                        scopes=self.scope_handler.scopes,
                                        user_id=data[1])
 
         if self.scope_handler.send_back:
-            token_data["scope"] = self._encode_scopes(self.scope_handler.scopes)
+            token_data["scope"] = encode_scopes(self.scope_handler.scopes)
 
         json_success_response(data=token_data, response=response)
 
@@ -935,7 +939,7 @@ class ClientCredentialsHandler(GrantHandler):
         body["expires_in"] = self.token_generator.expires_in
 
         if self.scope_handler.send_back:
-            body["scope"] = self._encode_scopes(self.scope_handler.scopes)
+            body["scope"] = encode_scopes(self.scope_handler.scopes)
 
         json_success_response(data=body, response=response)
 

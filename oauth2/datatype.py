@@ -20,6 +20,29 @@ class AccessToken(object):
         self.scopes = scopes
         self.user_id = user_id
 
+    @property
+    def expires_in(self):
+        """
+        Returns the time until the token expires.
+        
+        :return: The remaining time until expiration in seconds or 0 if the
+                 token has expired.
+        """
+        time_left = self.expires_at - int(time.time())
+
+        if time_left > 0:
+            return time_left
+        return 0
+
+    def to_json(self):
+        json = {"access_token": self.token, "token_type": "Bearer"}
+
+        if self.refresh_token is not None:
+            json["refresh_token"] = self.refresh_token
+            json["expires_in"] = self.expires_in
+
+        return json
+
 class AuthorizationCode(object):
     """
     Holds an authorization code and additional information.
