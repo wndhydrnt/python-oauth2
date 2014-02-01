@@ -6,6 +6,7 @@ from oauth2.store import AccessTokenStore, AuthCodeStore, ClientStore
 from oauth2.datatype import AccessToken, AuthorizationCode, Client
 from oauth2.error import AccessTokenNotFound, AuthCodeNotFound, \
     ClientNotFoundError
+import pymongo
 
 class MongodbStore(object):
     """
@@ -30,7 +31,6 @@ class AccessTokenStore(AccessTokenStore, MongodbStore):
     """
 
     def fetch_by_refresh_token(self, refresh_token):
-
         data = self.collection.find_one({"refresh_token": refresh_token})
 
         if data is None:
@@ -42,6 +42,23 @@ class AccessTokenStore(AccessTokenStore, MongodbStore):
                            data=data["data"], expires_at=data["expires_at"],
                            refresh_token=data["refresh_token"],
                            scopes=data["scopes"])
+
+    def fetch_existing_token_of_user(self, client_id, grant_type, user_id):
+        data = self.collection.find_one({"client_id": client_id,
+                                         "grant_type": grant_type,
+                                         "user_id": user_id},
+                                        sort=[("expires_at",
+                                               pymongo.DESCENDING)])
+
+        if data is None:
+            raise AccessTokenNotFound
+
+        return AccessToken(client_id=data["client_id"],
+                           grant_type=data["grant_type"],
+                           token=data["token"],
+                           data=data["data"], expires_at=data["expires_at"],
+                           refresh_token=data["refresh_token"],
+                           scopes=data["scopes"], user_id=data["user_id"])
 
     def save_token(self, access_token):
         self.collection.insert({

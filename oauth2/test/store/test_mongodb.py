@@ -42,6 +42,43 @@ class MongodbAccessTokenStoreTestCase(unittest.TestCase):
         with self.assertRaises(AccessTokenNotFound):
             store.fetch_by_refresh_token(refresh_token="abcd")
 
+    def test_fetch_existing_token_of_user(self):
+        test_data = {"client_id": "myclient",
+                     "grant_type": "authorization_code",
+                     "token": "xyz",
+                     "scopes": ["foo_read", "foo_write"],
+                     "data": {"name": "test"},
+                     "expires_at": 1000,
+                     "refresh_token": "abcd",
+                     "user_id": 123}
+
+        collection_mock = Mock(spec=["find_one"])
+        collection_mock.find_one.return_value = test_data
+
+        store = AccessTokenStore(collection=collection_mock)
+
+        token = store.fetch_existing_token_of_user(client_id="myclient",
+                                                   grant_type="authorization_code",
+                                                   user_id=123)
+
+        self.assertTrue(isinstance(token, AccessToken))
+        self.assertDictEqual(token.__dict__, test_data)
+        collection_mock.find_one.assert_called_with({"client_id": "myclient",
+                                                     "grant_type": "authorization_code",
+                                                     "user_id": 123},
+                                                    sort=[("expires_at", -1)])
+
+    def test_fetch_existing_token_of_user_no_data(self):
+        collection_mock = Mock(spec=["find_one"])
+        collection_mock.find_one.return_value = None
+
+        store = AccessTokenStore(collection=collection_mock)
+
+        with self.assertRaises(AccessTokenNotFound):
+            store.fetch_existing_token_of_user(client_id="myclient",
+                                               grant_type="authorization_code",
+                                               user_id=123)
+
     def test_save_token(self):
         access_token = AccessToken(**self.access_token_data)
 

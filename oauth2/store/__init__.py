@@ -21,7 +21,23 @@ class AccessTokenStore(object):
         
         """
         raise NotImplementedError
-    
+
+    def fetch_existing_token_of_user(self, client_id, grant_type, user_id):
+        """
+        Fetches an access token identified by its client id, type of grant and
+        user id.
+        
+        This method must be implemented to make use of unique access tokens.
+        
+        :param client_id: Identifier of the client a token belongs to.
+        :param grant_type: The type of the grant that created the token
+        :param user_id: Identifier of the user a token belongs to.
+        :return: An instance of :class:`oauth2.datatype.AccessToken`.
+        :raises: :class:`oauth2.error.AccessTokenNotFound` if no data could be
+                 retrieved.
+        """
+        raise NotImplementedError
+
     def fetch_by_refresh_token(self, refresh_token):
         """
         Fetches an access token from the store using its refresh token to
@@ -51,7 +67,7 @@ class AuthCodeStore(object):
         
         """
         raise NotImplementedError
-    
+
     def save_code(self, authorization_code):
         """
         Stores the data belonging to an authorization code token.

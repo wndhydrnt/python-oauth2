@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import memcache
 
 from oauth2.datatype import AccessToken, AuthorizationCode
@@ -81,8 +82,13 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
         
         """
         key = self._generate_cache_key(access_token.token)
-
         self.mc.set(key, access_token.__dict__)
+
+        unique_token_key = self._unique_token_key(access_token.client_id,
+                                                  access_token.grant_type,
+                                                  access_token.user_id)
+        self.mc.set(self._generate_cache_key(unique_token_key),
+                    access_token.__dict__)
 
         if access_token.refresh_token is not None:
             rft_key = self._generate_cache_key(access_token.refresh_token)
@@ -95,6 +101,18 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
             raise AccessTokenNotFound
 
         return AccessToken(**token_data)
+
+    def fetch_existing_token_of_user(self, client_id, grant_type, user_id):
+        data = self.mc.get(self._unique_token_key(client_id, grant_type,
+                                                  user_id))
+
+        if data is None:
+            raise AccessTokenNotFound
+
+        return AccessToken(**data)
+
+    def _unique_token_key(self, client_id, grant_type, user_id):
+        return "{0}_{1}_{2}".format(client_id, grant_type, user_id)
 
     def _generate_cache_key(self, identifier):
         return self.prefix + "_" + identifier

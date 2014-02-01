@@ -1,6 +1,6 @@
-from mock import Mock
+from mock import Mock, call
 from oauth2.datatype import AuthorizationCode, AccessToken
-from oauth2.error import AuthCodeNotFound
+from oauth2.error import AuthCodeNotFound, AccessTokenNotFound
 from oauth2.store.memcache import TokenStore
 from oauth2.test import unittest
 
@@ -63,13 +63,19 @@ class MemcacheTokenStoreTestCase(unittest.TestCase):
     def test_save_token(self):
         data = {"client_id": "myclient", "token": "xyz",
                 "data": {"name": "test"}, "scopes": ["foo_read", "foo_write"],
-                "expires_at": None, "refresh_token": None,
+                "expires_at": None, "refresh_token": "mno",
                 "grant_type": "authorization_code",
-                "user_id": None}
+                "user_id": 123}
 
         access_token = AccessToken(**data)
 
         cache_key = self._generate_test_cache_key(access_token.token)
+        refresh_token_key = self._generate_test_cache_key(access_token.refresh_token)
+        unique_token_key = self._generate_test_cache_key(
+            "{0}_{1}_{2}".format(access_token.client_id,
+                                 access_token.grant_type,
+                                 access_token.user_id)
+        )
 
         mc_mock = Mock(spec=["set"])
 
@@ -77,4 +83,36 @@ class MemcacheTokenStoreTestCase(unittest.TestCase):
 
         store.save_token(access_token)
 
-        mc_mock.set.assert_called_with(cache_key, data)
+        mc_mock.set.assert_has_calls([call(cache_key, data),
+                                      call(unique_token_key, data),
+                                      call(refresh_token_key, data)])
+
+    def test_fetch_existing_token_of_user(self):
+        data = {"client_id": "myclient", "token": "xyz",
+                "data": {"name": "test"}, "scopes": ["foo_read", "foo_write"],
+                "expires_at": None, "refresh_token": "mno",
+                "grant_type": "authorization_code",
+                "user_id": 123}
+
+        mc_mock = Mock(spec=["get"])
+        mc_mock.get.return_value = data
+
+        store = TokenStore(mc=mc_mock, prefix=self.cache_prefix)
+
+        access_token = store.fetch_existing_token_of_user(
+            client_id="myclient",
+            grant_type="authorization_code",
+            user_id=123)
+
+        self.assertTrue(isinstance(access_token, AccessToken))
+
+    def test_fetch_existing_token_of_user_no_data(self):
+        mc_mock = Mock(spec=["get"])
+        mc_mock.get.return_value = None
+
+        store = TokenStore(mc=mc_mock, prefix=self.cache_prefix)
+
+        with self.assertRaises(AccessTokenNotFound):
+            store.fetch_existing_token_of_user(client_id="myclient",
+                                               grant_type="authorization_code",
+                                               user_id=123)
