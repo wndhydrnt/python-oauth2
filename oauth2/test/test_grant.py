@@ -9,7 +9,8 @@ from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler, \
     ClientCredentialsGrant, ClientCredentialsHandler, AuthorizeMixin
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError, \
-    ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound
+    ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound, \
+    MissingUserIdentifier
 from oauth2 import Provider
 from oauth2.datatype import Client, AuthorizationCode, AccessToken
 from oauth2.tokengenerator import TokenGenerator
@@ -809,6 +810,80 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
                                                    call("Cache-Control",
                                                         "no-store"),
                                                    call("Pragma", "no-cache")])
+
+    @patch("time.time", mock_time)
+    def test_process_with_unique_access_token(self):
+        token_data = {"client_id": "myclient",
+                      "grant_type": "authorization_code",
+                      "token": "abc123", "data": {}, "expires_at": 1100,
+                      "refresh_token": "def456", "scopes": ["foo", "bar"],
+                      "user_id": 123}
+        token = AccessToken(**token_data)
+        expected_response_body = {"access_token": token_data["token"],
+                                  "token_type": "Bearer",
+                                  "refresh_token": token_data["refresh_token"],
+                                  "expires_in": 100, "scope": "foo bar"}
+
+        access_token_store_mock = Mock(spec=AccessTokenStore)
+        access_token_store_mock.fetch_existing_token_of_user.return_value = token
+
+        response = Response()
+
+        handler = AuthorizationCodeTokenHandler(
+            access_token_store=access_token_store_mock,
+            auth_token_store=Mock(spec=AuthCodeStore),
+            client_store=Mock(spec=ClientStore),
+            token_generator=Mock())
+        handler.client_id = "myclient"
+        handler.data = {}
+        handler.scopes = ["foo", "bar"]
+        handler.unique_token = True
+        handler.user_id = 123
+
+        response = handler.process(request=Mock(spec=Request),
+                                   response=response, environ={})
+        self.assertDictEqual(json.loads(response.body), expected_response_body)
+
+    @patch("time.time", mock_time)
+    def test_process_with_unique_access_token_not_found(self):
+        token_data = {"access_token": "abc123", "token_type": "Bearer",
+                      "refresh_token": "def456", "expires_in": 1000}
+        expected_response_body = copy(token_data)
+        expected_response_body["scope"] = "foo bar"
+
+        response = Response()
+
+        access_token_store_mock = Mock(spec=AccessTokenStore)
+        access_token_store_mock.fetch_existing_token_of_user.return_value = None
+
+        token_generator_mock = Mock(spec=TokenGenerator)
+        token_generator_mock.create_access_token_data.return_value = token_data
+
+        handler = AuthorizationCodeTokenHandler(
+            access_token_store=access_token_store_mock,
+            auth_token_store=Mock(spec=AuthCodeStore),
+            client_store=Mock(spec=ClientStore),
+            token_generator=token_generator_mock)
+        handler.unique_token = True
+        handler.user_id = 123
+        handler.scopes = ["foo", "bar"]
+
+        response_result = handler.process(Mock(), response, {})
+        self.assertDictEqual(expected_response_body,
+                             json.loads(response_result.body))
+
+    def test_process_with_unique_access_token_no_user_id(self):
+        handler = AuthorizationCodeTokenHandler(
+            access_token_store=Mock(spec=AccessTokenStore),
+            auth_token_store=Mock(spec=AuthCodeStore),
+            client_store=Mock(spec=ClientStore),
+            token_generator=Mock(spec=TokenGenerator))
+        handler.unique_token = True
+        handler.user_id = None
+
+        with self.assertRaises(MissingUserIdentifier):
+            handler.process(Mock(), Mock(), {})
+
 
 class ImplicitGrantTestCase(unittest.TestCase):
     def test_create_matching_response_type(self):

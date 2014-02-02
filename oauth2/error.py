@@ -23,6 +23,13 @@ class ClientNotFoundError(Exception):
     """
     pass
 
+class MissingUserIdentifier(Exception):
+    """
+    Indicates that the identifier of a user is missing when the use of unique
+    access token is enabled.
+    """
+    pass
+
 class OAuthBaseError(Exception):
     """
     Base class used by all OAuth 2.0 errors.
@@ -33,10 +40,10 @@ class OAuthBaseError(Exception):
     :param explanation: Short message that describes the error. (optional)
     """
     def __init__(self, error, error_uri=None, explanation=None):
-        self.error       = error
-        self.error_uri   = error_uri
+        self.error = error
+        self.error_uri = error_uri
         self.explanation = explanation
-        
+
         super(OAuthBaseError, self).__init__()
 
 class OAuthClientError(OAuthBaseError):

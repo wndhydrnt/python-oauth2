@@ -28,7 +28,8 @@ So there are two remaining parties:
 
 """
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError, \
-    ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound
+    ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound, \
+    MissingUserIdentifier
 from oauth2.compatibility import urlencode, quote
 import json
 import time
@@ -329,6 +330,25 @@ class AccessTokenMixin(object):
         super(AccessTokenMixin, self).__init__(**kwargs)
 
     def create_token(self, client_id, data, grant_type, scopes, user_id):
+        if self.unique_token:
+            if user_id is None:
+                raise MissingUserIdentifier
+
+            access_token = self.access_token_store.fetch_existing_token_of_user(
+                client_id,
+                grant_type,
+                user_id)
+
+            if access_token is not None:
+                token_data = {"access_token": access_token.token,
+                              "token_type": "Bearer"}
+
+                if access_token.refresh_token is not None:
+                    token_data["refresh_token"] = access_token.refresh_token
+                    token_data["expires_in"] = access_token.expires_in
+
+                return token_data
+
         token_data = self.token_generator.create_access_token_data()
 
         access_token = AccessToken(client_id=client_id, data=data,
