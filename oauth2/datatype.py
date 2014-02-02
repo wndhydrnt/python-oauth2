@@ -34,6 +34,20 @@ class AccessToken(object):
             return time_left
         return 0
 
+    def is_expired(self):
+        """
+        Determines if the token has expired.
+        
+        :return: `True` if the token has expired. Otherwise `False`.
+        """
+        if self.expires_at is None:
+            return False
+
+        if self.expires_in > 0:
+            return False
+
+        return True
+
     def to_json(self):
         json = {"access_token": self.token, "token_type": "Bearer"}
 

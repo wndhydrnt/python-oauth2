@@ -321,6 +321,9 @@ class AuthorizeMixin(object):
             return value, None
 
 class AccessTokenMixin(object):
+    """
+    Used by grants that handle refresh token and unique token.
+    """
     def __init__(self, access_token_store, token_generator, **kwargs):
         self.access_token_store = access_token_store
         self.token_generator = token_generator
@@ -339,7 +342,9 @@ class AccessTokenMixin(object):
                 grant_type,
                 user_id)
 
-            if access_token is not None:
+            if (access_token is not None
+                and access_token.scopes == scopes
+                and access_token.is_expired() == False):
                 token_data = {"access_token": access_token.token,
                               "token_type": "Bearer"}
 

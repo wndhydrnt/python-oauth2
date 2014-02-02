@@ -872,6 +872,77 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         self.assertDictEqual(expected_response_body,
                              json.loads(response_result.body))
 
+    def test_process_with_unique_access_token_different_scope(self):
+        access_token_data = {"client_id": "myclient",
+                             "grant_type": "authorization_code",
+                             "token": "xyz890", "data": {}, "expires_at": 1200,
+                             "refresh_token": "mno789", "scopes": ["foo", "bar"],
+                             "user_id": 123}
+        access_token = AccessToken(**access_token_data)
+        token_data = {"access_token": "abc123", "token_type": "Bearer",
+                      "refresh_token": "def456", "expires_in": 1000}
+        expected_response_body = copy(token_data)
+        expected_response_body["scope"] = "bar baz"
+
+        response = Response()
+
+        access_token_store_mock = Mock(spec=AccessTokenStore)
+        access_token_store_mock.fetch_existing_token_of_user.return_value = access_token
+
+        token_generator_mock = Mock(spec=TokenGenerator)
+        token_generator_mock.create_access_token_data.return_value = token_data
+
+        handler = AuthorizationCodeTokenHandler(
+            access_token_store=access_token_store_mock,
+            auth_token_store=Mock(spec=AuthCodeStore),
+            client_store=Mock(spec=ClientStore),
+            token_generator=token_generator_mock)
+        handler.client_id = access_token_data["client_id"]
+        handler.data = {}
+        handler.unique_token = True
+        handler.user_id = 123
+        handler.scopes = ["bar", "baz"]
+
+        response_result = handler.process(Mock(), response, {})
+        self.assertDictEqual(expected_response_body,
+                             json.loads(response_result.body))
+
+    @patch("time.time", mock_time)
+    def test_process_with_unique_access_token_expired_token(self):
+        access_token_data = {"client_id": "myclient",
+                             "grant_type": "authorization_code",
+                             "token": "xyz890", "data": {}, "expires_at": 300,
+                             "refresh_token": "mno789", "scopes": ["foo", "bar"],
+                             "user_id": 123}
+        access_token = AccessToken(**access_token_data)
+        token_data = {"access_token": "abc123", "token_type": "Bearer",
+                      "refresh_token": "def456", "expires_in": 1000}
+        expected_response_body = copy(token_data)
+        expected_response_body["scope"] = "foo bar"
+
+        response = Response()
+
+        access_token_store_mock = Mock(spec=AccessTokenStore)
+        access_token_store_mock.fetch_existing_token_of_user.return_value = access_token
+
+        token_generator_mock = Mock(spec=TokenGenerator)
+        token_generator_mock.create_access_token_data.return_value = token_data
+
+        handler = AuthorizationCodeTokenHandler(
+            access_token_store=access_token_store_mock,
+            auth_token_store=Mock(spec=AuthCodeStore),
+            client_store=Mock(spec=ClientStore),
+            token_generator=token_generator_mock)
+        handler.client_id = access_token_data["client_id"]
+        handler.data = {}
+        handler.unique_token = True
+        handler.user_id = 123
+        handler.scopes = ["foo", "bar"]
+
+        response_result = handler.process(Mock(), response, {})
+        self.assertDictEqual(expected_response_body,
+                             json.loads(response_result.body))
+
     def test_process_with_unique_access_token_no_user_id(self):
         handler = AuthorizationCodeTokenHandler(
             access_token_store=Mock(spec=AccessTokenStore),
