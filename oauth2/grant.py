@@ -701,7 +701,7 @@ class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant):
         Checks if the incoming request can be handled by the
         ResourceOwnerGrantHandler and returns an instance of it.
         """
-        if request.post_param("grant_type") != "password":
+        if request.post_param("grant_type") != self.grant_type:
             return None
 
         return ResourceOwnerGrantHandler(
