@@ -8,6 +8,7 @@ from oauth2.error import AccessTokenNotFound, AuthCodeNotFound, \
     ClientNotFoundError
 import pymongo
 
+
 class MongodbStore(object):
     """
     Base class extended by all concrete store adapters.
@@ -16,18 +17,19 @@ class MongodbStore(object):
     def __init__(self, collection):
         self.collection = collection
 
+
 class AccessTokenStore(AccessTokenStore, MongodbStore):
     """
     Create a new instance like this::
-    
+
         from pymongo import MongoClient
-        
+
         client = MongoClient('localhost', 27017)
-        
+
         db = client.test_database
-        
+
         access_token_store = AccessTokenStore(collection=db["access_tokens"])
-    
+
     """
 
     def fetch_by_refresh_token(self, refresh_token):
@@ -36,12 +38,13 @@ class AccessTokenStore(AccessTokenStore, MongodbStore):
         if data is None:
             raise AccessTokenNotFound
 
-        return AccessToken(client_id=data["client_id"],
-                           grant_type=data["grant_type"],
-                           token=data["token"],
-                           data=data["data"], expires_at=data["expires_at"],
-                           refresh_token=data["refresh_token"],
-                           scopes=data["scopes"])
+        return AccessToken(client_id=data.get("client_id"),
+                           grant_type=data.get("grant_type"),
+                           token=data.get("token"),
+                           data=data.get("data"),
+                           expires_at=data.get("expires_at"),
+                           refresh_token=data.get("refresh_token"),
+                           scopes=data.get("scopes"))
 
     def fetch_existing_token_of_user(self, client_id, grant_type, user_id):
         data = self.collection.find_one({"client_id": client_id,
@@ -53,12 +56,14 @@ class AccessTokenStore(AccessTokenStore, MongodbStore):
         if data is None:
             raise AccessTokenNotFound
 
-        return AccessToken(client_id=data["client_id"],
-                           grant_type=data["grant_type"],
-                           token=data["token"],
-                           data=data["data"], expires_at=data["expires_at"],
-                           refresh_token=data["refresh_token"],
-                           scopes=data["scopes"], user_id=data["user_id"])
+        return AccessToken(client_id=data.get("client_id"),
+                           grant_type=data.get("grant_type"),
+                           token=data.get("token"),
+                           data=data.get("data"),
+                           expires_at=data.get("expires_at"),
+                           refresh_token=data.get("refresh_token"),
+                           scopes=data.get("scopes"),
+                           user_id=data.get("user_id"))
 
     def save_token(self, access_token):
         self.collection.insert({
@@ -69,23 +74,23 @@ class AccessTokenStore(AccessTokenStore, MongodbStore):
             "expires_at": access_token.expires_at,
             "refresh_token": access_token.refresh_token,
             "scopes": access_token.scopes,
-            "user_id": access_token.user_id
-            })
+            "user_id": access_token.user_id})
 
         return True
+
 
 class AuthCodeStore(AuthCodeStore, MongodbStore):
     """
     Create a new instance like this::
-    
+
         from pymongo import MongoClient
-        
+
         client = MongoClient('localhost', 27017)
-        
+
         db = client.test_database
-        
+
         access_token_store = AuthCodeStore(collection=db["auth_codes"])
-    
+
     """
 
     def fetch_by_code(self, code):
@@ -94,12 +99,13 @@ class AuthCodeStore(AuthCodeStore, MongodbStore):
         if code_data is None:
             raise AuthCodeNotFound
 
-        return AuthorizationCode(client_id=code_data["client_id"],
-                                 code=code_data["code"],
-                                 expires_at=code_data["expires_at"],
-                                 redirect_uri=code_data["redirect_uri"],
-                                 scopes=code_data["scopes"],
-                                 data=code_data["data"])
+        return AuthorizationCode(client_id=code_data.get("client_id"),
+                                 code=code_data.get("code"),
+                                 expires_at=code_data.get("expires_at"),
+                                 redirect_uri=code_data.get("redirect_uri"),
+                                 scopes=code_data.get("scopes"),
+                                 data=code_data.get("data"),
+                                 user_id=code_data.get("user_id"))
 
     def save_code(self, authorization_code):
         self.collection.insert({
@@ -124,15 +130,15 @@ class AuthCodeStore(AuthCodeStore, MongodbStore):
 class ClientStore(ClientStore, MongodbStore):
     """
     Create a new instance like this::
-    
+
         from pymongo import MongoClient
-        
+
         client = MongoClient('localhost', 27017)
-        
+
         db = client.test_database
-        
+
         access_token_store = ClientStore(collection=db["clients"])
-    
+
     """
 
     def fetch_by_client_id(self, client_id):
@@ -142,6 +148,6 @@ class ClientStore(ClientStore, MongodbStore):
         if client_data is None:
             raise ClientNotFoundError
 
-        return Client(identifier=client_data["identifier"],
-                      secret=client_data["secret"],
-                      redirect_uris=client_data["redirect_uris"])
+        return Client(identifier=client_data.get("identifier"),
+                      secret=client_data.get("secret"),
+                      redirect_uris=client_data.get("redirect_uris"))
