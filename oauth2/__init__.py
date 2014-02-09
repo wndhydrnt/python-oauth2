@@ -103,13 +103,13 @@ class Provider(object):
         """
         Endpoint of requests to the OAuth 2.0 provider.
         
-        :param access_token_store: An object that implements methods defiend by
+        :param access_token_store: An object that implements methods defined by
                                    :class:`oauth2.store.AccessTokenStore`.
-        :param auth_code_store: An object that implements methods defiend by
+        :param auth_code_store: An object that implements methods defined by
                                 :class:`oauth2.store.AuthTokenStore`.
-        :param client_store: An object that implements methods defiend by
+        :param client_store: An object that implements methods defined by
                              :class:`oauth2.store.ClientStore`.
-        :param site_adapter: An object that implements methods defiend by
+        :param site_adapter: An object that implements methods defined by
                              :class:`oauth2.web.SiteAdapter`.
         :param token_generator: Object to generate unique tokens.
         :param response_class: Class of the response object.
@@ -165,6 +165,15 @@ class Provider(object):
 
             response.body = json.dumps(json_body)
             return response
+
+    def enable_unique_tokens(self):
+        """
+        Enable the use of unique access tokens on all grant types that support
+        this option.
+        """
+        for grant_type in self.grant_types:
+            if hasattr(grant_type, "unique_token"):
+                grant_type.unique_token = True
 
     @property
     def scope_separator(self, separator):
