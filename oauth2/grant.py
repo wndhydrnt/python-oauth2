@@ -36,10 +36,11 @@ import time
 from oauth2.datatype import AuthorizationCode, AccessToken
 from oauth2.web import Response
 
+
 def encode_scopes(scopes, use_quote=False):
     """
     Creates a string out of a list of scopes.
-    
+
     :param scopes: A list of scopes
     :param use_quote: Boolean flag indicating whether the string should be quoted
     :return: Scopes as a string
@@ -49,6 +50,7 @@ def encode_scopes(scopes, use_quote=False):
     if use_quote:
         return quote(scopes_as_string)
     return scopes_as_string
+
 
 def json_error_response(error, response):
     """
@@ -62,10 +64,11 @@ def json_error_response(error, response):
 
     return response
 
+
 def json_success_response(data, response):
     """
     Formats the response of a successful token request as JSON.
-    
+
     Also adds default headers and status code.
     """
     response.body = json.dumps(data)
@@ -75,13 +78,14 @@ def json_success_response(data, response):
     response.add_header("Cache-Control", "no-store")
     response.add_header("Pragma", "no-cache")
 
+
 class Scope(object):
     """
     Handling of the "scope" parameter in a request.
-    
+
     If ``available`` and ``default`` are both ``None``, the "scope" parameter
     is ignored (the default).
-    
+
     :param available: A list of strings each defining one supported scope.
     :param default: Value to fall back to in case no scope is present in a
                     request.
@@ -103,7 +107,7 @@ class Scope(object):
     def compare(self, previous_scopes):
         """
         Compares the scopes read from request with previously issued scopes.
-        
+
         :param previous_scopes: A list of scopes.
         :return: ``True``
         """
@@ -118,16 +122,16 @@ class Scope(object):
     def parse(self, request, source):
         """
         Parses scope value in given request.
-        
+
         Expects the value of the "scope" parameter in request to be a string
         where each requested scope is separated by a white space::
-        
+
             # One scope requested
             "profile_read"
-            
+
             # Multiple scopes
             "profile_read profile_write"
-        
+
         :param request: An instance of :class:`oauth2.web.Request`.
         :param source: Where to read the scope from. Pass "body" in case of a
                        application/x-www-form-urlencoded body and "query" in
@@ -162,12 +166,13 @@ class Scope(object):
             self.scopes = [self.default]
             self.send_back = True
 
+
 class ScopeGrant(object):
     """
     Handling of scopes in the OAuth 2.0 flow.
-    
+
     Inherited by all grants that need to support scopes.
-    
+
     :param default_scope: The scope identifier that is returned by default.
                           (optional)
     :param scopes:        A list of strings identifying the scopes that the
@@ -175,6 +180,7 @@ class ScopeGrant(object):
     :param scope_class: The class that does the actual handling in a request.
                         Default: :class:`oauth2.grant.Scope`.
     """
+
     def __init__(self, default_scope=None, scopes=None, scope_class=Scope,
                  **kwargs):
         self.default_scope = default_scope
@@ -187,17 +193,19 @@ class ScopeGrant(object):
         return self.scope_class(available=self.scopes,
                                 default=self.default_scope)
 
+
 class GrantHandler(object):
     """
     Base class every oauth2 handler can extend.
     """
+
     def process(self, request, response, environ):
         """
         Handles the logic of how a user gets an access token.
-        
+
         This includes steps like calling the implementation of a `SiteAdapter`
         if the user is authorized or generating a new access token.
-        
+
         This method uses data read in `read_validate_params`.
         """
         raise NotImplementedError
@@ -215,14 +223,17 @@ class GrantHandler(object):
         """
         raise NotImplementedError
 
+
 class GrantHandlerFactory(object):
     """
     Base class every handler factory can extend.
-    
+
     This class defines the basic interface of each Grant.
     """
+
     def __call__(self, request, server):
         raise NotImplementedError
+
 
 class AuthRequestMixin(object):
     """
@@ -230,7 +241,9 @@ class AuthRequestMixin(object):
     `oauth2.grant.AuthorizationCodeAuthHandler` and
     `oauth2.grant.ImplicitGrantHandler`.
     """
-    def __init__(self, client_store, scope_handler, token_generator, **kwargs):
+
+    def __init__(self, client_store, scope_handler, token_generator,
+                 **kwargs):
         self.client_id = None
         self.redirect_uri = None
         self.state = None
@@ -250,14 +263,14 @@ class AuthRequestMixin(object):
         client_id = request.get_param("client_id")
         if client_id is None:
             raise OAuthInvalidError(error="invalid_request",
-                                  explanation="Missing client_id parameter")
+                                    explanation="Missing client_id parameter")
         self.client_id = client_id
 
         try:
             client_data = self.client_store.fetch_by_client_id(self.client_id)
         except ClientNotFoundError:
             raise OAuthInvalidError(error="invalid_request",
-                                  explanation="No client registered")
+                                    explanation="No client registered")
 
         redirect_uri = request.get_param("redirect_uri")
 
@@ -280,10 +293,12 @@ class AuthRequestMixin(object):
 
         return True
 
+
 class AuthorizeMixin(object):
     """
     Used by all grants that involve user interaction.
     """
+
     def __init__(self, site_adapter, **kwargs):
         self.site_adapter = site_adapter
 
@@ -292,14 +307,14 @@ class AuthorizeMixin(object):
     def authorize(self, request, response, environ, scopes):
         """
         Controls all steps to authorize a request by a user.
-        
+
         :param request: The incoming :class:`oauth2.web.Request`
-        :param response: The :class:`oauth2.web.Response` that will be returned
-                         eventually
+        :param response: The :class:`oauth2.web.Response` that will be
+                         returned eventually
         :param environ: The environment variables of this request
         :param scopes: The scopes requested by an application
         :return: A tuple containing (`dict`, `int`) or the response.
-        
+
         """
         if self.site_adapter.user_has_denied_access(request) == True:
             raise OAuthUserError(error="access_denied",
@@ -320,15 +335,18 @@ class AuthorizeMixin(object):
         if isinstance(value, dict):
             return value, None
 
+
 class AccessTokenMixin(object):
     """
     Used by grants that handle refresh token and unique token.
     """
-    def __init__(self, access_token_store, token_generator, **kwargs):
+
+    def __init__(self, access_token_store, token_generator,
+                 unique_token=False, **kwargs):
         self.access_token_store = access_token_store
         self.token_generator = token_generator
 
-        self.unique_token = False
+        self.unique_token = unique_token
 
         super(AccessTokenMixin, self).__init__(**kwargs)
 
@@ -337,22 +355,25 @@ class AccessTokenMixin(object):
             if user_id is None:
                 raise MissingUserIdentifier
 
-            access_token = self.access_token_store.fetch_existing_token_of_user(
-                client_id,
-                grant_type,
-                user_id)
+            try:
+                access_token = self.access_token_store.\
+                    fetch_existing_token_of_user(
+                        client_id,
+                        grant_type,
+                        user_id)
 
-            if (access_token is not None
-                and access_token.scopes == scopes
-                and access_token.is_expired() == False):
-                token_data = {"access_token": access_token.token,
-                              "token_type": "Bearer"}
+                if (access_token.scopes == scopes
+                        and access_token.is_expired() is False):
+                    token_data = {"access_token": access_token.token,
+                                  "token_type": "Bearer"}
 
-                if access_token.refresh_token is not None:
-                    token_data["refresh_token"] = access_token.refresh_token
-                    token_data["expires_in"] = access_token.expires_in
+                    if access_token.refresh_token is not None:
+                        token_data["refresh_token"] = access_token.refresh_token
+                        token_data["expires_in"] = access_token.expires_in
 
-                return token_data
+                    return token_data
+            except AccessTokenNotFound:
+                pass
 
         token_data = self.token_generator.create_access_token_data()
 
@@ -371,6 +392,7 @@ class AccessTokenMixin(object):
 
         return token_data
 
+
 class AuthorizationCodeAuthHandler(AuthorizeMixin, AuthRequestMixin,
                                    GrantHandler):
     """
@@ -388,7 +410,7 @@ class AuthorizationCodeAuthHandler(AuthorizeMixin, AuthRequestMixin,
     def process(self, request, response, environ):
         """
         Generates a new authorization token.
-        
+
         A form to authorize the access of the application can be displayed with
         the help of `oauth2.web.SiteAdapter`.
         """
@@ -439,11 +461,13 @@ class AuthorizationCodeAuthHandler(AuthorizeMixin, AuthRequestMixin,
 
         return "%s?%s" % (self.redirect_uri, query)
 
+
 class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
     """
     Implementation of the second step of the Authorization Code Grant
     (three-legged).
     """
+
     def __init__(self, auth_token_store, client_store, **kwargs):
         self.client_id = None
         self.client_secret = None
@@ -461,9 +485,9 @@ class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
     def read_validate_params(self, request):
         """
         Reads and validates the data from the incoming request.
-        
+
         A valid request is issued via POST consists of the following form-encoded body:
-        
+
         client_id - Identifier of the requesting client (required)
         client_secret - Secret phrase generated by the auth system (required)
         code - Authorization code acquired in the Authorization Request (required)
@@ -480,9 +504,9 @@ class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
     def process(self, request, response, environ):
         """
         Generates a new access token and returns it.
-        
+
         Returns the access token and the type of the token as JSON.
-        
+
         Calls `oauth2.store.AccessTokenStore` to persist the token.
         """
         token_data = self.create_token(
@@ -515,8 +539,8 @@ class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
             or self.client_secret is None
             or self.redirect_uri is None):
             raise OAuthInvalidError(error="invalid_request",
-                                  explanation="Missing required parameter " \
-                                              "in request")
+                                    explanation="Missing required parameter " \
+                                                "in request")
 
     def _validate_client(self):
         try:
@@ -529,63 +553,69 @@ class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
             raise OAuthClientError(error="invalid_client",
                                    explanation="Invalid client_secret")
 
-        if client.has_redirect_uri(self.redirect_uri) == False:
+        if client.has_redirect_uri(self.redirect_uri) is False:
             raise OAuthInvalidError(error="invalid_request",
-                                  explanation="Invalid redirect_uri parameter")
+                                    explanation="Invalid redirect_uri parameter")
 
     def _validate_code(self):
         stored_code = self.auth_code_store.fetch_by_code(self.code)
 
         if stored_code is None:
             raise OAuthInvalidError(error="invalid_request",
-                                  explanation="Invalid authorization code " \
-                                              "parameter")
+                                    explanation="Invalid authorization code " \
+                                                "parameter")
 
         if stored_code.code != self.code:
             raise OAuthInvalidError(error="invalid_grant",
-                                  explanation="Invalid code parameter in " \
-                                              "request")
+                                    explanation="Invalid code parameter in " \
+                                                "request")
 
         if stored_code.redirect_uri != self.redirect_uri:
             raise OAuthInvalidError(error="invalid_request",
-                                  explanation="Invalid redirect_uri parameter")
+                                    explanation="Invalid redirect_uri parameter")
 
         if stored_code.is_expired():
             raise OAuthInvalidError(error="invalid_grant",
-                                  explanation="Authorization code has expired")
+                                    explanation="Authorization code has expired")
 
         self.data = stored_code.data
         self.scopes = stored_code.scopes
         self.user_id = stored_code.user_id
 
+
 class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
     """
     Implementation of the Authorization Code Grant auth flow.
-    
+
     This is a three-legged OAuth process.
-    
+
     Register an instance of this class with
     :class:`oauth2.AuthorizationController` like this::
-    
+
         auth_controller = AuthorizationController()
-        
+
         auth_controller.add_grant_type(AuthorizationCodeGrant())
     """
 
     grant_type = "authorization_code"
 
+    def __init__(self, unique_token=False, **kwargs):
+        self.unique_token = unique_token
+
+        super(AuthorizationCodeGrant, self).__init__(**kwargs)
+
     def __call__(self, request, server):
         if (request.post_param("grant_type") == "authorization_code"
-            and request.path == server.token_path):
-
+                and request.path == server.token_path):
             return AuthorizationCodeTokenHandler(
                 access_token_store=server.access_token_store,
                 auth_token_store=server.auth_code_store,
                 client_store=server.client_store,
-                token_generator=server.token_generator)
+                token_generator=server.token_generator,
+                unique_token=self.unique_token)
 
         if (request.get_param("response_type") == "code"
-            and request.path == server.authorize_path):
+                and request.path == server.authorize_path):
             scope_handler = self._create_scope_handler()
 
             return AuthorizationCodeAuthHandler(
@@ -597,18 +627,18 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
 
         return None
 
-class ImplicitGrant(GrantHandlerFactory, ScopeGrant):
 
+class ImplicitGrant(GrantHandlerFactory, ScopeGrant):
     """
     Implementation of the Implicit Grant auth flow.
-    
+
     This is a three-legged OAuth process.
 
     Register an instance of this class with
     :class:`oauth2.AuthorizationController` like this::
-    
+
         auth_controller = AuthorizationController()
-        
+
         auth_controller.add_grant_type(ImplicitGrant())
     """
 
@@ -626,6 +656,7 @@ class ImplicitGrant(GrantHandlerFactory, ScopeGrant):
                 site_adapter=server.site_adapter,
                 token_generator=server.token_generator)
         return None
+
 
 class ImplicitGrantHandler(AuthorizeMixin, AuthRequestMixin, GrantHandler):
     def __init__(self, access_token_store, **kwargs):
@@ -661,7 +692,7 @@ class ImplicitGrantHandler(AuthorizeMixin, AuthRequestMixin, GrantHandler):
         return response
 
     def _redirect_access_token(self, response, token):
-        uri_with_fragment = "{0}#access_token={1}&token_type=bearer".\
+        uri_with_fragment = "{0}#access_token={1}&token_type=bearer". \
             format(self.redirect_uri, token)
 
         if self.state is not None:
@@ -678,23 +709,29 @@ class ImplicitGrantHandler(AuthorizeMixin, AuthRequestMixin, GrantHandler):
 
         return response
 
+
 class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant):
     """
     Implementation of the Resource Owner Password Credentials Grant auth flow.
-    
+
     In this Grant a user provides a user name and a password.
     An access token is issued if the auth server was able to verify the user
-    by her credentials. 
-    
+    by her credentials.
+
     Register an instance of this class with
     :class:`oauth2.AuthorizationController` like this::
-    
+
         auth_controller = AuthorizationController()
-        
+
         auth_controller.add_grant_type(ResourceOwnerGrant())
     """
 
     grant_type = "password"
+
+    def __init__(self, unique_token=False, **kwargs):
+        self.unique_token = unique_token
+
+        super(ResourceOwnerGrant, self).__init__(**kwargs)
 
     def __call__(self, request, server):
         """
@@ -709,14 +746,18 @@ class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant):
             client_store=server.client_store,
             scope_handler=self._create_scope_handler(),
             site_adapter=server.site_adapter,
-            token_generator=server.token_generator)
+            token_generator=server.token_generator,
+            unique_token=self.unique_token)
 
-class ResourceOwnerGrantHandler(GrantHandler, AuthorizeMixin, AccessTokenMixin):
+
+class ResourceOwnerGrantHandler(GrantHandler, AuthorizeMixin,
+                                AccessTokenMixin):
     """
     Class for handling Resource Owner authorization requests.
-    
+
     See http://tools.ietf.org/html/rfc6749#section-4.3
     """
+
     def __init__(self, client_store, scope_handler, **kwargs):
         self.client_store = client_store
         self.scope_handler = scope_handler
@@ -760,17 +801,17 @@ class ResourceOwnerGrantHandler(GrantHandler, AuthorizeMixin, AccessTokenMixin):
 
         if self.client_id is None:
             raise OAuthInvalidError(error="invalid_request",
-                                  explanation="Missing client_id parameter")
+                                    explanation="Missing client_id parameter")
 
         try:
             client = self.client_store.fetch_by_client_id(self.client_id)
         except ClientNotFoundError:
             raise OAuthInvalidError(error="invalid_request",
-                                  explanation="Unknown client")
+                                    explanation="Unknown client")
 
         if client.secret != request.post_param("client_secret"):
             raise OAuthInvalidError(error="invalid_request",
-                                  explanation="Could not authenticate client")
+                                    explanation="Could not authenticate client")
 
         self.password = request.post_param("password")
         self.username = request.post_param("username")
@@ -782,18 +823,19 @@ class ResourceOwnerGrantHandler(GrantHandler, AuthorizeMixin, AccessTokenMixin):
     def redirect_oauth_error(self, error, response):
         return json_error_response(error, response)
 
+
 class RefreshToken(GrantHandlerFactory, ScopeGrant):
     """
     Handles requests for refresk tokens as defined in
     http://tools.ietf.org/html/rfc6749#section-6.
-    
+
     Adding a Refresh Token to the :class:`oauth2.AuthorizationController` like
     this::
-    
+
         auth_controller = AuthorizationController()
-        
+
         auth_controller.add_grant_type(RefreshToken(expires_in=600))
-        
+
     will cause :class:`oauth2.grant.AuthorizationCodeGrant` and
     :class:`oauth2.grant.ResourceOwnerGrant` to include a refresh token and
     expiration in the response.
@@ -809,7 +851,7 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
     def __call__(self, request, server):
         """
         Determines if the current request requests a refresh token.
-        
+
         :return: An instance of :class:`RefreshTokenHandler`.
         """
         if request.path != server.token_path:
@@ -818,15 +860,18 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
         if request.post_param("grant_type") != "refresh_token":
             return None
 
-        return RefreshTokenHandler(access_token_store=server.access_token_store,
-                                   client_store=server.client_store,
-                                   scope_handler=self._create_scope_handler(),
-                                   token_generator=server.token_generator)
+        return RefreshTokenHandler(
+            access_token_store=server.access_token_store,
+            client_store=server.client_store,
+            scope_handler=self._create_scope_handler(),
+            token_generator=server.token_generator)
+
 
 class RefreshTokenHandler(GrantHandler):
     """
     Validates an incoming request and issues a new access token.
     """
+
     def __init__(self, access_token_store, client_store, scope_handler,
                  token_generator):
         self.access_token_store = access_token_store
@@ -842,14 +887,14 @@ class RefreshTokenHandler(GrantHandler):
     def process(self, request, response, environ):
         """
         Create a new access token.
-        
+
         :param request: The incoming :class:`oauth2.web.Request`.
         :param response: The :class:`oauth2.web.Response` that will be returned
                          to the client.
         :param environ: A ``dict`` containing data of the environment.
-        
+
         :return: :class:`oauth2.web.Response`
-        
+
         """
         expires_in = self.token_generator.expires_in
         expires_at = int(time.time()) + expires_in
@@ -872,13 +917,13 @@ class RefreshTokenHandler(GrantHandler):
     def read_validate_params(self, request):
         """
         Validate the incoming request.
-        
+
         :param request: The incoming :class:`oauth2.web.Request`.
-        
+
         :return: Returns ``True`` if data is valid.
-        
+
         :raises: :class:`oauth2.error.OAuthInvalidError`
-        
+
         """
         self.client_id = request.post_param("client_id")
 
@@ -934,6 +979,7 @@ class RefreshTokenHandler(GrantHandler):
     def redirect_oauth_error(self, error, response):
         return json_error_response(error, response)
 
+
 class ClientCredentialsGrant(GrantHandlerFactory, ScopeGrant):
     grant_type = "client_credentials"
 
@@ -948,6 +994,7 @@ class ClientCredentialsGrant(GrantHandlerFactory, ScopeGrant):
                 scope_handler=self._create_scope_handler(),
                 token_generator=server.token_generator)
         return None
+
 
 class ClientCredentialsHandler(GrantHandler):
     def __init__(self, access_token_store, client_store, scope_handler,

@@ -842,7 +842,8 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
 
         response = handler.process(request=Mock(spec=Request),
                                    response=response, environ={})
-        self.assertDictEqual(json.loads(response.body), expected_response_body)
+        self.assertDictEqual(json.loads(response.body),
+                             expected_response_body)
 
     @patch("time.time", mock_time)
     def test_process_with_unique_access_token_not_found(self):
@@ -854,10 +855,12 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         response = Response()
 
         access_token_store_mock = Mock(spec=AccessTokenStore)
-        access_token_store_mock.fetch_existing_token_of_user.return_value = None
+        access_token_store_mock.fetch_existing_token_of_user.\
+            side_effect = AccessTokenNotFound
 
         token_generator_mock = Mock(spec=TokenGenerator)
-        token_generator_mock.create_access_token_data.return_value = token_data
+        token_generator_mock.create_access_token_data.\
+            return_value = token_data
 
         handler = AuthorizationCodeTokenHandler(
             access_token_store=access_token_store_mock,
