@@ -329,11 +329,10 @@ class AuthorizeMixin(object):
                                                       environ, scopes)
 
     def _sanitize_return_value(self, value):
-        if isinstance(value, tuple):
+        if isinstance(value, tuple) and len(value) is 2:
             return value
 
-        if isinstance(value, dict):
-            return value, None
+        return value, None
 
 
 class AccessTokenMixin(object):

@@ -11,7 +11,7 @@ Usage
 =====
 
 Example::
-    
+
     from wsgiref.simple_server import make_server
     import oauth2
     import oauth2.grant
@@ -19,38 +19,45 @@ Example::
     import oauth2.store.memory
     import oauth2.tokengenerator
     import oauth2.web
-    
+
     # Create a SiteAdapter to interact with the user.
     # This can be used to display confirmation dialogs and the like.
     class ExampleSiteAdapter(oauth2.web.SiteAdapter):
         def authenticate(self, request, environ, scopes):
-            if request.post_param("confirm") == "1":
+            # Check if the user has granted access
+            if request.post_param("confirm") == "confirm":
                 return {}
-    
+
             raise oauth2.error.UserNotAuthenticated
-    
+
         def render_auth_page(self, request, response, environ, scopes):
             response.body = '''
     <html>
         <body>
             <form method="POST" name="confirmation_form">
-                <input name="confirm" type="hidden" value="1" />
-                <input type="submit" value="confirm" />
+                <input type="submit" name="confirm" value="confirm" />
+                <input type="submit" name="deny" value="deny" />
             </form>
         </body>
     </html>'''
             return response
-    
+
+        def user_has_denied_access(self, request):
+            # Check if the user has denied access
+            if request.post_param("deny") == "deny":
+                return True
+            return False
+
     # Create an in-memory storage to store your client apps.
     client_store = oauth2.store.memory.ClientStore()
     # Add a client
     client_store.add_client(client_id="abc", client_secret="xyz",
                             redirect_uris=["http://localhost/callback"])
-    
+
     # Create an in-memory storage to store issued tokens.
     # LocalTokenStore can store access and auth tokens
     token_store = oauth2.store.memory.TokenStore()
-    
+
     # Create the controller.
     auth_controller = oauth2.Provider(
         access_token_store=token_store,
@@ -59,28 +66,29 @@ Example::
         site_adapter=ExampleSiteAdapter(),
         token_generator=oauth2.tokengenerator.Uuid4()
     )
-    
+
     # Add Grants you want to support
     auth_controller.add_grant(oauth2.grant.AuthorizationCodeGrant())
     auth_controller.add_grant(oauth2.grant.ImplicitGrant())
-    
+
     # Add refresh token capability and set expiration time of access tokens
     # to 30 days
     auth_controller.add_grant(oauth2.grant.RefreshToken(expires_in=2592000))
-    
+
     # Wrap the controller with the Wsgi adapter
     app = oauth2.web.Wsgi(server=auth_controller)
-    
+
     if __name__ == "__main__":
         httpd = make_server('', 8080, app)
         httpd.serve_forever()
+
 
 Installation
 ============
 
 python-oauth2 is available on
 `PyPI <http://pypi.python.org/pypi/python-oauth2/>`_::
-    
+
     pip install python-oauth2
 
 """
@@ -102,7 +110,7 @@ class Provider(object):
                  site_adapter, token_generator, response_class=Response):
         """
         Endpoint of requests to the OAuth 2.0 provider.
-        
+
         :param access_token_store: An object that implements methods defined by
                                    :class:`oauth2.store.AccessTokenStore`.
         :param auth_code_store: An object that implements methods defined by
@@ -114,7 +122,7 @@ class Provider(object):
         :param token_generator: Object to generate unique tokens.
         :param response_class: Class of the response object.
                                Default: :class:`oauth2.web.Response`.
-    
+
         """
         self.grant_types = []
         self._input_handler = None
@@ -138,10 +146,10 @@ class Provider(object):
     def dispatch(self, request, environ):
         """
         Checks which Grant supports the current request and dispatches to it.
-        
+
         :param request: An instance of :class:`oauth2.web.Request`.
         :param environ: Hash containing variables of the environment.
-        
+
         :return: An instance of ``oauth2.web.Response``.
         """
         try:

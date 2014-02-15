@@ -31,8 +31,9 @@ Preconditions
 As stated in the previous section, a unique access token is bound not only to a
 client but also to a user. To make this work the Provider needs some kind of
 identifier that is unique for each user (typically the ID of a user in the
-database). This identifier has to be returned as the second item of a tuple
-by your implementation of :class:`oauth2.web.SiteAdapter.authenticate`::
+database). The identifier is stored along with all the other information of an
+access token. It has to be returned as the second item of a tuple by your
+implementation of :class:`oauth2.web.SiteAdapter.authenticate`::
 
     class MySiteAdapter(SiteAdapter):
 

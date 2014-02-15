@@ -2,7 +2,7 @@ python-oauth2
 #############
 
 python-oauth2 is a framework that aims at making it easy to provide authentication
-via `OAuth 2.0 <http://tools.ietf.org/html/rfc6749>`_ within an application stack. 
+via `OAuth 2.0 <http://tools.ietf.org/html/rfc6749>`_ within an application stack.
 
 `Documentation <http://python-oauth2.readthedocs.org/en/latest/index.html>`_
 
@@ -39,7 +39,8 @@ Example Authorization server::
     # This can be used to display confirmation dialogs and the like.
     class ExampleSiteAdapter(oauth2.web.SiteAdapter):
         def authenticate(self, request, environ, scopes):
-            if request.post_param("confirm") == "1":
+            # Check if the user has granted access
+            if request.post_param("confirm") == "confirm":
                 return {}
 
             raise oauth2.error.UserNotAuthenticated
@@ -49,12 +50,18 @@ Example Authorization server::
     <html>
         <body>
             <form method="POST" name="confirmation_form">
-                <input name="confirm" type="hidden" value="1" />
-                <input type="submit" value="confirm" />
+                <input type="submit" name="confirm" value="confirm" />
+                <input type="submit" name="deny" value="deny" />
             </form>
         </body>
     </html>'''
             return response
+
+        def user_has_denied_access(self, request):
+            # Check if the user has denied access
+            if request.post_param("deny") == "deny":
+                return True
+            return False
 
     # Create an in-memory storage to store your client apps.
     client_store = oauth2.store.memory.ClientStore()
