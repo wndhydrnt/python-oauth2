@@ -99,7 +99,7 @@ from oauth2.web import Request, Response
 from oauth2.tokengenerator import Uuid4
 from oauth2.grant import Scope
 
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 
 
 class Provider(object):
