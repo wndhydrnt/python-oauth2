@@ -2043,9 +2043,42 @@ class ClientCredentialsGrantTestCase(unittest.TestCase):
 
         self.assertEqual(handler, None)
 
+
 class ClientCredentialsHandlerTestCase(unittest.TestCase):
-    @patch("time.time", mock_time)
     def test_process(self):
+        client_id = "xyz"
+        expires_in = 0
+        token = "abcd"
+
+        expected_response_body = {"access_token": token,
+                                  "token_type": "Bearer"}
+
+        access_token_store_mock = Mock(spec=AccessTokenStore)
+
+        response_mock = Mock(spec=Response)
+
+        scope_handler_mock = Mock(spec=Scope)
+        scope_handler_mock.send_back = False
+        scope_handler_mock.scopes = []
+
+        token_generator_mock = Mock(spec=TokenGenerator)
+        token_generator_mock.generate.return_value = token
+        token_generator_mock.expires_in = expires_in
+
+        handler = ClientCredentialsHandler(
+            access_token_store=access_token_store_mock,
+            client_store=Mock(),
+            scope_handler=scope_handler_mock,
+            token_generator=token_generator_mock)
+        handler.client_id = client_id
+        result_response = handler.process(request=Mock(),
+                                          response=response_mock, environ={})
+
+        self.assertDictEqual(json.loads(result_response.body),
+                             expected_response_body)
+
+    @patch("time.time", mock_time)
+    def test_process_with_refresh_token(self):
         client_id = "xyz"
         expires_in = 600
         token = "abcd"

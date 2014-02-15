@@ -1004,6 +1004,8 @@ class ClientCredentialsHandler(GrantHandler):
         self.scope_handler = scope_handler
         self.token_generator = token_generator
 
+        self.client_id = None
+
     def process(self, request, response, environ):
         body = {"token_type": "Bearer"}
 
@@ -1017,7 +1019,9 @@ class ClientCredentialsHandler(GrantHandler):
         self.access_token_store.save_token(access_token)
 
         body["access_token"] = token
-        body["expires_in"] = self.token_generator.expires_in
+
+        if self.token_generator.expires_in > 0:
+            body["expires_in"] = self.token_generator.expires_in
 
         if self.scope_handler.send_back:
             body["scope"] = encode_scopes(self.scope_handler.scopes)
