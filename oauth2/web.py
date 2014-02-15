@@ -21,7 +21,9 @@ class SiteAdapter(object):
                        scope.
         :return: A ``dict`` containing arbitrary data that will be passed to
                  the current storage adapter and saved with auth code and
-                 access token.
+                 access token. Return a tuple in the form
+                 `(additional_data, user_id)` if you want to use
+                 :doc:`unique_token`.
         :raises: :class:`oauth2.error.UserNotAuthenticated` if the user could
                  not be authenticated.
         """

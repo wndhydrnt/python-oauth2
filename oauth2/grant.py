@@ -313,10 +313,10 @@ class AuthorizeMixin(object):
                          returned eventually
         :param environ: The environment variables of this request
         :param scopes: The scopes requested by an application
-        :return: A tuple containing (`dict`, `int`) or the response.
+        :return: A tuple containing (`dict`, user_id) or the response.
 
         """
-        if self.site_adapter.user_has_denied_access(request) == True:
+        if self.site_adapter.user_has_denied_access(request) is True:
             raise OAuthUserError(error="access_denied",
                                  explanation="Authorization denied by user")
 
