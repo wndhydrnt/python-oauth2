@@ -17,6 +17,7 @@ met:
 * The access token has been issued for the requesting client
 * The access token has been issued for the same user as in the current request
 * The requested scope is the same as in the existing access token
+* The requested type is the same as in the existing access token
 
 .. note::
 
@@ -51,7 +52,7 @@ grant individually::
     provider.add_grant(auth_code_grant)
 
 or you can enable them for all grants that support this feature after
-initialization of the :class:`oauth2.Provider`::
+initialization of :class:`oauth2.Provider`::
 
     provider = oauth2.Provider() // Parameters omitted for readability
     provider.enable_unique_tokens()

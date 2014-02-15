@@ -3,10 +3,10 @@
 
 .. automodule:: oauth2.store.mongodb
 
-.. autoclass:: MongodbStore
+.. autoclass:: oauth2.store.mongodb.MongodbStore
 
-.. autoclass:: AccessTokenStore
+.. autoclass:: oauth2.store.mongodb.AccessTokenStore
 
-.. autoclass:: AuthCodeStore
+.. autoclass:: oauth2.store.mongodb.AuthCodeStore
 
-.. autoclass:: ClientStore
+.. autoclass:: oauth2.store.mongodb.ClientStore
