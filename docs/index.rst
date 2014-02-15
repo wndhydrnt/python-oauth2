@@ -12,6 +12,7 @@ Contents:
    oauth2.rst
    web.rst
    error.rst
+   unique_token.rst
    frameworks.rst
 
 Indices and tables

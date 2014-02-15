@@ -6,7 +6,7 @@ for testing purposes.
 """
 
 from oauth2.store import AccessTokenStore, AuthCodeStore, ClientStore
-from oauth2.error import AccessTokenNotFound, AuthCodeNotFound,\
+from oauth2.error import AccessTokenNotFound, AuthCodeNotFound, \
                          ClientNotFoundError
 from oauth2.datatype import Client
 
@@ -16,7 +16,7 @@ class ClientStore(ClientStore):
     """
     def __init__(self):
         self.clients = {}
-    
+
     def add_client(self, client_id, client_secret, redirect_uris):
         """
         Add a client app.
@@ -30,9 +30,9 @@ class ClientStore(ClientStore):
         self.clients[client_id] = Client(identifier=client_id,
                                          secret=client_secret,
                                          redirect_uris=redirect_uris)
-        
+
         return True
-    
+
     def fetch_by_client_id(self, client_id):
         """
         Retrieve a client by its identifier.
@@ -44,7 +44,7 @@ class ClientStore(ClientStore):
         """
         if client_id not in self.clients:
             raise ClientNotFoundError
-        
+
         return self.clients[client_id]
 
 class TokenStore(AccessTokenStore, AuthCodeStore):
@@ -56,9 +56,10 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
     """
     def __init__(self):
         self.access_tokens = {}
-        self.auth_codes   = {}
+        self.auth_codes = {}
         self.refresh_tokens = {}
-    
+        self.unique_token_identifier = {}
+
     def fetch_by_code(self, code):
         """
         Returns an AuthorizationCode.
@@ -71,9 +72,9 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
         """
         if code not in self.auth_codes:
             raise AuthCodeNotFound
-        
+
         return self.auth_codes[code]
-    
+
     def save_code(self, authorization_code):
         """
         Stores the data belonging to an authorization code token.
@@ -83,9 +84,9 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
         
         """
         self.auth_codes[authorization_code.code] = authorization_code
-        
+
         return True
-    
+
     def save_token(self, access_token):
         """
         Stores an access token and additional data in memory.
@@ -93,10 +94,16 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
         :param access_token: An instance of :class:`oauth2.datatype.AccessToken`.
         """
         self.access_tokens[access_token.token] = access_token
-        
+
+        unique_token_key = self._unique_token_key(access_token.client_id,
+                                                  access_token.grant_type,
+                                                  access_token.user_id)
+
+        self.unique_token_identifier[unique_token_key] = access_token.token
+
         if access_token.refresh_token is not None:
             self.refresh_tokens[access_token.refresh_token] = access_token
-        
+
         return True
 
     def delete_code(self, code):
@@ -106,7 +113,7 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
         """
         if code in self.auth_codes:
             del self.auth_codes[code]
-    
+
     def fetch_by_refresh_token(self, refresh_token):
         """
         Find an access token by its refresh token.
@@ -118,9 +125,9 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
         """
         if refresh_token not in self.refresh_tokens:
             raise AccessTokenNotFound
-        
+
         return self.refresh_tokens[refresh_token]
-    
+
     def fetch_by_token(self, token):
         """
         Returns data associated with an access token or ``None`` if no data
@@ -134,5 +141,17 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
         """
         if token not in self.access_tokens:
             raise AccessTokenNotFound
-        
+
         return self.access_tokens[token]
+
+    def fetch_existing_token_of_user(self, client_id, grant_type, user_id):
+        try:
+            key = self._unique_token_key(client_id, grant_type, user_id)
+            token = self.unique_token_identifier[key]
+        except KeyError:
+            raise AccessTokenNotFound
+
+        return self.fetch_by_token(token)
+
+    def _unique_token_key(self, client_id, grant_type, user_id):
+        return "{0}_{1}_{2}".format(client_id, grant_type, user_id)

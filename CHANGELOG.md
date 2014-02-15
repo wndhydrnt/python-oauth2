@@ -10,6 +10,7 @@ Bugfixes:
   - Deleting authorization token after usage (Josh Johnston)
   - Scope parameter not returned by access token response of Authorization Code Grant
   - Added missing cache control headers to responses containing a token
+  - Fixed ClientCredentialsGrant returning a value of 0 of 'expires_in' with refresh token disabled
 
 ## 0.5.0
 
