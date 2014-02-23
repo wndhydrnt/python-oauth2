@@ -5,6 +5,7 @@ Definitions of types used by grants.
 
 import time
 
+
 class AccessToken(object):
     """
     An access token and associated data.
@@ -24,7 +25,7 @@ class AccessToken(object):
     def expires_in(self):
         """
         Returns the time until the token expires.
-        
+
         :return: The remaining time until expiration in seconds or 0 if the
                  token has expired.
         """
@@ -37,7 +38,7 @@ class AccessToken(object):
     def is_expired(self):
         """
         Determines if the token has expired.
-        
+
         :return: `True` if the token has expired. Otherwise `False`.
         """
         if self.expires_at is None:
@@ -56,6 +57,7 @@ class AccessToken(object):
             json["expires_in"] = self.expires_in
 
         return json
+
 
 class AuthorizationCode(object):
     """
@@ -76,17 +78,42 @@ class AuthorizationCode(object):
             return True
         return False
 
+
 class Client(object):
     """
     Representation of a client application.
     """
-    def __init__(self, identifier, secret, redirect_uris=[]):
+    def __init__(self, identifier, secret, authorized_grants=None,
+                 redirect_uris=None):
         self.identifier = identifier
         self.secret = secret
-        self.redirect_uris = redirect_uris
+
+        if authorized_grants is None:
+            self.authorized_grants = []
+        else:
+            self.authorized_grants = authorized_grants
+
+        if redirect_uris is None:
+            self.redirect_uris = []
+        else:
+            self.redirect_uris = redirect_uris
 
     def has_redirect_uri(self, uri):
         """
         Checks if a uri is associated with the client.
+
+        :param uri: The uri to be checked.
+
+        :return: Boolean
         """
         return uri in self.redirect_uris
+
+    def is_grant_authorized(self, grant_type):
+        """
+        Checks if the Client is authorized receive tokens for the given grant.
+
+        :param grant_type: The type of the grant.
+
+        :return: Boolean
+        """
+        return grant_type in self.authorized_grants

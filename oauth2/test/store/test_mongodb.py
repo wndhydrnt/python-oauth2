@@ -133,7 +133,8 @@ class MongodbAuthCodeStoreTestCase(unittest.TestCase):
 class MongodbClientStoreTestCase(unittest.TestCase):
     def test_fetch_by_client_id(self):
         client_data = {"identifier": "testclient", "secret": "k#4g6",
-                       "redirect_uris": ["https://redirect"]}
+                       "redirect_uris": ["https://redirect"],
+                       "authorized_grants": []}
 
         collection_mock = Mock(spec=["find_one"])
         collection_mock.find_one.return_value = client_data
