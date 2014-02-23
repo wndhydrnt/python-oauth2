@@ -1,5 +1,4 @@
-import unittest
-
+from oauth2.test import unittest
 from mock import patch
 from oauth2.datatype import AccessToken, Client
 from oauth2.error import RedirectUriUnknown

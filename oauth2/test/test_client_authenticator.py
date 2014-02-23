@@ -1,4 +1,4 @@
-import unittest
+from oauth2.test import unittest
 from mock import Mock
 from oauth2.client_authenticator import ClientAuthenticator
 from oauth2.datatype import Client

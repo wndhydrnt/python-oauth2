@@ -6,13 +6,11 @@ from oauth2.web import Request, Response, SiteAdapter
 from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler, \
     AuthRequestMixin, AuthorizationCodeTokenHandler, ImplicitGrant, \
     AuthorizationCodeGrant, ResourceOwnerGrantHandler, ResourceOwnerGrant, \
-    Scope, RefreshToken, RefreshTokenHandler, ScopeGrant, \
-    ClientCredentialsGrant, ClientCredentialsHandler, AuthorizeMixin
+    Scope, RefreshToken, RefreshTokenHandler, ClientCredentialsGrant, \
+    ClientCredentialsHandler, AuthorizeMixin
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
 from oauth2.error import OAuthInvalidError, OAuthUserError, \
-    OAuthClientError, ClientNotFoundError, UserNotAuthenticated, \
-    AccessTokenNotFound, UserIdentifierMissingError, \
-    OAuthInvalidNoRedirectError
+    UserNotAuthenticated, AccessTokenNotFound, UserIdentifierMissingError
 from oauth2 import Provider
 from oauth2.datatype import Client, AuthorizationCode, AccessToken
 from oauth2.tokengenerator import TokenGenerator
