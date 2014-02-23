@@ -2,12 +2,14 @@
 Errors raised during the OAuth 2.0 flow.
 """
 
+
 class AccessTokenNotFound(Exception):
     """
     Error indicating that an access token could not be read from the
     storage backend by an instance of :class:`oauth2.store.AccessTokenStore`.
     """
     pass
+
 
 class AuthCodeNotFound(Exception):
     """
@@ -16,6 +18,7 @@ class AuthCodeNotFound(Exception):
     """
     pass
 
+
 class ClientNotFoundError(Exception):
     """
     Error raised by an implementation of :class:`oauth2.store.ClientStore` if a
@@ -23,17 +26,19 @@ class ClientNotFoundError(Exception):
     """
     pass
 
-class MissingUserIdentifier(Exception):
+
+class UserIdentifierMissingError(Exception):
     """
     Indicates that the identifier of a user is missing when the use of unique
     access token is enabled.
     """
     pass
 
+
 class OAuthBaseError(Exception):
     """
     Base class used by all OAuth 2.0 errors.
-    
+
     :param error: Identifier of the error.
     :param error_uri: Set this to delivery an URL to your documentation that
                       describes the error. (optional)
@@ -46,11 +51,13 @@ class OAuthBaseError(Exception):
 
         super(OAuthBaseError, self).__init__()
 
+
 class OAuthClientError(OAuthBaseError):
     """
     Indicates an error during recognition of a client.
     """
     pass
+
 
 class OAuthUserError(OAuthBaseError):
     """
@@ -58,11 +65,23 @@ class OAuthUserError(OAuthBaseError):
     """
     pass
 
+
 class OAuthInvalidError(OAuthBaseError):
     """
     Indicates an error during validation of a request.
     """
     pass
+
+
+class OAuthInvalidNoRedirectError(OAuthInvalidError):
+    """
+    Indicates an error during validation of a request.
+    The provider will not inform the client about the error by redirecting to
+    it. This behaviour is required by the Authorization Request step of the
+    Authorization Code Grant and Implicit Grant.
+    """
+    pass
+
 
 class UserNotAuthenticated(Exception):
     """

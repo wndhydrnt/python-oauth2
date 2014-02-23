@@ -8,9 +8,10 @@ from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler, \
     Scope, RefreshToken, RefreshTokenHandler, ScopeGrant, \
     ClientCredentialsGrant, ClientCredentialsHandler, AuthorizeMixin
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
-from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError, \
-    ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound, \
-    MissingUserIdentifier
+from oauth2.error import OAuthInvalidError, OAuthUserError, \
+    OAuthClientError, ClientNotFoundError, UserNotAuthenticated, \
+    AccessTokenNotFound, UserIdentifierMissingError, \
+    OAuthInvalidNoRedirectError
 from oauth2 import Provider
 from oauth2.datatype import Client, AuthorizationCode, AccessToken
 from oauth2.tokengenerator import TokenGenerator
@@ -84,6 +85,7 @@ class AuthorizationCodeGrantTestCase(unittest.TestCase):
         request_mock.post_param.assert_called_with("grant_type")
         self.assertEqual(result_class, None)
 
+
 class AuthRequestMixinTestCase(unittest.TestCase):
     def test_read_validate_params_all_valid(self):
         """
@@ -101,10 +103,10 @@ class AuthRequestMixinTestCase(unittest.TestCase):
 
         scope_handler_mock = Mock(Scope)
 
-        clientStoreMock = Mock(spec=ClientStore)
-        clientStoreMock.fetch_by_client_id.return_value = client_mock
+        client_store_mock = Mock(spec=ClientStore)
+        client_store_mock.fetch_by_client_id.return_value = client_mock
 
-        handler = AuthRequestMixin(client_store=clientStoreMock,
+        handler = AuthRequestMixin(client_store=client_store_mock,
                                    scope_handler=scope_handler_mock,
                                    token_generator=Mock())
 
@@ -114,7 +116,7 @@ class AuthRequestMixinTestCase(unittest.TestCase):
                                                 call("redirect_uri"),
                                                 call("state")])
         scope_handler_mock.parse.assert_called_with(request_mock, "query")
-        clientStoreMock.fetch_by_client_id.assert_called_with(client_id)
+        client_store_mock.fetch_by_client_id.assert_called_with(client_id)
         self.assertEqual(handler.client_id, client_id)
         self.assertEqual(handler.redirect_uri, redirect_uri)
         self.assertEqual(handler.state, state)
@@ -122,7 +124,7 @@ class AuthRequestMixinTestCase(unittest.TestCase):
 
     def test_read_validate_params_no_client_id(self):
         """
-        AuthRequestMixin.read_validate_params should raise an OAuthInvalidError if no client_id in request
+        AuthRequestMixin.read_validate_params should raise an OAuthInvalidNoRedirectError if no client_id in request
         """
         request_mock = Mock(spec=Request)
         request_mock.get_param.return_value = None
@@ -130,14 +132,10 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         handler = AuthRequestMixin(client_store=Mock(), scope_handler=Mock(),
                                    token_generator=Mock())
 
-        with self.assertRaises(OAuthInvalidError) as expected:
+        with self.assertRaises(OAuthInvalidNoRedirectError) as expected:
             handler.read_validate_params(request_mock)
 
-        e = expected.exception
-
-        request_mock.get_param.assert_called_with("client_id")
-        self.assertEqual(e.error, "invalid_request")
-        self.assertEqual(e.explanation, "Missing client_id parameter")
+        self.assertEqual(expected.exception.error, "missing_client_id")
 
     def test_read_validate_params_unknown_client_id(self):
         """
@@ -148,26 +146,21 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         request_mock = Mock(spec=Request)
         request_mock.get_param.return_value = client_id
 
-        clientStoreMock = Mock(spec=ClientStore)
-        clientStoreMock.fetch_by_client_id.side_effect = ClientNotFoundError
+        client_store_mock = Mock(spec=ClientStore)
+        client_store_mock.fetch_by_client_id.side_effect = ClientNotFoundError
 
-        handler = AuthRequestMixin(client_store=clientStoreMock,
+        handler = AuthRequestMixin(client_store=client_store_mock,
                                    scope_handler=Mock(),
                                    token_generator=Mock())
 
-        with self.assertRaises(OAuthInvalidError) as expected:
+        with self.assertRaises(OAuthInvalidNoRedirectError) as expected:
             handler.read_validate_params(request_mock)
 
-        e = expected.exception
-
-        request_mock.get_param.assert_called_with("client_id")
-        clientStoreMock.fetch_by_client_id.assert_called_with(client_id)
-        self.assertEqual(e.error, "invalid_request")
-        self.assertEqual(e.explanation, "No client registered")
+        self.assertEqual(expected.exception.error, "unknown_client")
 
     def test_read_validate_params_invalid_redirect_uri(self):
         """
-        AuthRequestMixin.read_validate_params should raise an OAuthInvalidError if redirect_uri is invalid
+        AuthRequestMixin.read_validate_params should raise an OAuthInvalidNoRedirectError if redirect_uri is invalid
         """
         client_id = "abc"
         redirect_uri = "http://endpoint-one"
@@ -178,23 +171,17 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         request_mock = Mock(spec=Request)
         request_mock.get_param.side_effect = [client_id, redirect_uri]
 
-        clientStoreMock = Mock(spec=ClientStore)
-        clientStoreMock.fetch_by_client_id.return_value = client_mock
+        client_store_mock = Mock(spec=ClientStore)
+        client_store_mock.fetch_by_client_id.return_value = client_mock
 
-        handler = AuthRequestMixin(client_store=clientStoreMock,
+        handler = AuthRequestMixin(client_store=client_store_mock,
                                    scope_handler=Mock(),
                                    token_generator=Mock())
 
-        with self.assertRaises(OAuthInvalidError) as expected:
+        with self.assertRaises(OAuthInvalidNoRedirectError) as expected:
             handler.read_validate_params(request_mock)
 
-        e = expected.exception
-
-        request_mock.get_param.assert_has_calls([call("client_id"),
-                                                call("redirect_uri")])
-        clientStoreMock.fetch_by_client_id.assert_called_with(client_id)
-        self.assertEqual(e.error, "invalid_request")
-        self.assertEqual(e.explanation, "redirect_uri is not registered for this client")
+        self.assertEqual(expected.exception.error, "invalid_redirect_uri")
 
     def test_read_validate_params_default_redirect_uri(self):
         """
@@ -293,6 +280,7 @@ class AuthorizeMixinTestCase(unittest.TestCase):
                                       environ={}, scopes=[])
 
         self.assertEqual(result, response_mock)
+
 
 class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
     def test_process(self):
@@ -955,7 +943,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         handler.unique_token = True
         handler.user_id = None
 
-        with self.assertRaises(MissingUserIdentifier):
+        with self.assertRaises(UserIdentifierMissingError):
             handler.process(Mock(), Mock(), {})
 
 

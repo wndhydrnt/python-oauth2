@@ -94,7 +94,8 @@ python-oauth2 is available on
 """
 
 import json
-from oauth2.error import OAuthInvalidError, OAuthUserError
+from oauth2.error import OAuthInvalidError, OAuthUserError, \
+    ClientNotFoundError, OAuthInvalidNoRedirectError
 from oauth2.web import Request, Response
 from oauth2.tokengenerator import Uuid4
 from oauth2.grant import Scope
@@ -160,12 +161,17 @@ class Provider(object):
             grant_type.read_validate_params(request)
 
             return grant_type.process(request, response, environ)
+        except OAuthInvalidNoRedirectError:
+            response = self.response_class()
+            response.add_header("Content-Type", "text/plain")
+            response.status_code = 400
+            return response
         except OAuthUserError as error:
             response = self.response_class()
             return grant_type.redirect_oauth_error(error, response)
         except OAuthInvalidError as error:
             response = self.response_class()
-            response.add_header("Content-type", "application/json")
+            response.add_header("Content-Type", "application/json")
             response.status_code = 400
             json_body = {"error": error.error}
             if error.explanation is not None:

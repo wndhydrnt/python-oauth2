@@ -29,7 +29,7 @@ So there are two remaining parties:
 """
 from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError, \
     ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound, \
-    MissingUserIdentifier
+    UserIdentifierMissingError, OAuthInvalidNoRedirectError
 from oauth2.compatibility import urlencode, quote
 import json
 import time
@@ -262,24 +262,20 @@ class AuthRequestMixin(object):
         """
         client_id = request.get_param("client_id")
         if client_id is None:
-            raise OAuthInvalidError(error="invalid_request",
-                                    explanation="Missing client_id parameter")
+            raise OAuthInvalidNoRedirectError(error="missing_client_id")
         self.client_id = client_id
 
         try:
             client_data = self.client_store.fetch_by_client_id(self.client_id)
         except ClientNotFoundError:
-            raise OAuthInvalidError(error="invalid_request",
-                                    explanation="No client registered")
+            raise OAuthInvalidNoRedirectError(error="unknown_client")
 
         redirect_uri = request.get_param("redirect_uri")
 
         if redirect_uri is not None:
-            if client_data.has_redirect_uri(redirect_uri) == False:
-                raise OAuthInvalidError(
-                    error="invalid_request",
-                    explanation="redirect_uri is not registered for this " \
-                                "client")
+            if client_data.has_redirect_uri(redirect_uri) is False:
+                raise OAuthInvalidNoRedirectError(
+                    error="invalid_redirect_uri")
             else:
                 self.redirect_uri = redirect_uri
         else:
@@ -352,7 +348,7 @@ class AccessTokenMixin(object):
     def create_token(self, client_id, data, grant_type, scopes, user_id):
         if self.unique_token:
             if user_id is None:
-                raise MissingUserIdentifier
+                raise UserIdentifierMissingError
 
             try:
                 access_token = self.access_token_store.\
@@ -825,7 +821,7 @@ class ResourceOwnerGrantHandler(GrantHandler, AuthorizeMixin,
 
 class RefreshToken(GrantHandlerFactory, ScopeGrant):
     """
-    Handles requests for refresk tokens as defined in
+    Handles requests for refresh tokens as defined in
     http://tools.ietf.org/html/rfc6749#section-6.
 
     Adding a Refresh Token to the :class:`oauth2.AuthorizationController` like
