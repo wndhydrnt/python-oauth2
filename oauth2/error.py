@@ -83,6 +83,13 @@ class OAuthInvalidNoRedirectError(OAuthInvalidError):
     pass
 
 
+class RedirectUriUnknown(Exception):
+    """
+    Indicates that a redirect_uri is not associated with a client.
+    """
+    pass
+
+
 class UserNotAuthenticated(Exception):
     """
     Raised by a :class:`oauth2.web.SiteAdapter` if a user could not be

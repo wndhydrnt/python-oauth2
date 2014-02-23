@@ -145,7 +145,7 @@ class MongodbClientStoreTestCase(unittest.TestCase):
         collection_mock.find_one.assert_called_with({
             "identifier": client_data["identifier"]})
         self.assertTrue(isinstance(client, Client))
-        self.assertDictEqual(client.__dict__, client_data)
+        self.assertEqual(client.identifier, client_data["identifier"])
 
     def test_fetch_by_client_id_no_data(self):
         collection_mock = Mock(spec=["find_one"])

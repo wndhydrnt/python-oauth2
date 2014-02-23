@@ -98,12 +98,16 @@ from oauth2.error import OAuthInvalidError, OAuthUserError, \
     ClientNotFoundError, OAuthInvalidNoRedirectError
 from oauth2.web import Request, Response
 from oauth2.tokengenerator import Uuid4
-from oauth2.grant import Scope
+from oauth2.grant import Scope, AuthorizationCodeGrant, ImplicitGrant, \
+    ClientCredentialsGrant, ResourceOwnerGrant
 
 VERSION = "0.6.0"
 
 
 class Provider(object):
+    available_grants = [AuthorizationCodeGrant, ClientCredentialsGrant,
+                        ImplicitGrant, ResourceOwnerGrant]
+
     authorize_path = "/authorize"
     token_path = "/token"
 

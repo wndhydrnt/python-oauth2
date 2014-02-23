@@ -4,6 +4,7 @@ Definitions of types used by grants.
 """
 
 import time
+from oauth2.error import RedirectUriUnknown
 
 
 class AccessToken(object):
@@ -98,15 +99,21 @@ class Client(object):
         else:
             self.redirect_uris = redirect_uris
 
-    def has_redirect_uri(self, uri):
-        """
-        Checks if a uri is associated with the client.
+        self._redirect_uri = None
 
-        :param uri: The uri to be checked.
+    @property
+    def redirect_uri(self):
+        if self._redirect_uri is None:
+            # redirect_uri is an optional param.
+            # If not supplied, we use the first entry stored in db as default.
+            return self.redirect_uris[0]
+        return self._redirect_uri
 
-        :return: Boolean
-        """
-        return uri in self.redirect_uris
+    @redirect_uri.setter
+    def redirect_uri(self, value):
+        if value not in self.redirect_uris:
+            raise RedirectUriUnknown
+        self._redirect_uri = value
 
     def is_grant_authorized(self, grant_type):
         """

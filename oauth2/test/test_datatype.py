@@ -2,6 +2,7 @@ import unittest
 
 from mock import patch
 from oauth2.datatype import AccessToken, Client
+from oauth2.error import RedirectUriUnknown
 
 
 def mock_time():
@@ -27,6 +28,17 @@ class AccessTokenTestCase(unittest.TestCase):
 
 
 class ClientTestCase(unittest.TestCase):
+    def test_redirect_uri(self):
+        client = Client(identifier="abc", secret="xyz",
+                        redirect_uris=["http://callback"])
+
+        self.assertEqual(client.redirect_uri, "http://callback")
+        client.redirect_uri = "http://callback"
+        self.assertEqual(client.redirect_uri, "http://callback")
+
+        with self.assertRaises(RedirectUriUnknown):
+            client.redirect_uri = "http://another.callback"
+
     def test_is_grant_authorized(self):
         client = Client(identifier="abc", secret="xyz",
                         authorized_grants=["test_grant"])

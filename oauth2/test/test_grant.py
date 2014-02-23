@@ -1,5 +1,6 @@
 from mock import Mock, call, patch
 import json
+from oauth2.client_authenticator import ClientAuthenticator
 from oauth2.test import unittest
 from oauth2.web import Request, Response, SiteAdapter
 from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler, \
@@ -17,8 +18,10 @@ from oauth2.datatype import Client, AuthorizationCode, AccessToken
 from oauth2.tokengenerator import TokenGenerator
 from copy import copy
 
+
 def mock_time():
     return 1000
+
 
 class AuthorizationCodeGrantTestCase(unittest.TestCase):
     def test_create_auth_handler(self):
@@ -38,7 +41,7 @@ class AuthorizationCodeGrantTestCase(unittest.TestCase):
         server_mock = Mock()
         server_mock.authorize_path = path
         server_mock.auth_code_store = Mock()
-        server_mock.client_store = Mock()
+        server_mock.client_authenticator = Mock()
         server_mock.site_adapter = Mock()
         server_mock.token_generator = Mock()
 
@@ -91,130 +94,30 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         """
         AuthRequestMixin.read_validate_params should parse all params correctly if they are valid
         """
-        client_id = "cid"
-        redirect_uri = "http://somewhere"
         state = "state"
 
         client_mock = Mock(Client)
-        client_mock.redirect_uris = [redirect_uri]
+        client_mock.identifier = "abc"
+        client_mock.redirect_uri = "http://callback"
 
         request_mock = Mock(spec=Request)
-        request_mock.get_param.side_effect = [client_id, None, state]
+        request_mock.get_param.side_effect = [state]
 
         scope_handler_mock = Mock(Scope)
 
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client_mock
+        client_auth_mock = Mock(spec=ClientAuthenticator)
+        client_auth_mock.by_identifier.return_value = client_mock
 
-        handler = AuthRequestMixin(client_store=client_store_mock,
+        handler = AuthRequestMixin(client_authenticator=client_auth_mock,
                                    scope_handler=scope_handler_mock,
                                    token_generator=Mock())
 
         result = handler.read_validate_params(request_mock)
 
-        request_mock.get_param.assert_has_calls([call("client_id"),
-                                                call("redirect_uri"),
-                                                call("state")])
+        request_mock.get_param.assert_has_calls([call("state")])
         scope_handler_mock.parse.assert_called_with(request_mock, "query")
-        client_store_mock.fetch_by_client_id.assert_called_with(client_id)
-        self.assertEqual(handler.client_id, client_id)
-        self.assertEqual(handler.redirect_uri, redirect_uri)
-        self.assertEqual(handler.state, state)
-        self.assertTrue(result)
-
-    def test_read_validate_params_no_client_id(self):
-        """
-        AuthRequestMixin.read_validate_params should raise an OAuthInvalidNoRedirectError if no client_id in request
-        """
-        request_mock = Mock(spec=Request)
-        request_mock.get_param.return_value = None
-
-        handler = AuthRequestMixin(client_store=Mock(), scope_handler=Mock(),
-                                   token_generator=Mock())
-
-        with self.assertRaises(OAuthInvalidNoRedirectError) as expected:
-            handler.read_validate_params(request_mock)
-
-        self.assertEqual(expected.exception.error, "missing_client_id")
-
-    def test_read_validate_params_unknown_client_id(self):
-        """
-        AuthRequestMixin.read_validate_params should raise an OAuthInvalidError if no client with given client_id exists
-        """
-        client_id = "abc"
-
-        request_mock = Mock(spec=Request)
-        request_mock.get_param.return_value = client_id
-
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.side_effect = ClientNotFoundError
-
-        handler = AuthRequestMixin(client_store=client_store_mock,
-                                   scope_handler=Mock(),
-                                   token_generator=Mock())
-
-        with self.assertRaises(OAuthInvalidNoRedirectError) as expected:
-            handler.read_validate_params(request_mock)
-
-        self.assertEqual(expected.exception.error, "unknown_client")
-
-    def test_read_validate_params_invalid_redirect_uri(self):
-        """
-        AuthRequestMixin.read_validate_params should raise an OAuthInvalidNoRedirectError if redirect_uri is invalid
-        """
-        client_id = "abc"
-        redirect_uri = "http://endpoint-one"
-
-        client_mock = Mock(Client)
-        client_mock.has_redirect_uri.return_value = False
-
-        request_mock = Mock(spec=Request)
-        request_mock.get_param.side_effect = [client_id, redirect_uri]
-
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client_mock
-
-        handler = AuthRequestMixin(client_store=client_store_mock,
-                                   scope_handler=Mock(),
-                                   token_generator=Mock())
-
-        with self.assertRaises(OAuthInvalidNoRedirectError) as expected:
-            handler.read_validate_params(request_mock)
-
-        self.assertEqual(expected.exception.error, "invalid_redirect_uri")
-
-    def test_read_validate_params_default_redirect_uri(self):
-        """
-        AuthRequestMixin.read_validate_params should use the correct redirect uri when the client has registered more than one
-        """
-        client_id = "cid"
-        redirect_uri = "http://somewhere"
-        state = "state"
-
-        client_mock = Mock(Client)
-        client_mock.redirect_uris = ["http://somewhere-else", redirect_uri]
-
-        request_mock = Mock(spec=Request)
-        request_mock.get_param.side_effect = [client_id, redirect_uri, state]
-
-        scope_handler_mock = Mock(Scope)
-
-        clientStoreMock = Mock(spec=ClientStore)
-        clientStoreMock.fetch_by_client_id.return_value = client_mock
-
-        handler = AuthRequestMixin(client_store=clientStoreMock,
-                                   scope_handler=scope_handler_mock,
-                                   token_generator=Mock())
-
-        result = handler.read_validate_params(request_mock)
-
-        request_mock.get_param.assert_has_calls([call("client_id"),
-                                                call("redirect_uri"),
-                                                call("state")])
-        scope_handler_mock.parse.assert_called_with(request_mock, "query")
-        clientStoreMock.fetch_by_client_id.assert_called_with(client_id)
-        self.assertEqual(handler.client_id, client_id)
-        self.assertEqual(handler.redirect_uri, redirect_uri)
+        client_auth_mock.by_identifier.assert_called_with(request_mock)
+        self.assertEqual(handler.client, client_mock)
         self.assertEqual(handler.state, state)
         self.assertTrue(result)
 
@@ -284,7 +187,6 @@ class AuthorizeMixinTestCase(unittest.TestCase):
 
 class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
     def test_process(self):
-        client_id = "foobar"
         code = "abcd"
         environ = {"session": "data"}
         scopes = ["scope"]
@@ -313,14 +215,14 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
 
         handler = AuthorizationCodeAuthHandler(
             auth_token_store=auth_code_store_mock,
-            client_store=Mock(), scope_handler=scope_handler_mock,
+            client_authenticator=Mock(), scope_handler=scope_handler_mock,
             site_adapter=site_adapter_mock,
             token_generator=token_generator_mock
         )
 
-        handler.client_id = client_id
+        handler.client = Client(identifier="abc", secret="xyz",
+                                redirect_uris=[redirect_uri])
         handler.state = state
-        handler.redirect_uri = redirect_uri
         response = handler.process(request_mock, response_mock, environ)
 
         token_generator_mock.generate.assert_called_with()
@@ -349,7 +251,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         site_adapter_mock.render_auth_page.return_value = response_mock
 
         handler = AuthorizationCodeAuthHandler(
-            auth_token_store=Mock(), client_store=Mock(),
+            auth_token_store=Mock(), client_authenticator=Mock(),
             scope_handler=scope_handler_mock, site_adapter=site_adapter_mock,
             token_generator=Mock()
         )
@@ -373,10 +275,10 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         response_mock = Mock(spec=Response)
 
         handler = AuthorizationCodeAuthHandler(
-            auth_token_store=Mock(), client_store=Mock(), scope_handler=Mock(),
-            site_adapter=Mock(), token_generator=Mock()
-        )
-        handler.redirect_uri = redirect_uri
+            auth_token_store=Mock(), client_authenticator=Mock(),
+            scope_handler=Mock(), site_adapter=Mock(), token_generator=Mock())
+        handler.client = Client(identifier="abc", secret="xyz",
+                                redirect_uris=["https://callback"])
         result = handler.redirect_oauth_error(error_mock, response_mock)
 
         response_mock.add_header.assert_called_with("Location",
@@ -407,32 +309,27 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         auth_code_store_mock = Mock(spec=AuthCodeStore)
         auth_code_store_mock.fetch_by_code.return_value = auth_code
 
-        client_mock = Mock(Client)
-        client_mock.secret = client_secret
-        client_mock.redirect_uris = [redirect_uri]
+        client = Client(identifier=client_id, secret=client_secret,
+                        redirect_uris=[redirect_uri])
 
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client_mock
+        client_auth_mock = Mock(spec=ClientAuthenticator)
+        client_auth_mock.by_identifier_secret.return_value = client
 
         request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = [client_id, client_secret, code,
-                                               redirect_uri]
+        request_mock.post_param.side_effect = [code, redirect_uri]
 
         handler = AuthorizationCodeTokenHandler(
             access_token_store=Mock(spec=AccessTokenStore),
             auth_token_store=auth_code_store_mock,
-            client_store=client_store_mock,
+            client_authenticator=client_auth_mock,
             token_generator=Mock())
 
         result = handler.read_validate_params(request_mock)
 
-        request_mock.post_param.assert_has_calls([call("client_id"),
-                                                  call("client_secret"),
-                                                  call("code"),
+        request_mock.post_param.assert_has_calls([call("code"),
                                                   call("redirect_uri")])
         auth_code_store_mock.fetch_by_code.assert_called_with(code)
-        self.assertEqual(handler.client_id, client_id)
-        self.assertEqual(handler.client_secret, client_secret)
+        self.assertEqual(handler.client, client)
         self.assertEqual(handler.code, code)
         self.assertEqual(handler.data, data)
         self.assertEqual(handler.redirect_uri, redirect_uri)
@@ -446,20 +343,19 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         code = None
         redirect_uri = "http://callback"
 
-        client_mock = Mock(Client)
-        client_mock.secret = client_secret
+        client = Client(identifier=client_id, secret=client_secret,
+                        redirect_uris=[redirect_uri])
 
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client_mock
+        client_auth_mock = Mock(spec=ClientAuthenticator)
+        client_auth_mock.by_identifier_secret.return_value = client
 
         request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = [client_id, client_secret, code,
-                                               redirect_uri]
+        request_mock.post_param.side_effect = [code, redirect_uri]
 
         handler = AuthorizationCodeTokenHandler(
             access_token_store=Mock(spec=AccessTokenStore),
             auth_token_store=Mock(spec=AuthCodeStore),
-            client_store=client_store_mock,
+            client_authenticator=client_auth_mock,
             token_generator=Mock())
 
         with self.assertRaises(OAuthInvalidError) as expected:
@@ -484,21 +380,19 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         auth_code_store_mock = Mock(spec=AuthCodeStore)
         auth_code_store_mock.fetch_by_code.return_value = auth_code_mock
 
-        client_mock = Mock(Client)
-        client_mock.secret = client_secret
-        client_mock.redirect_uris = [redirect_uri]
+        client = Client(identifier=client_id, secret=client_secret,
+                        redirect_uris=[redirect_uri])
 
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client_mock
+        client_auth_mock = Mock(spec=ClientAuthenticator)
+        client_auth_mock.by_identifier_secret.return_value = client
 
         request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = [client_id, client_secret,
-                                               code_actual, redirect_uri]
+        request_mock.post_param.side_effect = [code_actual, redirect_uri]
 
         handler = AuthorizationCodeTokenHandler(
             access_token_store=Mock(spec=AccessTokenStore),
             auth_token_store=auth_code_store_mock,
-            client_store=client_store_mock,
+            client_authenticator=client_auth_mock,
             token_generator=Mock())
 
         with self.assertRaises(OAuthInvalidError) as expected:
@@ -507,97 +401,8 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         error = expected.exception
 
         self.assertEqual(error.error, "invalid_grant")
-        self.assertEqual(error.explanation, "Invalid code parameter in request")
-
-    def test_read_validate_params_unknown_client(self):
-        client_id = "abc"
-        client_secret = "t%gH"
-        code = "xyz"
-        redirect_uri = "http://callback"
-
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.side_effect = ClientNotFoundError
-
-        request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = [client_id, client_secret, code,
-                                               redirect_uri]
-
-        handler = AuthorizationCodeTokenHandler(
-            access_token_store=Mock(spec=AccessTokenStore),
-            auth_token_store=Mock(spec=AuthCodeStore),
-            client_store=client_store_mock,
-            token_generator=Mock())
-
-        with self.assertRaises(OAuthClientError) as expected:
-            handler.read_validate_params(request_mock)
-
-        error = expected.exception
-
-        self.assertEqual(error.error, "invalid_client")
-        self.assertEqual(error.explanation, "Unknown client")
-
-    def test_read_validate_params_wrong_client_secret(self):
-        client_id = "abc"
-        client_secret_actual = "invalid"
-        client_secret_expected = "t%gH"
-        code = "xyz"
-        redirect_uri = "http://callback"
-
-        client_mock = Mock(Client)
-        client_mock.secret = client_secret_expected
-        client_mock.redirect_uris = [redirect_uri]
-
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client_mock
-
-        request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = [client_id, client_secret_actual,
-                                               code, redirect_uri]
-
-        handler = AuthorizationCodeTokenHandler(
-            access_token_store=Mock(spec=AccessTokenStore),
-            auth_token_store=Mock(spec=AuthCodeStore),
-            client_store=client_store_mock,
-            token_generator=Mock())
-
-        with self.assertRaises(OAuthClientError) as expected:
-            handler.read_validate_params(request_mock)
-
-        error = expected.exception
-
-        self.assertEqual(error.error, "invalid_client")
-        self.assertEqual(error.explanation, "Invalid client_secret")
-
-    def test_read_validate_params_wrong_redirect_uri_in_client_data(self):
-        client_id = "abc"
-        client_secret = "t%gH"
-        code = "xyz"
-        redirect_uri = "http://invalid-callback"
-
-        client_mock = Mock(Client)
-        client_mock.secret = client_secret
-        client_mock.has_redirect_uri.return_value = False
-
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client_mock
-
-        request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = [client_id, client_secret,
-                                               code, redirect_uri]
-
-        handler = AuthorizationCodeTokenHandler(
-            access_token_store=Mock(spec=AccessTokenStore),
-            auth_token_store=Mock(spec=AuthCodeStore),
-            client_store=client_store_mock,
-            token_generator=Mock())
-
-        with self.assertRaises(OAuthInvalidError) as expected:
-            handler.read_validate_params(request_mock)
-
-        error = expected.exception
-
-        self.assertEqual(error.error, "invalid_request")
-        self.assertEqual(error.explanation, "Invalid redirect_uri parameter")
+        self.assertEqual(error.explanation,
+                         "Invalid code parameter in request")
 
     def test_read_validate_params_no_auth_code_found(self):
         client_id = "abc"
@@ -608,21 +413,19 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         auth_code_store_mock = Mock(spec=AuthCodeStore)
         auth_code_store_mock.fetch_by_code.return_value = None
 
-        client_mock = Mock(Client)
-        client_mock.secret = client_secret
-        client_mock.redirect_uris = [redirect_uri]
+        client = Client(identifier=client_id, secret=client_secret,
+                        redirect_uris=[redirect_uri])
 
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client_mock
+        client_auth_mock = Mock(spec=ClientAuthenticator)
+        client_auth_mock.by_identifier_secret.return_value = client
 
         request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = [client_id, client_secret,
-                                               code, redirect_uri]
+        request_mock.post_param.side_effect = [code, redirect_uri]
 
         handler = AuthorizationCodeTokenHandler(
             access_token_store=Mock(spec=AccessTokenStore),
             auth_token_store=auth_code_store_mock,
-            client_store=client_store_mock,
+            client_authenticator=client_auth_mock,
             token_generator=Mock())
 
         with self.assertRaises(OAuthInvalidError) as expected:
@@ -636,7 +439,6 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
 
     def test_read_validate_params_wrong_redirect_uri_in_code_data(self):
         client_id = "abc"
-        client_secret = "t%gH"
         code = "xyz"
         redirect_uri_actual = "http://invalid-callback"
         redirect_uri_expected = "http://callback"
@@ -648,21 +450,19 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         auth_code_store_mock = Mock(spec=AuthCodeStore)
         auth_code_store_mock.fetch_by_code.return_value = auth_code_mock
 
-        client_mock = Mock(Client)
-        client_mock.secret = client_secret
-        client_mock.redirect_uris = [redirect_uri_expected]
+        client = Client(identifier=client_id, secret="xyz",
+                        redirect_uris=[redirect_uri_expected])
 
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client_mock
+        client_auth_mock = Mock(spec=ClientAuthenticator)
+        client_auth_mock.by_identifier_secret.return_value = client
 
         request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = [client_id, client_secret,
-                                               code, redirect_uri_expected]
+        request_mock.post_param.side_effect = [code, redirect_uri_expected]
 
         handler = AuthorizationCodeTokenHandler(
             access_token_store=Mock(spec=AccessTokenStore),
             auth_token_store=auth_code_store_mock,
-            client_store=client_store_mock,
+            client_authenticator=client_auth_mock,
             token_generator=Mock())
 
         with self.assertRaises(OAuthInvalidError) as expected:
@@ -687,27 +487,26 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         auth_code_store_mock = Mock(spec=AuthCodeStore)
         auth_code_store_mock.fetch_by_code.return_value = auth_code_mock
 
-        client_mock = Mock(Client)
-        client_mock.secret = client_secret
-        client_mock.redirect_uris = [redirect_uri]
+        client = Client(identifier=client_id, secret=client_secret,
+                        redirect_uris=[redirect_uri])
 
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client_mock
+        client_auth_mock = Mock(spec=ClientAuthenticator)
+        client_auth_mock.by_identifier_secret.return_value = client
 
         request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = [client_id, client_secret,
-                                               code, redirect_uri]
+        request_mock.post_param.side_effect = [code, redirect_uri]
 
         handler = AuthorizationCodeTokenHandler(
             access_token_store=Mock(spec=AccessTokenStore),
             auth_token_store=auth_code_store_mock,
-            client_store=client_store_mock,
+            client_authenticator=client_auth_mock,
             token_generator=Mock())
 
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
 
         error = expected.exception
+        print(error.explanation)
 
         self.assertEqual(error.error, "invalid_grant")
         self.assertEqual(error.explanation, "Authorization code has expired")
@@ -723,7 +522,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
 
         access_token_store_mock = Mock(spec=AccessTokenStore)
         auth_code_store_mock = Mock(spec=AuthCodeStore)
-        client_store_mock = Mock(spec=ClientStore)
+        client_auth_mock = Mock(spec=ClientStore)
 
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.create_access_token_data.return_value = token_data
@@ -735,9 +534,9 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         handler = AuthorizationCodeTokenHandler(
             access_token_store=access_token_store_mock,
             auth_token_store=auth_code_store_mock,
-            client_store=client_store_mock,
+            client_authenticator=client_auth_mock,
             token_generator=token_generator_mock)
-        handler.client_id = client_id
+        handler.client = Client(identifier=client_id, secret="xyz")
         handler.data = data
         handler.scopes = scopes
         response = handler.process(Mock(spec=Request), response_mock, {})
@@ -764,7 +563,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
 
         access_token_store_mock = Mock(spec=AccessTokenStore)
         auth_code_store_mock = Mock(spec=AuthCodeStore)
-        client_store_mock = Mock(spec=ClientStore)
+        client_auth_mock = Mock(spec=ClientAuthenticator)
 
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.create_access_token_data.return_value = token_data
@@ -776,9 +575,9 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         handler = AuthorizationCodeTokenHandler(
             access_token_store=access_token_store_mock,
             auth_token_store=auth_code_store_mock,
-            client_store=client_store_mock,
+            client_authenticator=client_auth_mock,
             token_generator=token_generator_mock)
-        handler.client_id = client_id
+        handler.client = Client(identifier=client_id, secret="xyz")
         handler.data = data
         handler.scopes = scopes
         response = handler.process(Mock(spec=Request), response_mock, {})
@@ -820,9 +619,10 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         handler = AuthorizationCodeTokenHandler(
             access_token_store=access_token_store_mock,
             auth_token_store=Mock(spec=AuthCodeStore),
-            client_store=Mock(spec=ClientStore),
+            client_authenticator=Mock(spec=ClientAuthenticator),
             token_generator=Mock())
-        handler.client_id = "myclient"
+        handler.client = Client(identifier=token_data["client_id"],
+                                secret="xyz")
         handler.data = {}
         handler.scopes = ["foo", "bar"]
         handler.unique_token = True
@@ -853,8 +653,9 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         handler = AuthorizationCodeTokenHandler(
             access_token_store=access_token_store_mock,
             auth_token_store=Mock(spec=AuthCodeStore),
-            client_store=Mock(spec=ClientStore),
+            client_authenticator=Mock(spec=ClientAuthenticator),
             token_generator=token_generator_mock)
+        handler.client = Client(identifier="abc", secret="xyz")
         handler.unique_token = True
         handler.user_id = 123
         handler.scopes = ["foo", "bar"]
@@ -886,9 +687,10 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         handler = AuthorizationCodeTokenHandler(
             access_token_store=access_token_store_mock,
             auth_token_store=Mock(spec=AuthCodeStore),
-            client_store=Mock(spec=ClientStore),
+            client_authenticator=Mock(spec=ClientAuthenticator),
             token_generator=token_generator_mock)
-        handler.client_id = access_token_data["client_id"]
+        handler.client = Client(identifier=access_token_data["client_id"],
+                                secret="xyz")
         handler.data = {}
         handler.unique_token = True
         handler.user_id = 123
@@ -922,9 +724,10 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         handler = AuthorizationCodeTokenHandler(
             access_token_store=access_token_store_mock,
             auth_token_store=Mock(spec=AuthCodeStore),
-            client_store=Mock(spec=ClientStore),
+            client_authenticator=Mock(spec=ClientAuthenticator),
             token_generator=token_generator_mock)
-        handler.client_id = access_token_data["client_id"]
+        handler.client = Client(identifier=access_token_data["client_id"],
+                                secret="xyz")
         handler.data = {}
         handler.unique_token = True
         handler.user_id = 123
@@ -938,8 +741,9 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         handler = AuthorizationCodeTokenHandler(
             access_token_store=Mock(spec=AccessTokenStore),
             auth_token_store=Mock(spec=AuthCodeStore),
-            client_store=Mock(spec=ClientStore),
+            client_authenticator=Mock(spec=ClientAuthenticator),
             token_generator=Mock(spec=TokenGenerator))
+        handler.client = Client(identifier="abc", secret="xyz")
         handler.unique_token = True
         handler.user_id = None
 
@@ -955,13 +759,12 @@ class ImplicitGrantTestCase(unittest.TestCase):
         request_mock.path = path
         request_mock.get_param.return_value = "token"
 
-        client_store_mock = Mock()
         site_adapter_mock = Mock()
         token_generator_mock = Mock()
 
         server_mock = Mock()
         server_mock.authorize_path = path
-        server_mock.client_store = client_store_mock
+        server_mock.client_authenticator = Mock()
         server_mock.site_adapter = site_adapter_mock
         server_mock.token_generator = token_generator_mock
 
@@ -1011,12 +814,12 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         redirect_uri_with_token = "%s#access_token=%s&token_type=bearer" % (redirect_uri, token)
 
         handler = ImplicitGrantHandler(
-            access_token_store=access_token_store_mock, client_store=Mock(),
-            scope_handler=scope_handler_mock, site_adapter=site_adapter_mock,
-            token_generator=token_generator_mock
-        )
-        handler.client_id = client_id
-        handler.redirect_uri = redirect_uri
+            access_token_store=access_token_store_mock,
+            client_authenticator=Mock(), scope_handler=scope_handler_mock,
+            site_adapter=site_adapter_mock,
+            token_generator=token_generator_mock)
+        handler.client = Client(identifier="abc", secret="xyz",
+                                redirect_uris=[redirect_uri])
         result_response = handler.process(request_mock, responseMock, environ)
 
         site_adapter_mock.authenticate.assert_called_with(request_mock,
@@ -1037,7 +840,6 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         """
         ImplicitGrantHandler should include the value of the "state" query parameter from request in redirect
         """
-        client_id = "abc"
         redirect_uri = "http://callback"
         state = "XHGFI"
         token = "tokencode"
@@ -1058,19 +860,19 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         token_generator_mock.generate.return_value = token
 
         handler = ImplicitGrantHandler(
-            access_token_store=Mock(AccessTokenStore), client_store=Mock(),
-            scope_handler=scope_handler_mock,
+            access_token_store=Mock(AccessTokenStore),
+            client_authenticator=Mock(), scope_handler=scope_handler_mock,
             site_adapter=site_adapter_mock,
             token_generator=token_generator_mock)
-        handler.client_id = client_id
-        handler.redirect_uri = redirect_uri
+        handler.client = Client(identifier="abc", secret="xyz",
+                                redirect_uris=[redirect_uri])
         handler.state = state
 
         result_response = handler.process(request=Mock(spec=Request),
                                           response=response_mock, environ={})
 
         response_mock.add_header.assert_called_with("Location",
-                                                   expected_redirect_uri)
+                                                    expected_redirect_uri)
         self.assertEqual(response_mock.status_code, 302)
         self.assertEqual(response_mock.content, "")
         self.assertEqual(result_response, response_mock)
@@ -1098,19 +900,19 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         token_generator_mock.generate.return_value = token
 
         handler = ImplicitGrantHandler(
-            access_token_store=Mock(AccessTokenStore), client_store=Mock(),
-            scope_handler=scope_handler_mock,
+            access_token_store=Mock(AccessTokenStore),
+            client_authenticator=Mock(), scope_handler=scope_handler_mock,
             site_adapter=site_adapter_mock,
             token_generator=token_generator_mock)
-        handler.client_id = client_id
-        handler.redirect_uri = redirect_uri
+        handler.client = Client(identifier="abc", secret="xyz",
+                                redirect_uris=[redirect_uri])
         handler.state = state
 
         result_response = handler.process(request=Mock(spec=Request),
                                           response=response_mock, environ={})
 
         response_mock.add_header.assert_called_with("Location",
-                                                   expected_redirect_uri)
+                                                    expected_redirect_uri)
         self.assertEqual(response_mock.status_code, 302)
         self.assertEqual(response_mock.content, "")
         self.assertEqual(result_response, response_mock)
@@ -1131,7 +933,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         site_adapter_mock.render_auth_page.return_value = response_mock
 
         handler = ImplicitGrantHandler(
-            Mock(spec=AccessTokenStore), client_store=Mock(),
+            Mock(spec=AccessTokenStore), client_authenticator=Mock(),
             scope_handler=scope_handler_mock, site_adapter=site_adapter_mock,
             token_generator=Mock()
         )
@@ -1157,7 +959,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         site_adapter_mock.user_has_denied_access.return_value = True
 
         handler = ImplicitGrantHandler(
-            Mock(spec=AccessTokenStore), client_store=Mock(),
+            Mock(spec=AccessTokenStore), client_authenticator=Mock(),
             scope_handler=scope_handler_mock, site_adapter=site_adapter_mock,
             token_generator=Mock()
         )
@@ -1175,41 +977,31 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
 
     def test_redirect_oauth_error(self):
         error_code = "error_code"
-        client_id = "cid"
         redirect_uri = "https://callback"
-        scope = "scope"
-        state = "state"
         expected_redirect_location = "%s#error=%s" % (redirect_uri, error_code)
-
-        client_mock = Mock(Client)
-        client_mock.redirect_uris = [redirect_uri]
-        client_mock.has_redirect_uri.return_value = True
-
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client_mock
 
         error_mock = Mock(spec=OAuthUserError)
         error_mock.error = error_code
 
         request_mock = Mock(spec=Request)
-        request_mock.get_param.side_effect = [client_id, redirect_uri, scope,
-                                             state]
 
         response_mock = Mock(spec=Response)
 
         handler = ImplicitGrantHandler(
-            Mock(spec=AccessTokenStore), client_store=client_store_mock,
-            scope_handler=Mock(Scope), site_adapter=Mock(),
-            token_generator=Mock()
-        )
-        handler.read_validate_params(request_mock)
+            Mock(spec=AccessTokenStore),
+            client_authenticator=Mock(), scope_handler=Mock(Scope),
+            site_adapter=Mock(), token_generator=Mock())
+        handler.client = Client(identifier="abc", secret="xyz",
+                                redirect_uris=[redirect_uri])
         altered_response = handler.redirect_oauth_error(error_mock,
                                                         response_mock)
 
-        response_mock.add_header.assert_called_with("Location",
-                                                    expected_redirect_location)
+        response_mock.add_header.assert_called_with(
+            "Location",
+            expected_redirect_location)
         self.assertEqual(altered_response.status_code, 302)
         self.assertEqual(altered_response.body, "")
+
 
 class ResourceOwnerGrantTestCase(unittest.TestCase):
     def test_call(self):
@@ -1217,13 +1009,12 @@ class ResourceOwnerGrantTestCase(unittest.TestCase):
         request_mock.post_param.return_value = "password"
 
         access_token_store_mock = Mock(AccessTokenStore)
-        client_store_mock = Mock(ClientStore)
         site_adapter_mock = Mock(SiteAdapter)
         token_generator_mock = Mock()
 
         server_mock = Mock(Provider)
         server_mock.access_token_store = access_token_store_mock
-        server_mock.client_store = client_store_mock
+        server_mock.client_authenticator = Mock(ClientAuthenticator)
         server_mock.site_adapter = site_adapter_mock
         server_mock.token_generator = token_generator_mock
 
@@ -1250,7 +1041,6 @@ class ResourceOwnerGrantTestCase(unittest.TestCase):
 class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
     def test_process(self):
         access_token = "0aef"
-        client_id = "abcd"
         expected_response_body = {"access_token": access_token,
                                   "token_type": "Bearer"}
         scopes = ["scope"]
@@ -1275,11 +1065,11 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
 
         handler = ResourceOwnerGrantHandler(
             access_token_store=access_token_store_mock,
-            client_store=Mock(ClientStore),
+            client_authenticator=Mock(ClientAuthenticator),
             scope_handler=scope_handler_mock,
             site_adapter=site_adapter_mock,
             token_generator=token_generator_mock)
-        handler.client_id = client_id
+        handler.client = Client(identifier="abc", secret="xyz")
         result = handler.process(request_mock, response_mock, {})
 
         site_adapter_mock.authenticate.assert_called_with(request_mock, {},
@@ -1328,11 +1118,11 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
 
         handler = ResourceOwnerGrantHandler(
             access_token_store=access_token_store_mock,
-            client_store=Mock(ClientStore),
+            client_authenticator=Mock(ClientAuthenticator),
             scope_handler=scope_handler_mock,
             site_adapter=site_adapter_mock,
             token_generator=token_generator_mock)
-        handler.client_id = client_id
+        handler.client = Client(identifier="abc", secret="xyz")
         result = handler.process(request_mock, response_mock, {})
 
         site_adapter_mock.authenticate.assert_called_with(request_mock, {},
@@ -1354,7 +1144,6 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
 
     def test_process_redirect_with_scope(self):
         access_token = "0aef"
-        client_id = "abcd"
         scopes = ["scope_read", "scope_write"]
         expected_response_body = {"access_token": access_token,
                                   "token_type": "Bearer",
@@ -1375,11 +1164,11 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
 
         handler = ResourceOwnerGrantHandler(
             access_token_store=Mock(AccessTokenStore),
-            client_store=Mock(ClientStore),
+            client_authenticator=Mock(ClientAuthenticator),
             scope_handler=scope_handler_mock,
             site_adapter=site_adapter_mock,
             token_generator=token_generator_mock)
-        handler.client_id = client_id
+        handler.client = Client(identifier="abc", secret="xyz")
         result = handler.process(Mock(Request), response_mock, {})
 
         token_generator_mock.create_access_token_data.assert_called_with()
@@ -1398,112 +1187,33 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         password = "johnpw"
         username = "johndoe"
 
-        client_mock = Mock(Client)
-        client_mock.secret = client_secret
+        client = Client(identifier="abcd", secret="xyz")
 
-        client_store_mock = Mock(ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client_mock
+        client_auth_mock = Mock(ClientAuthenticator)
+        client_auth_mock.by_identifier_secret.return_value = client
 
         request_mock = Mock(Request)
-        request_mock.post_param.side_effect = [client_id, client_secret,
-                                               password, username]
+        request_mock.post_param.side_effect = [password, username]
 
         scope_handler_mock = Mock(Scope)
 
         handler = ResourceOwnerGrantHandler(
             access_token_store=Mock(AccessTokenStore),
-            client_store=client_store_mock,
+            client_authenticator=client_auth_mock,
             scope_handler=scope_handler_mock,
             site_adapter=Mock(SiteAdapter),
             token_generator=Mock())
         result = handler.read_validate_params(request_mock)
 
-        client_store_mock.fetch_by_client_id.assert_called_with(client_id)
+        client_auth_mock.by_identifier_secret.assert_called_with(request_mock)
         scope_handler_mock.parse.assert_called_with(request=request_mock,
                                                     source="body")
 
-        self.assertEqual(handler.client_id, client_id)
+        self.assertEqual(handler.client, client)
         self.assertEqual(handler.username, username)
         self.assertEqual(handler.password, password)
         self.assertTrue(result)
 
-    def test_read_validate_params_no_client_id(self):
-        request_mock = Mock(Request)
-        request_mock.post_param.return_value = None
-
-        handler = ResourceOwnerGrantHandler(
-            access_token_store=Mock(AccessTokenStore),
-            client_store=Mock(ClientStore),
-            scope_handler=Mock(Scope),
-            site_adapter=Mock(SiteAdapter),
-            token_generator=Mock())
-
-        with self.assertRaises(OAuthInvalidError) as expected:
-            handler.read_validate_params(request_mock)
-
-        error = expected.exception
-
-        request_mock.post_param.assert_called_with("client_id")
-        self.assertEqual(error.error, "invalid_request")
-        self.assertEqual(error.explanation, "Missing client_id parameter")
-
-    def test_read_validate_params_unknown_client_id(self):
-        client_id = "abcd"
-
-        client_store_mock = Mock(ClientStore)
-        client_store_mock.fetch_by_client_id.side_effect = ClientNotFoundError
-
-        request_mock = Mock(Request)
-        request_mock.post_param.return_value = client_id
-
-        handler = ResourceOwnerGrantHandler(
-            access_token_store=Mock(AccessTokenStore),
-            client_store=client_store_mock,
-            scope_handler=Mock(Scope),
-            site_adapter=Mock(SiteAdapter),
-            token_generator=Mock())
-
-        with self.assertRaises(OAuthInvalidError) as expected:
-            handler.read_validate_params(request_mock)
-
-        error = expected.exception
-
-        request_mock.post_param.assert_called_with("client_id")
-        client_store_mock.fetch_by_client_id.assert_called_with(client_id)
-        self.assertEqual(error.error, "invalid_request")
-        self.assertEqual(error.explanation, "Unknown client")
-
-    def test_read_validate_params_invalid_client_secret(self):
-        client_id = "abcd"
-        client_secret_actual = "foo"
-        client_secret_expected = "xyz"
-
-        client_mock = Mock(Client)
-        client_mock.secret = client_secret_expected
-
-        client_store_mock = Mock(ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client_mock
-
-        request_mock = Mock(Request)
-        request_mock.post_param.side_effect = [client_id, client_secret_actual]
-
-        handler = ResourceOwnerGrantHandler(
-            access_token_store=Mock(AccessTokenStore),
-            client_store=client_store_mock,
-            scope_handler=Mock(Scope),
-            site_adapter=Mock(SiteAdapter),
-            token_generator=Mock())
-
-        with self.assertRaises(OAuthInvalidError) as expected:
-            handler.read_validate_params(request_mock)
-
-        error = expected.exception
-
-        request_mock.post_param.assert_has_calls([call("client_id"),
-                                                  call("client_secret")])
-        client_store_mock.fetch_by_client_id.assert_called_with(client_id)
-        self.assertEqual(error.error, "invalid_request")
-        self.assertEqual(error.explanation, "Could not authenticate client")
 
 class ScopeTestCase(unittest.TestCase):
     def test_parse_scope_scope_present_in_query(self):
@@ -1647,6 +1357,7 @@ class ScopeTestCase(unittest.TestCase):
 
         self.assertEqual(e.error, "invalid_scope")
 
+
 class RefreshTokenTestCase(unittest.TestCase):
     def test_call(self):
         """
@@ -1656,14 +1367,14 @@ class RefreshTokenTestCase(unittest.TestCase):
         expires_in = 600
 
         access_token_store_mock = Mock()
-        client_store_mock = Mock()
+        client_auth_mock = Mock()
         scope_handler_mock = Mock()
         token_generator_mock = Mock()
 
         controller_mock = Mock(spec=Provider)
         controller_mock.token_path = path
         controller_mock.access_token_store = access_token_store_mock
-        controller_mock.client_store = client_store_mock
+        controller_mock.client_authenticator = client_auth_mock
         controller_mock.scope_handler = scope_handler_mock
         controller_mock.token_generator = token_generator_mock
         controller_mock.tokens_expire_in = expires_in
@@ -1682,7 +1393,7 @@ class RefreshTokenTestCase(unittest.TestCase):
         self.assertTrue(isinstance(grant_handler.scope_handler, Scope))
         self.assertEqual(access_token_store_mock,
                          grant_handler.access_token_store)
-        self.assertEqual(client_store_mock, grant_handler.client_store)
+        self.assertEqual(client_auth_mock, grant_handler.client_authenticator)
         self.assertEqual(token_generator_mock, grant_handler.token_generator)
 
     def test_call_wrong_path(self):
@@ -1745,11 +1456,12 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         token_generator_mock.expires_in = expires_in
         token_generator_mock.generate.return_value = token
 
-        handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
-                                      client_store=Mock(spec=ClientStore),
-                                      scope_handler=scope_handler_mock,
-                                      token_generator=token_generator_mock)
-        handler.client_id = client_id
+        handler = RefreshTokenHandler(
+            access_token_store=access_token_store_mock,
+            client_authenticator=Mock(spec=ClientAuthenticator),
+            scope_handler=scope_handler_mock,
+            token_generator=token_generator_mock)
+        handler.client = Client(identifier=client_id, secret="xyz")
         handler.data = data
 
         result = handler.process(request=Mock(spec=Request),
@@ -1786,41 +1498,38 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         client = Client(identifier=client_id, secret=client_secret,
                         redirect_uris=[])
 
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client
+        client_auth_mock = Mock(spec=ClientAuthenticator)
+        client_auth_mock.by_identifier_secret.return_value = client
 
         request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = [client_id, client_secret,
-                                               refresh_token]
+        request_mock.post_param.side_effect = [refresh_token]
 
         scope_handler_mock = Mock(spec=Scope)
 
-        handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
-                                      client_store=client_store_mock,
-                                      scope_handler=scope_handler_mock,
-                                      token_generator=Mock())
+        handler = RefreshTokenHandler(
+            access_token_store=access_token_store_mock,
+            client_authenticator=client_auth_mock,
+            scope_handler=scope_handler_mock,
+            token_generator=Mock())
 
         handler.read_validate_params(request=request_mock)
 
-        request_mock.post_param.assert_has_calls([call("client_id"),
-                                                  call("client_secret"),
-                                                  call("refresh_token")])
+        request_mock.post_param.assert_called_with("refresh_token")
         access_token_store_mock.fetch_by_refresh_token.assert_called_with(refresh_token)
-        client_store_mock.fetch_by_client_id.assert_called_with(client_id)
+        client_auth_mock.by_identifier_secret.assert_called_with(request_mock)
         scope_handler_mock.parse.assert_called_with(request_mock, "body")
         scope_handler_mock.compare.assert_called_with(scopes)
 
-        self.assertEqual(handler.client_id, client_id)
+        self.assertEqual(handler.client, client)
         self.assertEqual(handler.data, data)
         self.assertEqual(handler.refresh_token, refresh_token)
 
-
-    def test_read_validate_params_no_client_id(self):
+    def test_read_validate_params_no_refresh_token(self):
         request_mock = Mock(spec=Request)
         request_mock.post_param.return_value = None
 
         handler = RefreshTokenHandler(access_token_store=Mock(),
-                                      client_store=Mock(),
+                                      client_authenticator=Mock(),
                                       scope_handler=Mock(),
                                       token_generator=Mock())
 
@@ -1830,88 +1539,8 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         e = expected.exception
 
         self.assertEqual(e.error, "invalid_request")
-        self.assertEqual(e.explanation, "Missing client_id in request body")
-
-    def test_read_validate_params_no_client_secret(self):
-        request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = ["abc", None]
-
-        handler = RefreshTokenHandler(access_token_store=Mock(),
-                                      client_store=Mock(),
-                                      scope_handler=Mock(),
-                                      token_generator=Mock())
-
-        with self.assertRaises(OAuthInvalidError) as expected:
-            handler.read_validate_params(request_mock)
-
-        e = expected.exception
-
-        self.assertEqual(e.error, "invalid_request")
-        self.assertEqual(e.explanation, "Missing client_secret in request body")
-
-    def test_read_validate_params_no_refresh_token(self):
-        request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = ["abc", "xyz", None]
-
-        handler = RefreshTokenHandler(access_token_store=Mock(),
-                                      client_store=Mock(),
-                                      scope_handler=Mock(),
-                                      token_generator=Mock())
-
-        with self.assertRaises(OAuthInvalidError) as expected:
-            handler.read_validate_params(request_mock)
-
-        e = expected.exception
-
-        self.assertEqual(e.error, "invalid_request")
-        self.assertEqual(e.explanation, "Missing refresh_token in request body")
-
-    def test_read_validate_params_client_not_found(self):
-        request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = ["abc", "xyz", "uuu"]
-
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.side_effect = ClientNotFoundError
-
-        handler = RefreshTokenHandler(access_token_store=Mock(),
-                                      client_store=client_store_mock,
-                                      scope_handler=Mock(),
-                                      token_generator=Mock())
-
-        with self.assertRaises(OAuthInvalidError) as expected:
-            handler.read_validate_params(request_mock)
-
-        e = expected.exception
-
-        self.assertEqual(e.error, "invalid_request")
-        self.assertEqual(e.explanation, "Unknown client")
-
-    def test_read_validate_params_invalid_client_secret(self):
-        client_id = "abc"
-        secret_expected = "mno"
-        secret_actual = "xyz"
-
-        request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = [client_id, secret_actual, "uuu"]
-
-        client = Client(identifier=client_id, secret=secret_expected,
-                        redirect_uris=[])
-
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client
-
-        handler = RefreshTokenHandler(access_token_store=Mock(),
-                                      client_store=client_store_mock,
-                                      scope_handler=Mock(),
-                                      token_generator=Mock())
-
-        with self.assertRaises(OAuthInvalidError) as expected:
-            handler.read_validate_params(request_mock)
-
-        e = expected.exception
-
-        self.assertEqual(e.error, "invalid_request")
-        self.assertEqual(e.explanation, "Invalid client secret")
+        self.assertEqual(e.explanation,
+                         "Missing refresh_token in request body")
 
     def test_read_validate_params_invalid_refresh_token(self):
         client_id = "abc"
@@ -1925,11 +1554,11 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
 
         client = Client(identifier=client_id, secret=secret, redirect_uris=[])
 
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client
+        client_auth_mock = Mock(spec=ClientAuthenticator)
+        client_auth_mock.by_identifier_secret.return_value = client
 
         handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
-                                      client_store=client_store_mock,
+                                      client_authenticator=client_auth_mock,
                                       scope_handler=Mock(),
                                       token_generator=Mock())
 
@@ -1957,13 +1586,14 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
 
         client = Client(identifier=client_id, secret=secret, redirect_uris=[])
 
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = client
+        client_auth_mock = Mock(spec=ClientAuthenticator)
+        client_auth_mock.by_identifier_secret.return_value = client
 
-        handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
-                                      client_store=client_store_mock,
-                                      scope_handler=Mock(),
-                                      token_generator=Mock())
+        handler = RefreshTokenHandler(
+            access_token_store=access_token_store_mock,
+            client_authenticator=client_auth_mock,
+            scope_handler=Mock(),
+            token_generator=Mock())
 
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
@@ -1982,7 +1612,7 @@ class ClientCredentialsGrantTestCase(unittest.TestCase):
         request_mock.post_param.return_value = "client_credentials"
 
         access_token_store_mock = Mock()
-        client_store_mock = Mock()
+        client_auth_mock = Mock()
         token_generator_mock = Mock()
 
         scope_handler_mock = Mock(spec=Scope)
@@ -1990,7 +1620,7 @@ class ClientCredentialsGrantTestCase(unittest.TestCase):
         server_mock = Mock()
         server_mock.token_path = token_path
         server_mock.access_token_store = access_token_store_mock
-        server_mock.client_store = client_store_mock
+        server_mock.client_authenticator = client_auth_mock
         server_mock.scope_handler = scope_handler_mock
         server_mock.token_generator = token_generator_mock
 
@@ -2000,7 +1630,7 @@ class ClientCredentialsGrantTestCase(unittest.TestCase):
         request_mock.post_param.assert_called_with("grant_type")
         self.assertTrue(isinstance(handler, ClientCredentialsHandler))
         self.assertEqual(handler.access_token_store, access_token_store_mock)
-        self.assertEqual(handler.client_store, client_store_mock)
+        self.assertEqual(handler.client_authenticator, client_auth_mock)
         self.assertTrue(isinstance(handler.scope_handler, Scope))
         self.assertEqual(handler.token_generator, token_generator_mock)
 
@@ -2034,7 +1664,7 @@ class ClientCredentialsGrantTestCase(unittest.TestCase):
 
 class ClientCredentialsHandlerTestCase(unittest.TestCase):
     def test_process(self):
-        client_id = "xyz"
+        client_id = "abc"
         expires_in = 0
         token = "abcd"
 
@@ -2055,10 +1685,10 @@ class ClientCredentialsHandlerTestCase(unittest.TestCase):
 
         handler = ClientCredentialsHandler(
             access_token_store=access_token_store_mock,
-            client_store=Mock(),
+            client_authenticator=Mock(),
             scope_handler=scope_handler_mock,
             token_generator=token_generator_mock)
-        handler.client_id = client_id
+        handler.client = Client(identifier=client_id, secret="xyz")
         result_response = handler.process(request=Mock(),
                                           response=response_mock, environ={})
 
@@ -2067,7 +1697,7 @@ class ClientCredentialsHandlerTestCase(unittest.TestCase):
 
     @patch("time.time", mock_time)
     def test_process_with_refresh_token(self):
-        client_id = "xyz"
+        client_id = "abc"
         expires_in = 600
         token = "abcd"
         scopes = ["foo", "bar"]
@@ -2091,10 +1721,10 @@ class ClientCredentialsHandlerTestCase(unittest.TestCase):
 
         handler = ClientCredentialsHandler(
             access_token_store=access_token_store_mock,
-            client_store=Mock(),
+            client_authenticator=Mock(),
             scope_handler=scope_handler_mock,
             token_generator=token_generator_mock)
-        handler.client_id = client_id
+        handler.client = Client(identifier=client_id, secret="xyz")
         result_response = handler.process(request=Mock(),
                                           response=response_mock, environ={})
 
@@ -2120,8 +1750,8 @@ class ClientCredentialsHandlerTestCase(unittest.TestCase):
         client_id = "abc"
         client_secret = "xyz"
 
-        client_store_mock = Mock(spec=ClientStore)
-        client_store_mock.fetch_by_client_id.return_value = Client(
+        client_auth_mock = Mock(spec=ClientAuthenticator)
+        client_auth_mock.by_identifier_secret.return_value = Client(
             identifier=client_id,
             secret=client_secret,
             redirect_uris=[])
@@ -2129,17 +1759,15 @@ class ClientCredentialsHandlerTestCase(unittest.TestCase):
         scope_handler_mock = Mock(spec=Scope)
 
         request_mock = Mock(spec=Request)
-        request_mock.post_param.side_effect = [client_id, client_secret]
 
-        handler = ClientCredentialsHandler(access_token_store=Mock(),
-                                           client_store=client_store_mock,
-                                           scope_handler=scope_handler_mock,
-                                           token_generator=Mock())
+        handler = ClientCredentialsHandler(
+            access_token_store=Mock(),
+            client_authenticator=client_auth_mock,
+            scope_handler=scope_handler_mock,
+            token_generator=Mock())
         handler.read_validate_params(request_mock)
 
-        client_store_mock.fetch_by_client_id.assert_called_with(client_id)
-        request_mock.post_param.assert_has_calls([call("client_id"),
-                                                  call("client_secret")])
+        client_auth_mock.by_identifier_secret.assert_called_with(request_mock)
         scope_handler_mock.parse.assert_called_with(request=request_mock,
                                                     source="body")
 
