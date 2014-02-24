@@ -114,6 +114,14 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
         if code in self.auth_codes:
             del self.auth_codes[code]
 
+    def delete_refresh_token(self, refresh_token):
+        """
+        Deletes a refresh token after use
+        :param refresh_token: The refresh_token.
+        """
+        if refresh_token in self.refresh_tokens:
+            del self.refresh_tokens[refresh_token]
+
     def fetch_by_refresh_token(self, refresh_token):
         """
         Find an access token by its refresh token.

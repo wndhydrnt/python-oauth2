@@ -46,6 +46,14 @@ class AccessTokenStore(AccessTokenStore, MongodbStore):
                            refresh_token=data.get("refresh_token"),
                            scopes=data.get("scopes"))
 
+    def delete_refresh_token(self, refresh_token):
+        """
+        Deletes (invalidates) an old refresh token after use
+        :param refresh_token: The refresh token.
+        """
+        self.collection.remove({"refresh_token": refresh_token})
+
+
     def fetch_existing_token_of_user(self, client_id, grant_type, user_id):
         data = self.collection.find_one({"client_id": client_id,
                                          "grant_type": grant_type,

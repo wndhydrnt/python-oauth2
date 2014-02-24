@@ -895,6 +895,32 @@ class RefreshTokenHandler(GrantHandler):
         :return: :class:`oauth2.web.Response`
 
         """
+
+        while True:
+            token_data = self.token_generator.create_access_token_data()
+            if "refresh_token" not in token_data:
+                break
+            expires_at = int(time.time()) + token_data["expires_in"]
+
+            access_token = AccessToken(client_id=self.client_id, token=token_data["access_token"],
+                                   grant_type=RefreshToken.grant_type,
+                                   data=self.data, expires_at=expires_at,
+                                   scopes=self.scope_handler.scopes,
+                                   user_id=self.user_id)
+
+
+            access_token.refresh_token = token_data["refresh_token"]
+
+            if self.scope_handler.scopes:
+                token_data["scope"] = encode_scope(self.scope_handler.scopes)
+
+            self.access_token_store.save_token(access_token)
+            self.access_token_store.delete_refresh_token(self.refresh_token)
+
+            json_success_response(data=token_data, response=response)
+            return response
+
+
         expires_in = self.token_generator.expires_in
         expires_at = int(time.time()) + expires_in
         token = self.token_generator.generate()
@@ -963,7 +989,9 @@ class RefreshTokenHandler(GrantHandler):
             raise OAuthInvalidError(error="invalid_request",
                                     explanation="Invalid refresh token")
 
-        if access_token.expires_at < int(time.time()):
+        refresh_token_expires_at = access_token.expires_at + self.token_generator.expires_in
+
+        if refresh_token_expires_at < int(time.time()):
             raise OAuthInvalidError(error="invalid_request",
                                     explanation="Invalid refresh token")
 
