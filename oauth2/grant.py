@@ -842,8 +842,12 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
 
     grant_type = "refresh_token"
 
-    def __init__(self, expires_in, **kwargs):
+    def __init__(self, expires_in, refresh_expiration_multiplier=1, 
+                 reissue_refresh_tokens=False, **kwargs):
+
         self.expires_in = expires_in
+        self.refresh_expiration_multiplier = refresh_expiration_multiplier
+        self.reissue_refresh_tokens = reissue_refresh_tokens
 
         super(RefreshToken, self).__init__(**kwargs)
 
@@ -859,11 +863,16 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
         if request.post_param("grant_type") != "refresh_token":
             return None
 
-        return RefreshTokenHandler(
+        handler = RefreshTokenHandler(
             access_token_store=server.access_token_store,
             client_store=server.client_store,
             scope_handler=self._create_scope_handler(),
             token_generator=server.token_generator)
+
+        handler.reissue_refresh_tokens = self.reissue_refresh_tokens
+        handler.refresh_expiration_multiplier = self.refresh_expiration_multiplier
+
+        return handler
 
 
 class RefreshTokenHandler(GrantHandler):
@@ -896,13 +905,13 @@ class RefreshTokenHandler(GrantHandler):
 
         """
 
-        while True:
+        if self.reissue_refresh_tokens:
             token_data = self.token_generator.create_access_token_data()
-            if "refresh_token" not in token_data:
-                break
+            # assert "refresh_token" in token_data:
             expires_at = int(time.time()) + token_data["expires_in"]
 
-            access_token = AccessToken(client_id=self.client_id, token=token_data["access_token"],
+            access_token = AccessToken(client_id=self.client_id, 
+                                   token=token_data["access_token"],
                                    grant_type=RefreshToken.grant_type,
                                    data=self.data, expires_at=expires_at,
                                    scopes=self.scope_handler.scopes,
@@ -989,8 +998,9 @@ class RefreshTokenHandler(GrantHandler):
             raise OAuthInvalidError(error="invalid_request",
                                     explanation="Invalid refresh token")
 
-        refresh_token_expires_at = access_token.expires_at + self.token_generator.expires_in
-
+        refresh_token_expires_at = access_token.expires_at + \
+                                   (self.refresh_expiration_multiplier - 1) * \
+                                   self.token_generator.expires_in
         if refresh_token_expires_at < int(time.time()):
             raise OAuthInvalidError(error="invalid_request",
                                     explanation="Invalid refresh token")
