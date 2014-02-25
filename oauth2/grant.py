@@ -863,16 +863,14 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
         if request.post_param("grant_type") != "refresh_token":
             return None
 
-        handler = RefreshTokenHandler(
+        return RefreshTokenHandler(
             access_token_store=server.access_token_store,
             client_store=server.client_store,
             scope_handler=self._create_scope_handler(),
-            token_generator=server.token_generator)
-
-        handler.reissue_refresh_tokens = self.reissue_refresh_tokens
-        handler.refresh_expiration_multiplier = self.refresh_expiration_multiplier
-
-        return handler
+            token_generator=server.token_generator, 
+            reissue_refresh_tokens = self.reissue_refresh_tokens,
+            refresh_expiration_multiplier = self.refresh_expiration_multiplier
+            )
 
 
 class RefreshTokenHandler(GrantHandler):
@@ -881,7 +879,9 @@ class RefreshTokenHandler(GrantHandler):
     """
 
     def __init__(self, access_token_store, client_store, scope_handler,
-                 token_generator):
+                 token_generator, reissue_refresh_tokens=False, 
+                 refresh_expiration_multiplier=1):
+
         self.access_token_store = access_token_store
         self.client_store = client_store
         self.scope_handler = scope_handler
@@ -891,6 +891,9 @@ class RefreshTokenHandler(GrantHandler):
         self.data = {}
         self.refresh_token = None
         self.user_id = None
+
+        self.reissue_refresh_tokens        = reissue_refresh_tokens
+        self.refresh_expiration_multiplier = refresh_expiration_multiplier
 
     def process(self, request, response, environ):
         """
@@ -998,9 +1001,11 @@ class RefreshTokenHandler(GrantHandler):
             raise OAuthInvalidError(error="invalid_request",
                                     explanation="Invalid refresh token")
 
+        expires_in = self.token_generator.expires_in
         refresh_token_expires_at = access_token.expires_at + \
                                    (self.refresh_expiration_multiplier - 1) * \
-                                   self.token_generator.expires_in
+                                   expires_in
+
         if refresh_token_expires_at < int(time.time()):
             raise OAuthInvalidError(error="invalid_request",
                                     explanation="Invalid refresh token")
