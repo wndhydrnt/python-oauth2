@@ -1810,7 +1810,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
                                       client_store=client_store_mock,
                                       scope_handler=scope_handler_mock,
-                                      token_generator=Mock())
+                                      token_generator=Mock(expires_in=600))
 
         handler.read_validate_params(request=request_mock)
 
@@ -1834,7 +1834,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         handler = RefreshTokenHandler(access_token_store=Mock(),
                                       client_store=Mock(),
                                       scope_handler=Mock(),
-                                      token_generator=Mock())
+                                      token_generator=Mock(expires_in=600))
 
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
@@ -1851,7 +1851,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         handler = RefreshTokenHandler(access_token_store=Mock(),
                                       client_store=Mock(),
                                       scope_handler=Mock(),
-                                      token_generator=Mock())
+                                      token_generator=Mock(expires_in=600))
 
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
@@ -1868,7 +1868,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         handler = RefreshTokenHandler(access_token_store=Mock(),
                                       client_store=Mock(),
                                       scope_handler=Mock(),
-                                      token_generator=Mock())
+                                      token_generator=Mock(expires_in=600))
 
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
@@ -1888,7 +1888,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         handler = RefreshTokenHandler(access_token_store=Mock(),
                                       client_store=client_store_mock,
                                       scope_handler=Mock(),
-                                      token_generator=Mock())
+                                      token_generator=Mock(expires_in=600))
 
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
@@ -1915,7 +1915,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         handler = RefreshTokenHandler(access_token_store=Mock(),
                                       client_store=client_store_mock,
                                       scope_handler=Mock(),
-                                      token_generator=Mock())
+                                      token_generator=Mock(expires_in=600))
 
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
@@ -1943,7 +1943,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
                                       client_store=client_store_mock,
                                       scope_handler=Mock(),
-                                      token_generator=Mock())
+                                      token_generator=Mock(expires_in=600))
 
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
@@ -1975,7 +1975,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
                                       client_store=client_store_mock,
                                       scope_handler=Mock(),
-                                      token_generator=Mock())
+                                      token_generator=Mock(expires_in=600))
 
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
