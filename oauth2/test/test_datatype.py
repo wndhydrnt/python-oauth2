@@ -42,5 +42,5 @@ class ClientTestCase(unittest.TestCase):
         client = Client(identifier="abc", secret="xyz",
                         authorized_grants=["test_grant"])
 
-        self.assertTrue(client.is_grant_authorized("test_grant"))
-        self.assertFalse(client.is_grant_authorized("unknown_grant"))
+        self.assertTrue(client.grant_type_supported("test_grant"))
+        self.assertFalse(client.grant_type_supported("unknown_grant"))

@@ -85,7 +85,7 @@ class Client(object):
     Representation of a client application.
     """
     def __init__(self, identifier, secret, authorized_grants=None,
-                 redirect_uris=None):
+                 authorized_response_types=None, redirect_uris=None):
         self.identifier = identifier
         self.secret = secret
 
@@ -93,6 +93,11 @@ class Client(object):
             self.authorized_grants = []
         else:
             self.authorized_grants = authorized_grants
+
+        if authorized_response_types is None:
+            self.authorized_response_types = []
+        else:
+            self.authorized_response_types = authorized_response_types
 
         if redirect_uris is None:
             self.redirect_uris = []
@@ -115,7 +120,7 @@ class Client(object):
             raise RedirectUriUnknown
         self._redirect_uri = value
 
-    def is_grant_authorized(self, grant_type):
+    def grant_type_supported(self, grant_type):
         """
         Checks if the Client is authorized receive tokens for the given grant.
 
@@ -124,3 +129,14 @@ class Client(object):
         :return: Boolean
         """
         return grant_type in self.authorized_grants
+
+    def response_type_supported(self, response_type):
+        """
+        Checks if the client is allowed to receive tokens for the given
+        response type.
+
+        :param response_type: The response type.
+
+        :return: Boolean
+        """
+        return response_type in self.authorized_response_types

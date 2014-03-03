@@ -4,6 +4,14 @@ from oauth2.error import OAuthInvalidNoRedirectError, RedirectUriUnknown, \
 
 class ClientAuthenticator(object):
     def __init__(self, client_store, source=None):
+        """
+        Constructor.
+
+        :param client_store: An instance of :class:`oauth2.store.ClientStore`.
+        :param source: A callable that returns a tuple
+                       (<client_id>, <client_secret>). Defaults to
+                       `oauth2.client_authenticator.request_body_source`.
+        """
         self.client_store = client_store
         self.source = source
 
@@ -28,6 +36,10 @@ class ClientAuthenticator(object):
             client = self.client_store.fetch_by_client_id(client_id)
         except ClientNotFoundError:
             raise OAuthInvalidNoRedirectError(error="unknown_client")
+
+        response_type = request.get_param("response_type")
+        if client.response_type_supported(response_type) is False:
+            raise OAuthInvalidNoRedirectError(error="unauthorized_client")
 
         redirect_uri = request.get_param("redirect_uri")
         if redirect_uri is not None:
@@ -54,6 +66,11 @@ class ClientAuthenticator(object):
         except ClientNotFoundError:
             raise OAuthInvalidError(error="invalid_client",
                                     explanation="No client found")
+
+        grant_type = request.post_param("grant_type")
+        if client.grant_type_supported(grant_type) is False:
+            raise OAuthInvalidError(error="unauthorized_client",
+                                    explanation="Grant type not allowed")
 
         if client.secret != client_secret:
             raise OAuthInvalidError(error="invalid_client",

@@ -2,7 +2,8 @@ from oauth2.test import unittest
 from mock import Mock
 from oauth2.client_authenticator import ClientAuthenticator
 from oauth2.datatype import Client
-from oauth2.error import OAuthInvalidNoRedirectError, ClientNotFoundError
+from oauth2.error import OAuthInvalidNoRedirectError, ClientNotFoundError,\
+    OAuthInvalidError
 from oauth2.store import ClientStore
 from oauth2.web import Request
 
@@ -10,20 +11,26 @@ from oauth2.web import Request
 class ClientAuthenticatorTestCase(unittest.TestCase):
     def setUp(self):
         self.client = Client(identifier="abc", secret="xyz",
+                             authorized_grants=["authorization_code"],
+                             authorized_response_types=["code"],
                              redirect_uris=["http://callback"])
         self.client_store_mock = Mock(spec=ClientStore)
 
+        self.source_mock = Mock()
+
         self.authenticator = ClientAuthenticator(
-            client_store=self.client_store_mock)
+            client_store=self.client_store_mock,
+            source=self.source_mock)
 
     def test_by_identifier(self):
+        response_type = "code"
         redirect_uri = "http://callback"
 
         self.client_store_mock.fetch_by_client_id.return_value = self.client
 
         request_mock = Mock(spec=Request)
         request_mock.get_param.side_effect = [self.client.identifier,
-                                              redirect_uri]
+                                              response_type, redirect_uri]
 
         client = self.authenticator.by_identifier(request=request_mock)
 
@@ -52,11 +59,27 @@ class ClientAuthenticatorTestCase(unittest.TestCase):
 
         self.assertEqual(expected.exception.error, "unknown_client")
 
+    def test_by_identifier_response_type_not_allowed(self):
+        unsupported_response_type = "token"
+
+        request_mock = Mock(spec=Request)
+        request_mock.get_param.side_effect = [self.client.identifier,
+                                              unsupported_response_type]
+
+        self.client_store_mock.fetch_by_client_id.return_value = self.client
+
+        with self.assertRaises(OAuthInvalidNoRedirectError) as expected:
+            self.authenticator.by_identifier(request=request_mock)
+
+        self.assertEqual(expected.exception.error, "unauthorized_client")
+
     def test_by_identifier_unknown_redirect_uri(self):
+        response_type = "code"
         unknown_redirect_uri = "http://unknown.com"
 
         request_mock = Mock(spec=Request)
         request_mock.get_param.side_effect = [self.client.identifier,
+                                              response_type,
                                               unknown_redirect_uri]
 
         self.client_store_mock.fetch_by_client_id.return_value = self.client
@@ -69,14 +92,65 @@ class ClientAuthenticatorTestCase(unittest.TestCase):
     def test_by_identifier_secret(self):
         client_id = "abc"
         client_secret = "xyz"
+        grant_type = "authorization_code"
 
         request_mock = Mock(spec=Request)
+        request_mock.post_param.return_value = grant_type
 
-        source_mock = Mock(return_value=(client_id, client_secret))
+        self.source_mock.return_value = (client_id, client_secret)
 
         self.client_store_mock.fetch_by_client_id.return_value = self.client
 
-        self.authenticator.source = source_mock
-        client = self.authenticator.by_identifier_secret(request=request_mock)
+        self.authenticator.by_identifier_secret(request=request_mock)
         self.client_store_mock.fetch_by_client_id.\
             assert_called_with(client_id)
+
+    def test_by_identifier_secret_unknown_client(self):
+        client_id = "def"
+        client_secret = "uvw"
+
+        self.source_mock.return_value = (client_id, client_secret)
+
+        request_mock = Mock(spec=Request)
+
+        self.client_store_mock.fetch_by_client_id.\
+            side_effect = ClientNotFoundError
+
+        with self.assertRaises(OAuthInvalidError) as expected:
+            self.authenticator.by_identifier_secret(request_mock)
+
+        self.assertEqual(expected.exception.error, "invalid_client")
+
+    def test_by_identifier_secret_client_not_authorized(self):
+        client_id = "abc"
+        client_secret = "xyz"
+        grant_type = "client_credentials"
+
+        self.source_mock.return_value = (client_id, client_secret)
+
+        request_mock = Mock(spec=Request)
+        request_mock.post_param.return_value = grant_type
+
+        self.client_store_mock.fetch_by_client_id.return_value = self.client
+
+        with self.assertRaises(OAuthInvalidError) as expected:
+            self.authenticator.by_identifier_secret(request_mock)
+
+        self.assertEqual(expected.exception.error, "unauthorized_client")
+
+    def test_by_identifier_secret_wrong_secret(self):
+        client_id = "abc"
+        client_secret = "uvw"
+        grant_type = "authorization_code"
+
+        self.source_mock.return_value = (client_id, client_secret)
+
+        request_mock = Mock(spec=Request)
+        request_mock.post_param.return_value = grant_type
+
+        self.client_store_mock.fetch_by_client_id.return_value = self.client
+
+        with self.assertRaises(OAuthInvalidError) as expected:
+            self.authenticator.by_identifier_secret(request_mock)
+
+        self.assertEqual(expected.exception.error, "invalid_client")

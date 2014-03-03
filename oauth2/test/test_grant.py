@@ -119,6 +119,7 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         self.assertEqual(handler.state, state)
         self.assertTrue(result)
 
+
 class AuthorizeMixinTestCase(unittest.TestCase):
     def test_authorize_user_denied_access(self):
         """
