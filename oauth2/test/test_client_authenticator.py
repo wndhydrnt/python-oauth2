@@ -68,7 +68,7 @@ class ClientAuthenticatorTestCase(unittest.TestCase):
 
         self.client_store_mock.fetch_by_client_id.return_value = self.client
 
-        with self.assertRaises(OAuthInvalidNoRedirectError) as expected:
+        with self.assertRaises(OAuthInvalidError) as expected:
             self.authenticator.by_identifier(request=request_mock)
 
         self.assertEqual(expected.exception.error, "unauthorized_client")

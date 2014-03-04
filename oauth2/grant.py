@@ -27,7 +27,7 @@ So there are two remaining parties:
 * The server that issues the access.
 
 """
-from oauth2.error import OAuthInvalidError, OAuthUserError, OAuthClientError, \
+from oauth2.error import OAuthInvalidError, OAuthClientError, \
     ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound, \
     UserIdentifierMissingError, OAuthInvalidNoRedirectError, \
     RedirectUriUnknown
@@ -78,6 +78,11 @@ def json_success_response(data, response):
     response.add_header("Content-Type", "application/json")
     response.add_header("Cache-Control", "no-store")
     response.add_header("Pragma", "no-cache")
+
+
+class ResponseTypeGrant(object):
+    def error_response(self, response):
+        pass
 
 
 class Scope(object):
@@ -217,7 +222,7 @@ class GrantHandler(object):
         """
         raise NotImplementedError
 
-    def redirect_oauth_error(self, error, response):
+    def handle_error(self, error, response):
         """
         Takes all the actions necessary to return an error response in the
         format defined for a specific grant handler.
@@ -292,8 +297,8 @@ class AuthorizeMixin(object):
 
         """
         if self.site_adapter.user_has_denied_access(request) is True:
-            raise OAuthUserError(error="access_denied",
-                                 explanation="Authorization denied by user")
+            raise OAuthInvalidError(error="access_denied",
+                                    explanation="Authorization denied by user")
 
         try:
             result = self.site_adapter.authenticate(request, environ, scopes)
@@ -411,7 +416,7 @@ class AuthorizationCodeAuthHandler(AuthorizeMixin, AuthRequestMixin,
 
         return response
 
-    def redirect_oauth_error(self, error, response):
+    def handle_error(self, error, response):
         """
         Redirects the client in case an error in the auth process occurred.
         """
@@ -496,7 +501,7 @@ class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
 
         return response
 
-    def redirect_oauth_error(self, error, response):
+    def handle_error(self, error, response):
         return json_error_response(error, response)
 
     def _read_params(self, request):
@@ -641,7 +646,7 @@ class ImplicitGrantHandler(AuthorizeMixin, AuthRequestMixin, GrantHandler):
 
         return self._redirect_access_token(response, token)
 
-    def redirect_oauth_error(self, error, response):
+    def handle_error(self, error, response):
         redirect_location = "%s#error=%s" % (self.client.redirect_uri,
                                              error.error)
 
@@ -768,7 +773,7 @@ class ResourceOwnerGrantHandler(GrantHandler, AuthorizeMixin,
 
         return True
 
-    def redirect_oauth_error(self, error, response):
+    def handle_error(self, error, response):
         return json_error_response(error, response)
 
 
@@ -903,7 +908,7 @@ class RefreshTokenHandler(GrantHandler):
 
         return True
 
-    def redirect_oauth_error(self, error, response):
+    def handle_error(self, error, response):
         return json_error_response(error, response)
 
 
@@ -964,5 +969,5 @@ class ClientCredentialsHandler(GrantHandler):
 
         self.scope_handler.parse(request=request, source="body")
 
-    def redirect_oauth_error(self, error, response):
+    def handle_error(self, error, response):
         return json_error_response(error, response)

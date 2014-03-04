@@ -94,20 +94,17 @@ python-oauth2 is available on
 """
 
 import json
-from oauth2.error import OAuthInvalidError, OAuthUserError, \
-    ClientNotFoundError, OAuthInvalidNoRedirectError
+from oauth2.error import OAuthInvalidError, \
+    ClientNotFoundError, OAuthInvalidNoRedirectError, UnsupportedGrantError
 from oauth2.web import Request, Response
 from oauth2.tokengenerator import Uuid4
 from oauth2.grant import Scope, AuthorizationCodeGrant, ImplicitGrant, \
-    ClientCredentialsGrant, ResourceOwnerGrant
+    ClientCredentialsGrant, ResourceOwnerGrant, RefreshToken
 
 VERSION = "0.6.0"
 
 
 class Provider(object):
-    available_grants = [AuthorizationCodeGrant, ClientCredentialsGrant,
-                        ImplicitGrant, ResourceOwnerGrant]
-
     authorize_path = "/authorize"
     token_path = "/token"
 
@@ -170,18 +167,28 @@ class Provider(object):
             response.add_header("Content-Type", "text/plain")
             response.status_code = 400
             return response
-        except OAuthUserError as error:
+        except OAuthInvalidError as err:
             response = self.response_class()
-            return grant_type.redirect_oauth_error(error, response)
-        except OAuthInvalidError as error:
+            return grant_type.handle_error(error=err, response=response)
+            # response = self.response_class()
+            # response.add_header("Content-Type", "application/json")
+            # response.status_code = 400
+            # json_body = {"error": error.error}
+
+            # if error.explanation is not None:
+            #     json_body["error_description"] = error.explanation
+
+            # response.body = json.dumps(json_body)
+            # return response
+        except UnsupportedGrantError:
             response = self.response_class()
             response.add_header("Content-Type", "application/json")
             response.status_code = 400
-            json_body = {"error": error.error}
-            if error.explanation is not None:
-                json_body["error_description"] = error.explanation
+            response.body = json.dumps({
+                "error": "unsupported_response_type",
+                "error_description": "Grant not supported"
+            })
 
-            response.body = json.dumps(json_body)
             return response
 
     def enable_unique_tokens(self):
@@ -206,6 +213,4 @@ class Provider(object):
             if grant_handler is not None:
                 return grant_handler
 
-        raise OAuthInvalidError(error="unsupported_response_type",
-                                explanation="Server does not support given "
-                                "response_type")
+        raise UnsupportedGrantError

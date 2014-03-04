@@ -59,13 +59,6 @@ class OAuthClientError(OAuthBaseError):
     pass
 
 
-class OAuthUserError(OAuthBaseError):
-    """
-    Indicates that the user denied authorization.
-    """
-    pass
-
-
 class OAuthInvalidError(OAuthBaseError):
     """
     Indicates an error during validation of a request.
@@ -79,6 +72,13 @@ class OAuthInvalidNoRedirectError(OAuthInvalidError):
     The provider will not inform the client about the error by redirecting to
     it. This behaviour is required by the Authorization Request step of the
     Authorization Code Grant and Implicit Grant.
+    """
+    pass
+
+
+class UnsupportedGrantError(Exception):
+    """
+    Indicates that a requested grant is not supported by the server.
     """
     pass
 

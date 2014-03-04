@@ -8,7 +8,7 @@ from oauth2.web import Response, Request, SiteAdapter
 from oauth2.grant import RefreshToken, GrantHandler
 
 
-class AuthorizationControllerTestCase(unittest.TestCase):
+class ProviderTestCase(unittest.TestCase):
     def setUp(self):
         self.client_store_mock = Mock(spec=ClientStore)
         self.token_generator_mock = Mock()
@@ -57,7 +57,7 @@ class AuthorizationControllerTestCase(unittest.TestCase):
     def test_dispatch_no_grant_type_found(self):
         error_body = {
             "error": "unsupported_response_type",
-            "error_description": "Server does not support given response_type"
+            "error_description": "Grant not supported"
         }
 
         request_mock = Mock(spec=Request)

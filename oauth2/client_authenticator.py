@@ -39,7 +39,7 @@ class ClientAuthenticator(object):
 
         response_type = request.get_param("response_type")
         if client.response_type_supported(response_type) is False:
-            raise OAuthInvalidNoRedirectError(error="unauthorized_client")
+            raise OAuthInvalidError(error="unauthorized_client")
 
         redirect_uri = request.get_param("redirect_uri")
         if redirect_uri is not None:

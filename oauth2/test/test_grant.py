@@ -9,8 +9,8 @@ from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler, \
     Scope, RefreshToken, RefreshTokenHandler, ClientCredentialsGrant, \
     ClientCredentialsHandler, AuthorizeMixin
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
-from oauth2.error import OAuthInvalidError, OAuthUserError, \
-    UserNotAuthenticated, AccessTokenNotFound, UserIdentifierMissingError
+from oauth2.error import OAuthInvalidError, UserNotAuthenticated, \
+    AccessTokenNotFound, UserIdentifierMissingError
 from oauth2 import Provider
 from oauth2.datatype import Client, AuthorizationCode, AccessToken
 from oauth2.tokengenerator import TokenGenerator
@@ -129,7 +129,7 @@ class AuthorizeMixinTestCase(unittest.TestCase):
         site_adapter_mock.user_has_denied_access.return_value = True
 
         auth_mixin = AuthorizeMixin(site_adapter=site_adapter_mock)
-        with self.assertRaises(OAuthUserError):
+        with self.assertRaises(OAuthInvalidError):
             auth_mixin.authorize(Mock(spec=Request), Mock(spec=Response),
                                  environ={}, scopes=[])
 
@@ -268,7 +268,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
 
         expected_redirect = "%s?error=%s" % (redirect_uri, error_identifier)
 
-        error_mock = Mock(spec=OAuthUserError)
+        error_mock = Mock(spec=OAuthInvalidError)
         error_mock.error = error_identifier
 
         response_mock = Mock(spec=Response)
@@ -278,7 +278,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
             scope_handler=Mock(), site_adapter=Mock(), token_generator=Mock())
         handler.client = Client(identifier="abc", secret="xyz",
                                 redirect_uris=["https://callback"])
-        result = handler.redirect_oauth_error(error_mock, response_mock)
+        result = handler.handle_error(error_mock, response_mock)
 
         response_mock.add_header.assert_called_with("Location",
                                                     expected_redirect)
@@ -963,7 +963,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
             token_generator=Mock()
         )
 
-        with self.assertRaises(OAuthUserError) as expected:
+        with self.assertRaises(OAuthInvalidError) as expected:
             handler.process(request_mock, responseMock, {})
 
         e = expected.exception
@@ -979,7 +979,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         redirect_uri = "https://callback"
         expected_redirect_location = "%s#error=%s" % (redirect_uri, error_code)
 
-        error_mock = Mock(spec=OAuthUserError)
+        error_mock = Mock(spec=OAuthInvalidError)
         error_mock.error = error_code
 
         request_mock = Mock(spec=Request)
@@ -992,7 +992,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
             site_adapter=Mock(), token_generator=Mock())
         handler.client = Client(identifier="abc", secret="xyz",
                                 redirect_uris=[redirect_uri])
-        altered_response = handler.redirect_oauth_error(error_mock,
+        altered_response = handler.handle_error(error_mock,
                                                         response_mock)
 
         response_mock.add_header.assert_called_with(
