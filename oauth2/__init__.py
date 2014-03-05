@@ -94,6 +94,7 @@ python-oauth2 is available on
 """
 
 import json
+from oauth2.client_authenticator import ClientAuthenticator
 from oauth2.error import OAuthInvalidError, \
     ClientNotFoundError, OAuthInvalidNoRedirectError, UnsupportedGrantError
 from oauth2.web import Request, Response
@@ -123,7 +124,7 @@ class Provider(object):
                              :class:`oauth2.web.SiteAdapter`.
         :param token_generator: Object to generate unique tokens.
         :param response_class: Class of the response object.
-                               Default: :class:`oauth2.web.Response`.
+                               Defaults to :class:`oauth2.web.Response`.
 
         """
         self.grant_types = []
@@ -131,7 +132,8 @@ class Provider(object):
 
         self.access_token_store = access_token_store
         self.auth_code_store = auth_code_store
-        self.client_store = client_store
+        self.client_authenticator = ClientAuthenticator(
+            client_store=client_store)
         self.response_class = response_class
         self.site_adapter = site_adapter
         self.token_generator = token_generator
@@ -168,18 +170,10 @@ class Provider(object):
             response.status_code = 400
             return response
         except OAuthInvalidError as err:
+            print(err.error)
+            print(err.explanation)
             response = self.response_class()
             return grant_type.handle_error(error=err, response=response)
-            # response = self.response_class()
-            # response.add_header("Content-Type", "application/json")
-            # response.status_code = 400
-            # json_body = {"error": error.error}
-
-            # if error.explanation is not None:
-            #     json_body["error_description"] = error.explanation
-
-            # response.body = json.dumps(json_body)
-            # return response
         except UnsupportedGrantError:
             response = self.response_class()
             response.add_header("Content-Type", "application/json")

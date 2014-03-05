@@ -57,7 +57,7 @@ def json_error_response(error, response):
     """
     Formats an error as a response containing a JSON body.
     """
-    msg = {"error": error.error, "description": error.explanation}
+    msg = {"error": error.error, "error_description": error.explanation}
 
     response.status_code = 400
     response.add_header("Content-Type", "application/json")
@@ -266,6 +266,10 @@ class AuthRequestMixin(object):
         Implicit Grant.
         """
         self.client = self.client_authenticator.by_identifier(request)
+
+        response_type = request.get_param("response_type")
+        if self.client.response_type_supported(response_type) is False:
+            raise OAuthInvalidError(error="unauthorized_client")
 
         self.state = request.get_param("state")
 

@@ -30,7 +30,7 @@ class ClientAuthenticatorTestCase(unittest.TestCase):
 
         request_mock = Mock(spec=Request)
         request_mock.get_param.side_effect = [self.client.identifier,
-                                              response_type, redirect_uri]
+                                              redirect_uri]
 
         client = self.authenticator.by_identifier(request=request_mock)
 
@@ -58,20 +58,6 @@ class ClientAuthenticatorTestCase(unittest.TestCase):
             self.authenticator.by_identifier(request=request_mock)
 
         self.assertEqual(expected.exception.error, "unknown_client")
-
-    def test_by_identifier_response_type_not_allowed(self):
-        unsupported_response_type = "token"
-
-        request_mock = Mock(spec=Request)
-        request_mock.get_param.side_effect = [self.client.identifier,
-                                              unsupported_response_type]
-
-        self.client_store_mock.fetch_by_client_id.return_value = self.client
-
-        with self.assertRaises(OAuthInvalidError) as expected:
-            self.authenticator.by_identifier(request=request_mock)
-
-        self.assertEqual(expected.exception.error, "unauthorized_client")
 
     def test_by_identifier_unknown_redirect_uri(self):
         response_type = "code"

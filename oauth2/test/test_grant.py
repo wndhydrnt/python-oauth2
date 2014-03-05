@@ -92,19 +92,20 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         """
         AuthRequestMixin.read_validate_params should parse all params correctly if they are valid
         """
+        response_type = "code"
         state = "state"
 
-        client_mock = Mock(Client)
-        client_mock.identifier = "abc"
-        client_mock.redirect_uri = "http://callback"
+        client = Client(identifier="abc", secret="xyz",
+                        redirect_uris=["http://callback"],
+                        authorized_response_types=["code"])
 
         request_mock = Mock(spec=Request)
-        request_mock.get_param.side_effect = [state]
+        request_mock.get_param.side_effect = [response_type, state]
 
         scope_handler_mock = Mock(Scope)
 
         client_auth_mock = Mock(spec=ClientAuthenticator)
-        client_auth_mock.by_identifier.return_value = client_mock
+        client_auth_mock.by_identifier.return_value = client
 
         handler = AuthRequestMixin(client_authenticator=client_auth_mock,
                                    scope_handler=scope_handler_mock,
@@ -115,7 +116,6 @@ class AuthRequestMixinTestCase(unittest.TestCase):
         request_mock.get_param.assert_has_calls([call("state")])
         scope_handler_mock.parse.assert_called_with(request_mock, "query")
         client_auth_mock.by_identifier.assert_called_with(request_mock)
-        self.assertEqual(handler.client, client_mock)
         self.assertEqual(handler.state, state)
         self.assertTrue(result)
 
