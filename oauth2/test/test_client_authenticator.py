@@ -23,7 +23,6 @@ class ClientAuthenticatorTestCase(unittest.TestCase):
             source=self.source_mock)
 
     def test_by_identifier(self):
-        response_type = "code"
         redirect_uri = "http://callback"
 
         self.client_store_mock.fetch_by_client_id.return_value = self.client

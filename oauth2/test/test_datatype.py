@@ -25,6 +25,13 @@ class AccessTokenTestCase(unittest.TestCase):
 
         self.assertEqual(access_token.expires_in, 100)
 
+    def test_is_expired_expired_at_not_set(self):
+        access_token = AccessToken(client_id="abc",
+                                   grant_type="client_credentials",
+                                   token="def")
+
+        self.assertFalse(access_token.is_expired())
+
 
 class ClientTestCase(unittest.TestCase):
     def test_redirect_uri(self):
@@ -38,9 +45,16 @@ class ClientTestCase(unittest.TestCase):
         with self.assertRaises(RedirectUriUnknown):
             client.redirect_uri = "http://another.callback"
 
-    def test_is_grant_authorized(self):
+    def test_response_type_supported(self):
         client = Client(identifier="abc", secret="xyz",
                         authorized_grants=["test_grant"])
 
         self.assertTrue(client.grant_type_supported("test_grant"))
         self.assertFalse(client.grant_type_supported("unknown_grant"))
+
+    def test_response_type_supported(self):
+        client = Client(identifier="abc", secret="xyz",
+                        authorized_response_types=["test_response_type"])
+
+        self.assertTrue(client.response_type_supported("test_response_type"))
+        self.assertFalse(client.response_type_supported("unknown"))

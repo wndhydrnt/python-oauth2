@@ -50,15 +50,6 @@ class AccessToken(object):
 
         return True
 
-    def to_json(self):
-        json = {"access_token": self.token, "token_type": "Bearer"}
-
-        if self.refresh_token is not None:
-            json["refresh_token"] = self.refresh_token
-            json["expires_in"] = self.expires_in
-
-        return json
-
 
 class AuthorizationCode(object):
     """
@@ -86,18 +77,24 @@ class Client(object):
     """
     def __init__(self, identifier, secret, authorized_grants=None,
                  authorized_response_types=None, redirect_uris=None):
+        """
+        :param identifier: The unique identifier of a client.
+        :param secret: The secret the clients uses to authenticate.
+        :param authorized_grants: A list of grants under which the client can
+                                  request tokens.
+                                  All grants are allowed if this value is set
+                                  to `None` (default).
+        :param authorized_response_types: A list of response types of which
+                                          the client can request tokens.
+                                          All response types are allowed if
+                                          this value is set to `None`
+                                          (default).
+        :redirect_uris: A list of redirect uris this client can use.
+        """
+        self.authorized_grants = authorized_grants
+        self.authorized_response_types = authorized_response_types
         self.identifier = identifier
         self.secret = secret
-
-        if authorized_grants is None:
-            self.authorized_grants = []
-        else:
-            self.authorized_grants = authorized_grants
-
-        if authorized_response_types is None:
-            self.authorized_response_types = []
-        else:
-            self.authorized_response_types = authorized_response_types
 
         if redirect_uris is None:
             self.redirect_uris = []
@@ -128,6 +125,9 @@ class Client(object):
 
         :return: Boolean
         """
+        if self.authorized_grants is None:
+            return True
+
         return grant_type in self.authorized_grants
 
     def response_type_supported(self, response_type):
@@ -139,4 +139,7 @@ class Client(object):
 
         :return: Boolean
         """
+        if self.authorized_response_types is None:
+            return True
+
         return response_type in self.authorized_response_types
