@@ -5,25 +5,26 @@ from oauth2.datatype import AccessToken, AuthorizationCode
 from oauth2.error import AccessTokenNotFound, AuthCodeNotFound
 from oauth2.store import AccessTokenStore, AuthCodeStore
 
+
 class TokenStore(AccessTokenStore, AuthCodeStore):
     """
     Uses memcache to store access tokens and auth tokens.
-    
+
     This Store supports ``python-memcached``. Arguments are passed to the
     underlying client implementation.
-    
+
     Initialization by passing an object::
-        
+
         # This example uses python-memcached
         import memcache
-        
+
         # Somewhere in your application
         mc = memcache.Client(servers=['127.0.0.1:11211'], debug=0)
         # ...
         token_store = TokenStore(mc=mc)
-        
+
     Initialization using ``python-memcached``::
-        
+
         token_store = TokenStore(servers=['127.0.0.1:11211'], debug=0)
 
     """
@@ -39,9 +40,9 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
         """
         Returns data belonging to an authorization code from memcache or
         ``None`` if no data was found.
-        
+
         See :class:`oauth2.store.AuthCodeStore`.
-        
+
         """
         code_data = self.mc.get(self._generate_cache_key(code))
 
@@ -53,9 +54,9 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
     def save_code(self, authorization_code):
         """
         Stores the data belonging to an authorization code token in memcache.
-        
+
         See :class:`oauth2.store.AuthCodeStore`.
-        
+
         """
         key = self._generate_cache_key(authorization_code.code)
 
@@ -77,9 +78,9 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
     def save_token(self, access_token):
         """
         Stores the access token and additional data in memcache.
-        
+
         See :class:`oauth2.store.AccessTokenStore`.
-        
+
         """
         key = self._generate_cache_key(access_token.token)
         self.mc.set(key, access_token.__dict__)

@@ -6,6 +6,7 @@ import hashlib
 import os
 import uuid
 
+
 class TokenGenerator(object):
     """
     Base class of every token generator.
@@ -13,7 +14,7 @@ class TokenGenerator(object):
     def __init__(self):
         """
         Create a new instance of a token generator.
-        
+
         :param expires_in: Timeframe in seconds that defines how long a
                            generated token will be valid. Default: 0
         """
@@ -22,7 +23,7 @@ class TokenGenerator(object):
     def create_access_token_data(self):
         """
         Create data needed by an access token.
-        
+
         :return: A ``dict`` containing he ``access_token`` and the
                  ``token_type``. If the value of ``TokenGenerator.expires_in``
                  is larger than 0, a ``refresh_token`` will be generated too.
@@ -33,7 +34,6 @@ class TokenGenerator(object):
             result["refresh_token"] = self.generate()
             result["expires_in"] = self.expires_in
 
-
         return result
 
     def generate(self):
@@ -41,6 +41,7 @@ class TokenGenerator(object):
         Implemented by generators extending this base class.
         """
         raise NotImplementedError
+
 
 class URandomTokenGenerator(TokenGenerator):
     """
@@ -60,6 +61,7 @@ class URandomTokenGenerator(TokenGenerator):
         hash_gen.update(random_data)
 
         return hash_gen.hexdigest()[:self.token_length]
+
 
 class Uuid4(TokenGenerator):
     """

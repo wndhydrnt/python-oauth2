@@ -11,6 +11,10 @@ dist/
 build/
 _build/
 
+# coverage
+.coverage
+cover/
+
 # Vagrant
 .vagrant/
 Berksfile.lock

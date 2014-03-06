@@ -10,6 +10,7 @@ from oauth2.error import AccessTokenNotFound, AuthCodeNotFound, \
                          ClientNotFoundError
 from oauth2.datatype import Client
 
+
 class ClientStore(ClientStore):
     """
     Stores clients in memory.
@@ -17,19 +18,23 @@ class ClientStore(ClientStore):
     def __init__(self):
         self.clients = {}
 
-    def add_client(self, client_id, client_secret, redirect_uris):
+    def add_client(self, client_id, client_secret, redirect_uris,
+                   authorized_grants=None, authorized_response_types=None):
         """
         Add a client app.
-        
+
         :param client_id: Identifier of the client app.
         :param client_secret: Secret the client app uses for authentication
                               against the OAuth 2.0 provider.
         :param redirect_uris: A ``list`` of URIs to redirect to.
-        
+
         """
-        self.clients[client_id] = Client(identifier=client_id,
-                                         secret=client_secret,
-                                         redirect_uris=redirect_uris)
+        self.clients[client_id] = Client(
+            identifier=client_id,
+            secret=client_secret,
+            redirect_uris=redirect_uris,
+            authorized_grants=authorized_grants,
+            authorized_response_types=authorized_response_types)
 
         return True
 
@@ -47,10 +52,11 @@ class ClientStore(ClientStore):
 
         return self.clients[client_id]
 
+
 class TokenStore(AccessTokenStore, AuthCodeStore):
     """
     Stores tokens in memory.
-    
+
     Useful for testing purposes or APIs with a very limited set of clients.
     Use memcache or redis as storage to be able to scale.
     """
@@ -63,12 +69,12 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
     def fetch_by_code(self, code):
         """
         Returns an AuthorizationCode.
-        
+
         :param code: The authorization code.
         :return: An instance of :class:`oauth2.datatype.AuthorizationCode`.
         :raises: :class:`AuthCodeNotFound` if no data could be retrieved for
                  given code.
-        
+
         """
         if code not in self.auth_codes:
             raise AuthCodeNotFound
@@ -78,10 +84,10 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
     def save_code(self, authorization_code):
         """
         Stores the data belonging to an authorization code token.
-        
+
         :param authorization_code: An instance of
                                    :class:`oauth2.datatype.AuthorizationCode`.
-        
+
         """
         self.auth_codes[authorization_code.code] = authorization_code
 
@@ -90,7 +96,7 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
     def save_token(self, access_token):
         """
         Stores an access token and additional data in memory.
-        
+
         :param access_token: An instance of :class:`oauth2.datatype.AccessToken`.
         """
         self.access_tokens[access_token.token] = access_token
@@ -117,7 +123,7 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
     def fetch_by_refresh_token(self, refresh_token):
         """
         Find an access token by its refresh token.
-        
+
         :param refresh_token: The refresh token that was assigned to an
                               ``AccessToken``.
         :return: The :class:`oauth2.datatype.AccessToken`.

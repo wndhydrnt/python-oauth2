@@ -133,7 +133,8 @@ class MongodbAuthCodeStoreTestCase(unittest.TestCase):
 class MongodbClientStoreTestCase(unittest.TestCase):
     def test_fetch_by_client_id(self):
         client_data = {"identifier": "testclient", "secret": "k#4g6",
-                       "redirect_uris": ["https://redirect"]}
+                       "redirect_uris": ["https://redirect"],
+                       "authorized_grants": []}
 
         collection_mock = Mock(spec=["find_one"])
         collection_mock.find_one.return_value = client_data
@@ -144,7 +145,7 @@ class MongodbClientStoreTestCase(unittest.TestCase):
         collection_mock.find_one.assert_called_with({
             "identifier": client_data["identifier"]})
         self.assertTrue(isinstance(client, Client))
-        self.assertDictEqual(client.__dict__, client_data)
+        self.assertEqual(client.identifier, client_data["identifier"])
 
     def test_fetch_by_client_id_no_data(self):
         collection_mock = Mock(spec=["find_one"])
