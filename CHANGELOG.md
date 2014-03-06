@@ -1,4 +1,9 @@
-## 0.6.0 (unreleased)
+## 0.6.0
+
+Features:
+
+  - Issue unique access tokens
+  - Define what grants a client is allowed to use
 
 Improvements:
 

@@ -52,13 +52,6 @@ class OAuthBaseError(Exception):
         super(OAuthBaseError, self).__init__()
 
 
-class OAuthClientError(OAuthBaseError):
-    """
-    Indicates an error during recognition of a client.
-    """
-    pass
-
-
 class OAuthInvalidError(OAuthBaseError):
     """
     Indicates an error during validation of a request.

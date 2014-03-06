@@ -27,10 +27,8 @@ So there are two remaining parties:
 * The server that issues the access.
 
 """
-from oauth2.error import OAuthInvalidError, OAuthClientError, \
-    ClientNotFoundError, UserNotAuthenticated, AccessTokenNotFound, \
-    UserIdentifierMissingError, OAuthInvalidNoRedirectError, \
-    RedirectUriUnknown
+from oauth2.error import OAuthInvalidError, UserNotAuthenticated, \
+    AccessTokenNotFound, UserIdentifierMissingError, RedirectUriUnknown
 from oauth2.compatibility import urlencode, quote
 import json
 import time

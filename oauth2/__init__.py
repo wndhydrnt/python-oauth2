@@ -141,6 +141,9 @@ class Provider(object):
     def add_grant(self, grant):
         """
         Adds a Grant that the provider should support.
+
+        :param grant: An instance of a class that extends
+                      :class:`oauth2.grant.GrantHandlerFactory`
         """
         if hasattr(grant, "expires_in"):
             self.token_generator.expires_in = grant.expires_in
@@ -197,7 +200,17 @@ class Provider(object):
     @property
     def scope_separator(self, separator):
         """
-        Sets the separator of values in scope query parameter.
+        Sets the separator of values in the scope query parameter.
+        Defaults to " " (whitespace).
+
+        The following code makes the Provider use "," instead of " "::
+
+            provider = Provider()
+
+            provider.scope_separator = ","
+
+        Now the scope parameter in the request of a client can look like this:
+        `scope=foo,bar`.
         """
         Scope.separator = separator
 

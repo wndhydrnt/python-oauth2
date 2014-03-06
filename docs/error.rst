@@ -3,15 +3,13 @@
 
 .. automodule:: oauth2.error
 
+.. autoclass:: AccessTokenNotFound
+
 .. autoclass:: AuthCodeNotFound
 
 .. autoclass:: ClientNotFoundError
 
 .. autoclass:: OAuthBaseError
-
-.. autoclass:: OAuthClientError
-
-.. autoclass:: OAuthUserError
 
 .. autoclass:: OAuthInvalidError
 
