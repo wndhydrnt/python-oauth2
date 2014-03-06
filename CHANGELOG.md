@@ -3,6 +3,7 @@
 Improvements:
 
   - Corrected class references in doc strings (Josh Johnston)
+  - Proper handling of errors raised by store adapters
 
 Bugfixes:
 

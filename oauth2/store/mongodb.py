@@ -142,12 +142,16 @@ class ClientStore(ClientStore, MongodbStore):
     """
 
     def fetch_by_client_id(self, client_id):
-        client_data = self.collection.find_one(
-            {"identifier": client_id})
+        client_data = self.collection.find_one({"identifier": client_id})
 
         if client_data is None:
             raise ClientNotFoundError
 
-        return Client(identifier=client_data.get("identifier"),
-                      secret=client_data.get("secret"),
-                      redirect_uris=client_data.get("redirect_uris"))
+        return Client(
+            identifier=client_data.get("identifier"),
+            secret=client_data.get("secret"),
+            redirect_uris=client_data.get("redirect_uris"),
+            authorized_grants=client_data.get("authorized_grants"),
+            authorized_response_types=client_data.get(
+                "authorized_response_types"
+            ))
