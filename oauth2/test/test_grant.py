@@ -780,6 +780,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
 
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.create_access_token_data.return_value = token_data
+        token_generator_mock.refresh_expires_in = 10000
 
         response_mock = Mock(spec=Response)
         response_mock.body = None
@@ -859,6 +860,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
             side_effect = AccessTokenNotFound
 
         token_generator_mock = Mock(spec=TokenGenerator)
+        token_generator_mock.refresh_expires_in = 10000
         token_generator_mock.create_access_token_data.\
             return_value = token_data
 
@@ -894,6 +896,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
 
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.create_access_token_data.return_value = token_data
+        token_generator_mock.refresh_expires_in = 10000
 
         handler = AuthorizationCodeTokenHandler(
             access_token_store=access_token_store_mock,
@@ -930,6 +933,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
 
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.create_access_token_data.return_value = token_data
+        token_generator_mock.refresh_expires_in = 10000
 
         handler = AuthorizationCodeTokenHandler(
             access_token_store=access_token_store_mock,
@@ -1296,7 +1300,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
 
         site_adapter_mock.authenticate.assert_called_with(request_mock, {},
                                                           scopes)
-        token_generator_mock.create_access_token_data.assert_called_with()
+        token_generator_mock.create_access_token_data.assert_called_with(ResourceOwnerGrant.grant_type)
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
         self.assertEqual(access_token.grant_type,
@@ -1337,6 +1341,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
 
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.create_access_token_data.return_value = token_data
+        token_generator_mock.refresh_expires_in = 1200
 
         handler = ResourceOwnerGrantHandler(
             access_token_store=access_token_store_mock,
@@ -1349,7 +1354,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
 
         site_adapter_mock.authenticate.assert_called_with(request_mock, {},
                                                           scopes)
-        token_generator_mock.create_access_token_data.assert_called_with()
+        token_generator_mock.create_access_token_data.assert_called_with(ResourceOwnerGrant.grant_type)
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
         self.assertEqual(access_token.user_id, user[1])
@@ -1394,7 +1399,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         handler.client_id = client_id
         result = handler.process(Mock(Request), response_mock, {})
 
-        token_generator_mock.create_access_token_data.assert_called_with()
+        token_generator_mock.create_access_token_data.assert_called_with(ResourceOwnerGrant.grant_type)
         response_mock.add_header.assert_has_calls([call("Content-Type",
                                                         "application/json"),
                                                    call("Cache-Control",
@@ -1734,7 +1739,7 @@ class RefreshTokenTestCase(unittest.TestCase):
 
 class RefreshTokenHandlerTestCase(unittest.TestCase):
     @patch("time.time", mock_time)
-    def test_process(self):
+    def test_process_no_reissue(self):
         client_id = "testclient"
         data = {"additional": "data"}
         expires_in = 600
@@ -1753,9 +1758,10 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         scope_handler_mock = Mock(spec=Scope)
         scope_handler_mock.scopes = scopes
 
-        token_generator_mock = Mock(spec=["generate"])
-        token_generator_mock.expires_in = expires_in
-        token_generator_mock.generate.return_value = token
+        token_data = {"access_token": token, "expires_in":expires_in, "token_type": "Bearer", "refresh_token":"gafc"}
+        token_generator_mock = Mock(spec=TokenGenerator)
+        token_generator_mock.create_access_token_data.return_value = token_data
+        token_generator_mock.refresh_expires_in = 1200
 
         handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
                                       client_store=Mock(spec=ClientStore),
@@ -1763,13 +1769,14 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
                                       token_generator=token_generator_mock)
         handler.client_id = client_id
         handler.data = data
+        handler.refresh_grant_type = 'test_grant_type'
 
         result = handler.process(request=Mock(spec=Request),
                                  response=response, environ={})
 
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertEqual(access_token.client_id, client_id)
-        self.assertEqual(access_token.grant_type, "refresh_token")
+        self.assertEqual(access_token.grant_type, handler.refresh_grant_type)
         self.assertDictEqual(access_token.data, data)
         self.assertEqual(access_token.token, token)
         self.assertListEqual(access_token.scopes, scopes)
@@ -1789,8 +1796,9 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         scopes = []
 
         access_token = AccessToken(client_id=client_id, token=original_token,
-                                   grant_type=RefreshToken.grant_type,
-                                   data=data, expires_at=1234, scopes=scopes)
+                                   grant_type="test_grant_type",
+                                   data=data, expires_at=1234, scopes=scopes, 
+                                   refresh_expires_at=0)
 
         access_token_store_mock = Mock(AccessTokenStore)
         access_token_store_mock.fetch_by_refresh_token.return_value = access_token
@@ -1805,12 +1813,15 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         request_mock.post_param.side_effect = [client_id, client_secret,
                                                refresh_token]
 
+        token_generator_mock = Mock(expires_in={'test_grant_type':600})
+        token_generator_mock.refresh_expires_in = 0
+
         scope_handler_mock = Mock(spec=Scope)
 
         handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
                                       client_store=client_store_mock,
                                       scope_handler=scope_handler_mock,
-                                      token_generator=Mock(expires_in=600))
+                                      token_generator=token_generator_mock)
 
         handler.read_validate_params(request=request_mock)
 
@@ -1954,12 +1965,13 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         self.assertEqual(e.explanation, "Invalid refresh token")
 
     @patch("time.time", mock_time)
-    def test_read_validate_params_expired_access_token(self):
+    def test_read_validate_params_expired_refresh_token(self):
         client_id = "abc"
         secret = "xyz"
 
         access_token_mock = Mock(spec=AccessToken)
-        access_token_mock.expires_at = 900
+        access_token_mock.grant_type = 'test_grant_type'
+        access_token_mock.refresh_expires_at = 900
 
         access_token_store_mock = Mock(spec=AccessTokenStore)
         access_token_store_mock.fetch_by_refresh_token.return_value = access_token_mock
@@ -1975,7 +1987,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
                                       client_store=client_store_mock,
                                       scope_handler=Mock(),
-                                      token_generator=Mock(expires_in=600))
+                                      token_generator=Mock(expires_in={'test_grant_type':600}))
 
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
@@ -2063,8 +2075,7 @@ class ClientCredentialsHandlerTestCase(unittest.TestCase):
 
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.generate.return_value = token
-        token_generator_mock.expires_in = expires_in
-
+        token_generator_mock.expires_in = {ClientCredentialsGrant.grant_type:expires_in}
         handler = ClientCredentialsHandler(
             access_token_store=access_token_store_mock,
             client_store=Mock(),
@@ -2099,7 +2110,7 @@ class ClientCredentialsHandlerTestCase(unittest.TestCase):
 
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.generate.return_value = token
-        token_generator_mock.expires_in = expires_in
+        token_generator_mock.expires_in = {ClientCredentialsGrant.grant_type:expires_in}
 
         handler = ClientCredentialsHandler(
             access_token_store=access_token_store_mock,
