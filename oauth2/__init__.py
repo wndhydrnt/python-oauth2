@@ -102,7 +102,7 @@ from oauth2.tokengenerator import Uuid4
 from oauth2.grant import Scope, AuthorizationCodeGrant, ImplicitGrant, \
     ClientCredentialsGrant, ResourceOwnerGrant, RefreshToken
 
-VERSION = "0.6.0"
+VERSION = "0.7.0"
 
 
 class Provider(object):
