@@ -28,7 +28,8 @@ So there are two remaining parties:
 
 """
 from oauth2.error import OAuthInvalidError, UserNotAuthenticated, \
-    AccessTokenNotFound, UserIdentifierMissingError, RedirectUriUnknown
+    AccessTokenNotFound, UserIdentifierMissingError, RedirectUriUnknown, \
+    AuthCodeNotFound
 from oauth2.compatibility import urlencode, quote
 import json
 import time
@@ -527,25 +528,27 @@ class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
                 explanation="Invalid redirect_uri parameter")
 
     def _validate_code(self):
-        stored_code = self.auth_code_store.fetch_by_code(self.code)
-
-        if stored_code is None:
-            raise OAuthInvalidError(error="invalid_request",
-                                    explanation="Invalid authorization code " \
-                                                "parameter")
+        try:
+            stored_code = self.auth_code_store.fetch_by_code(self.code)
+        except AuthCodeNotFound:
+            raise OAuthInvalidError(
+                error="invalid_request",
+                explanation="Invalid authorization code parameter")
 
         if stored_code.code != self.code:
-            raise OAuthInvalidError(error="invalid_grant",
-                                    explanation="Invalid code parameter in " \
-                                                "request")
+            raise OAuthInvalidError(
+                error="invalid_grant",
+                explanation="Invalid code parameter in request")
 
         if stored_code.redirect_uri != self.redirect_uri:
-            raise OAuthInvalidError(error="invalid_request",
-                                    explanation="Invalid redirect_uri parameter")
+            raise OAuthInvalidError(
+                error="invalid_request",
+                explanation="Invalid redirect_uri parameter")
 
         if stored_code.is_expired():
-            raise OAuthInvalidError(error="invalid_grant",
-                                    explanation="Authorization code has expired")
+            raise OAuthInvalidError(
+                error="invalid_grant",
+                explanation="Authorization code has expired")
 
         self.data = stored_code.data
         self.scopes = stored_code.scopes

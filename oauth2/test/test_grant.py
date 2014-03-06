@@ -10,7 +10,7 @@ from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler, \
     ClientCredentialsHandler, AuthorizeMixin
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
 from oauth2.error import OAuthInvalidError, UserNotAuthenticated, \
-    AccessTokenNotFound, UserIdentifierMissingError
+    AccessTokenNotFound, UserIdentifierMissingError, AuthCodeNotFound
 from oauth2 import Provider
 from oauth2.datatype import Client, AuthorizationCode, AccessToken
 from oauth2.tokengenerator import TokenGenerator
@@ -410,7 +410,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         redirect_uri = "http://callback"
 
         auth_code_store_mock = Mock(spec=AuthCodeStore)
-        auth_code_store_mock.fetch_by_code.return_value = None
+        auth_code_store_mock.fetch_by_code.side_effect = AuthCodeNotFound
 
         client = Client(identifier=client_id, secret=client_secret,
                         redirect_uris=[redirect_uri])
