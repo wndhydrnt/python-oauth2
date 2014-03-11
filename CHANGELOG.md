@@ -1,5 +1,9 @@
 ## 0.7.0 (unreleased)
 
+Improvements:
+
+  - Updated Tornado integration docs (kvio360)
+
 ## 0.6.0
 
 Features:
