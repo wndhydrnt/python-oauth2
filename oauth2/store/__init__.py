@@ -50,6 +50,18 @@ class AccessTokenStore(object):
         """
         raise NotImplementedError
 
+    def delete_refresh_token(self, refresh_token):
+        """
+        Deletes an access token from the store using its refresh token to identify it.
+        This invalidates both the access token and the refresh token.
+        
+        :param refresh_token: A string containing the refresh token.
+        :return: None.
+        :raises: :class:`oauth2.error.AccessTokenNotFound` if no data could be retrieved for
+                 given refresh_token.
+        """
+        raise NotImplementedError
+
 
 class AuthCodeStore(object):
     """

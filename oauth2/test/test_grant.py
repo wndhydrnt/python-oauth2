@@ -1787,6 +1787,58 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         self.assertEqual(json.dumps(expected_response_body), result.body)
 
     @patch("time.time", mock_time)
+    def test_process_with_reissue(self):
+        client_id = "testclient"
+        data = {"additional": "data"}
+        expires_in = 600
+        scopes = []
+        token = "abcdefg"
+        refresh_token = "cefg"
+        expected_response_body = {"access_token": token,
+                                  "expires_in": expires_in,
+                                  "refresh_token": refresh_token,
+                                  "token_type": "Bearer"}
+        expected_headers = {"Content-Type": "application/json",
+                            "Cache-Control": "no-store", "Pragma": "no-cache"}
+
+        access_token_store_mock = Mock(spec=AccessTokenStore)
+
+        response = Response()
+
+        scope_handler_mock = Mock(spec=Scope)
+        scope_handler_mock.scopes = scopes
+
+        token_data = {"access_token": token, "expires_in":expires_in, "token_type": "Bearer", "refresh_token":refresh_token}
+        token_generator_mock = Mock(spec=TokenGenerator)
+        token_generator_mock.create_access_token_data.return_value = token_data
+        token_generator_mock.refresh_expires_in = 1200
+
+        handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
+                                      client_store=Mock(spec=ClientStore),
+                                      scope_handler=scope_handler_mock,
+                                      token_generator=token_generator_mock,
+                                      reissue_refresh_tokens=True)
+        handler.client_id = client_id
+        handler.data = data
+        handler.refresh_grant_type = 'test_grant_type'
+
+        result = handler.process(request=Mock(spec=Request),
+                                 response=response, environ={})
+
+        access_token, = access_token_store_mock.save_token.call_args[0]
+        self.assertEqual(access_token.client_id, client_id)
+        self.assertEqual(access_token.grant_type, handler.refresh_grant_type)
+        self.assertDictEqual(access_token.data, data)
+        self.assertEqual(access_token.token, token)
+        self.assertListEqual(access_token.scopes, scopes)
+        self.assertEqual(access_token.expires_at, 1600)
+
+        self.assertEqual(result, response)
+        self.assertDictContainsSubset(expected_headers, result.headers)
+        self.assertEqual(json.dumps(expected_response_body), result.body)
+
+
+    @patch("time.time", mock_time)
     def test_read_validate_params(self):
         client_id = "client"
         client_secret = "secret"

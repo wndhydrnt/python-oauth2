@@ -99,7 +99,9 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
         Deletes a refresh token after use
         :param refresh_token: The refresh token to delete.
         """
-        self.mc.delete(refresh_token)
+        access_token = self.fetch_by_refresh_token(refresh_token)
+        self.mc.delete(self._generate_cache_key(access_token.token))
+        self.mc.delete(self._generate_cache_key(refresh_token))
 
     def fetch_by_refresh_token(self, refresh_token):
         token_data = self.mc.get(refresh_token)
