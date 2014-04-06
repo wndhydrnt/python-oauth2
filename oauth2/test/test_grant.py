@@ -1512,12 +1512,13 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         token_generator_mock.create_access_token_data.return_value = token_data
         token_generator_mock.refresh_expires_in = 1200
 
-        handler = RefreshTokenHandler(access_token_store=access_token_store_mock,
-                                      client_store=Mock(spec=ClientStore),
-                                      scope_handler=scope_handler_mock,
-                                      token_generator=token_generator_mock,
-                                      reissue_refresh_tokens=True)
-        handler.client_id = client_id
+        handler = RefreshTokenHandler(
+            access_token_store=access_token_store_mock,
+            client_authenticator=Mock(spec=ClientAuthenticator),
+            scope_handler=scope_handler_mock,
+            token_generator=token_generator_mock,
+            reissue_refresh_tokens=True)
+        handler.client = Client(identifier=client_id, secret="xyz")
         handler.data = data
         handler.refresh_grant_type = 'test_grant_type'
 
