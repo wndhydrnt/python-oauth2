@@ -17,10 +17,12 @@ class TokenGenerator(object):
 
         :param expires_in: Timeframe in seconds that defines how long a
                            generated token will be valid. Default: 0
+                           This is defined per grant-type.
         """
-        self.expires_in = 0
+        self.expires_in = {}
+        self.refresh_expires_in = 0
 
-    def create_access_token_data(self):
+    def create_access_token_data(self, grant_type):
         """
         Create data needed by an access token.
 
@@ -30,9 +32,10 @@ class TokenGenerator(object):
         """
         result = {"access_token": self.generate(), "token_type": "Bearer"}
 
-        if self.expires_in > 0:
+        if self.expires_in.get(grant_type, 0) > 0:
             result["refresh_token"] = self.generate()
-            result["expires_in"] = self.expires_in
+
+            result["expires_in"] = self.expires_in[grant_type]
 
         return result
 

@@ -63,7 +63,8 @@ class MemcacheTokenStoreTestCase(unittest.TestCase):
     def test_save_token(self):
         data = {"client_id": "myclient", "token": "xyz",
                 "data": {"name": "test"}, "scopes": ["foo_read", "foo_write"],
-                "expires_at": None, "refresh_token": "mno",
+                "expires_at": None, "refresh_token": "mno", 
+                "refresh_expires_at": None,
                 "grant_type": "authorization_code",
                 "user_id": 123}
 

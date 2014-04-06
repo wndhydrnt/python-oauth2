@@ -44,7 +44,16 @@ class AccessTokenStore(AccessTokenStore, MongodbStore):
                            data=data.get("data"),
                            expires_at=data.get("expires_at"),
                            refresh_token=data.get("refresh_token"),
+                           refresh_expires_at=data.get("refresh_expires_at"),
                            scopes=data.get("scopes"))
+
+    def delete_refresh_token(self, refresh_token):
+        """
+        Deletes (invalidates) an old refresh token after use
+        :param refresh_token: The refresh token.
+        """
+        self.collection.remove({"refresh_token": refresh_token})
+
 
     def fetch_existing_token_of_user(self, client_id, grant_type, user_id):
         data = self.collection.find_one({"client_id": client_id,
@@ -62,6 +71,7 @@ class AccessTokenStore(AccessTokenStore, MongodbStore):
                            data=data.get("data"),
                            expires_at=data.get("expires_at"),
                            refresh_token=data.get("refresh_token"),
+                           refresh_expires_at=data.get("refresh_expires_at"),
                            scopes=data.get("scopes"),
                            user_id=data.get("user_id"))
 
@@ -73,6 +83,7 @@ class AccessTokenStore(AccessTokenStore, MongodbStore):
             "data": access_token.data,
             "expires_at": access_token.expires_at,
             "refresh_token": access_token.refresh_token,
+            "refresh_expires_at": access_token.refresh_expires_at,
             "scopes": access_token.scopes,
             "user_id": access_token.user_id})
 

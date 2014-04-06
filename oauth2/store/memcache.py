@@ -95,6 +95,15 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
             rft_key = self._generate_cache_key(access_token.refresh_token)
             self.mc.set(rft_key, access_token.__dict__)
 
+    def delete_refresh_token(self, refresh_token):
+        """
+        Deletes a refresh token after use
+        :param refresh_token: The refresh token to delete.
+        """
+        access_token = self.fetch_by_refresh_token(refresh_token)
+        self.mc.delete(self._generate_cache_key(access_token.token))
+        self.mc.delete(self._generate_cache_key(refresh_token))
+
     def fetch_by_refresh_token(self, refresh_token):
         token_data = self.mc.get(refresh_token)
 

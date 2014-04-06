@@ -15,6 +15,7 @@ class MongodbAccessTokenStoreTestCase(unittest.TestCase):
                                   "data": {"name": "test"},
                                   "expires_at": 1000,
                                   "refresh_token": "abcd",
+                                  "refresh_expires_at": 2000,
                                   "user_id": None}
 
     def test_fetch_by_refresh_token(self):
@@ -50,6 +51,7 @@ class MongodbAccessTokenStoreTestCase(unittest.TestCase):
                      "data": {"name": "test"},
                      "expires_at": 1000,
                      "refresh_token": "abcd",
+                     "refresh_expires_at": 2000,
                      "user_id": 123}
 
         collection_mock = Mock(spec=["find_one"])

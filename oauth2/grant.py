@@ -358,7 +358,7 @@ class AccessTokenMixin(object):
             except AccessTokenNotFound:
                 pass
 
-        token_data = self.token_generator.create_access_token_data()
+        token_data = self.token_generator.create_access_token_data(grant_type)
 
         access_token = AccessToken(client_id=client_id, data=data,
                                    grant_type=grant_type,
@@ -370,6 +370,9 @@ class AccessTokenMixin(object):
             expires_at = int(time.time()) + token_data["expires_in"]
             access_token.expires_at = expires_at
             access_token.refresh_token = token_data["refresh_token"]
+            refresh_expires_in = self.token_generator.refresh_expires_in
+            refresh_expires_at = int(time.time()) + refresh_expires_in
+            access_token.refresh_expires_at = refresh_expires_at
 
         self.access_token_store.save_token(access_token)
 
@@ -569,8 +572,9 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
 
     grant_type = "authorization_code"
 
-    def __init__(self, unique_token=False, **kwargs):
+    def __init__(self, unique_token=False, expires_in=0, **kwargs):
         self.unique_token = unique_token
+        self.expires_in = expires_in
 
         super(AuthorizationCodeGrant, self).__init__(**kwargs)
 
@@ -699,8 +703,9 @@ class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant):
 
     grant_type = "password"
 
-    def __init__(self, unique_token=False, **kwargs):
+    def __init__(self, unique_token=False, expires_in=0, **kwargs):
         self.unique_token = unique_token
+        self.expires_in = expires_in
 
         super(ResourceOwnerGrant, self).__init__(**kwargs)
 
@@ -793,17 +798,22 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
 
         auth_controller = AuthorizationController()
 
-        auth_controller.add_grant_type(RefreshToken(expires_in=600))
+        auth_controller.add_grant_type(ResourceOwnerGrant(tokens_expire=600))
+        auth_controller.add_grant_type(RefreshToken(tokens_expire=1200))
 
     will cause :class:`oauth2.grant.AuthorizationCodeGrant` and
     :class:`oauth2.grant.ResourceOwnerGrant` to include a refresh token and
     expiration in the response.
+    If tokens_expire == 0, the tokens will never expire.
     """
 
     grant_type = "refresh_token"
 
-    def __init__(self, expires_in, **kwargs):
-        self.expires_in = expires_in
+    def __init__(self, expires_in,
+                 reissue_refresh_tokens=False, **kwargs):
+
+        self.refresh_expires_in = expires_in
+        self.reissue_refresh_tokens = reissue_refresh_tokens
 
         super(RefreshToken, self).__init__(**kwargs)
 
@@ -823,7 +833,9 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
             access_token_store=server.access_token_store,
             client_authenticator=server.client_authenticator,
             scope_handler=self._create_scope_handler(),
-            token_generator=server.token_generator)
+            token_generator=server.token_generator,
+            reissue_refresh_tokens = self.reissue_refresh_tokens,
+            )
 
 
 class RefreshTokenHandler(GrantHandler):
@@ -832,7 +844,8 @@ class RefreshTokenHandler(GrantHandler):
     """
 
     def __init__(self, access_token_store, client_authenticator,
-                 scope_handler, token_generator):
+                 scope_handler, token_generator,
+                 reissue_refresh_tokens=False):
         self.access_token_store = access_token_store
         self.client_authenticator = client_authenticator
         self.scope_handler = scope_handler
@@ -842,6 +855,8 @@ class RefreshTokenHandler(GrantHandler):
         self.data = {}
         self.refresh_token = None
         self.user_id = None
+
+        self.reissue_refresh_tokens = reissue_refresh_tokens
 
     def process(self, request, response, environ):
         """
@@ -855,22 +870,28 @@ class RefreshTokenHandler(GrantHandler):
         :return: :class:`oauth2.web.Response`
 
         """
-        expires_in = self.token_generator.expires_in
-        expires_at = int(time.time()) + expires_in
-        token = self.token_generator.generate()
+        token_data = self.token_generator.create_access_token_data(self.refresh_grant_type)
+        expires_at = int(time.time()) + token_data["expires_in"]
 
         access_token = AccessToken(client_id=self.client.identifier,
-                                   token=token,
-                                   grant_type=RefreshToken.grant_type,
+                                   token=token_data["access_token"],
+                                   grant_type=self.refresh_grant_type,
                                    data=self.data, expires_at=expires_at,
                                    scopes=self.scope_handler.scopes,
                                    user_id=self.user_id)
+
+        if self.reissue_refresh_tokens:
+            self.access_token_store.delete_refresh_token(self.refresh_token)
+            access_token.refresh_token = token_data["refresh_token"]
+            refresh_expires_in = self.token_generator.refresh_expires_in
+            refresh_expires_at = int(time.time()) + refresh_expires_in
+            access_token.refresh_expires_at = refresh_expires_at
+        else:
+            del token_data["refresh_token"]
+
         self.access_token_store.save_token(access_token)
 
-        response_data = {"access_token": token, "expires_in": expires_in,
-                         "token_type": "Bearer"}
-
-        json_success_response(data=response_data, response=response)
+        json_success_response(data=token_data, response=response)
 
         return response
 
@@ -902,7 +923,12 @@ class RefreshTokenHandler(GrantHandler):
             raise OAuthInvalidError(error="invalid_request",
                                     explanation="Invalid refresh token")
 
-        if access_token.expires_at < int(time.time()):
+
+        refresh_token_expires_at = access_token.refresh_expires_at
+        self.refresh_grant_type = access_token.grant_type
+
+        if refresh_token_expires_at != 0 and \
+           refresh_token_expires_at < int(time.time()):
             raise OAuthInvalidError(error="invalid_request",
                                     explanation="Invalid refresh token")
 
@@ -948,7 +974,8 @@ class ClientCredentialsHandler(GrantHandler):
         body = {"token_type": "Bearer"}
 
         token = self.token_generator.generate()
-        expires_at = int(time.time()) + self.token_generator.expires_in
+        expires_in = self.token_generator.expires_in[ClientCredentialsGrant.grant_type]
+        expires_at = int(time.time()) + expires_in
 
         access_token = AccessToken(
             client_id=self.client.identifier,
@@ -960,8 +987,8 @@ class ClientCredentialsHandler(GrantHandler):
 
         body["access_token"] = token
 
-        if self.token_generator.expires_in > 0:
-            body["expires_in"] = self.token_generator.expires_in
+        if expires_in > 0:
+            body["expires_in"] = expires_in
 
         if self.scope_handler.send_back:
             body["scope"] = encode_scopes(self.scope_handler.scopes)
