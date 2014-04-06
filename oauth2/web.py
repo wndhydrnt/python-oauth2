@@ -4,6 +4,7 @@ Classes for handling a HTTP request/response flow.
 
 from oauth2.compatibility import parse_qs
 
+
 class SiteAdapter(object):
     """
     Interact with a user.
@@ -53,6 +54,7 @@ class SiteAdapter(object):
         """
         raise NotImplementedError
 
+
 class Request(object):
     """
     Contains data of the current HTTP request.
@@ -61,13 +63,14 @@ class Request(object):
         """
         :param env: Wsgi environment
         """
-        self.method       = env["REQUEST_METHOD"]
+        self.method = env["REQUEST_METHOD"]
         self.query_params = {}
         self.query_string = env["QUERY_STRING"]
-        self.path         = env["PATH_INFO"]
-        self.post_params  = {}
+        self.path = env["PATH_INFO"]
+        self.post_params = {}
+        self.env_raw = env
 
-        for param,value in parse_qs(env["QUERY_STRING"]).items():
+        for param, value in parse_qs(env["QUERY_STRING"]).items():
             self.query_params[param] = value[0]
 
         if (self.method == "POST"
@@ -76,7 +79,7 @@ class Request(object):
             content = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
             post_params = parse_qs(content)
 
-            for param,value in post_params.items():
+            for param, value in post_params.items():
                 self.post_params[param] = value[0]
 
     def get_param(self, name, default=None):
@@ -97,6 +100,18 @@ class Request(object):
         except KeyError:
             return default
 
+    def header(self, name, default=None):
+        """
+        Returns the value of the HTTP header identified by `name`.
+        """
+        wsgi_header = "HTTP_{0}".format(name.upper())
+
+        try:
+            return self.env_raw[wsgi_header]
+        except KeyError:
+            return default
+
+
 class Response(object):
     """
     Contains data returned to the requesting user agent.
@@ -113,6 +128,7 @@ class Response(object):
     def add_header(self, header, value):
         self._headers[header] = str(value)
 
+
 class Wsgi(object):
     HTTP_CODES = {200: "200 OK",
                   301: "301 Moved Permanently",
@@ -123,13 +139,13 @@ class Wsgi(object):
     def __init__(self, server, authorize_uri="/authorize", env_vars=None,
                  request_class=Request, token_uri="/token"):
         self.authorize_uri = authorize_uri
-        self.env_vars      = env_vars
+        self.env_vars = env_vars
         self.request_class = request_class
-        self.server        = server
-        self.token_uri     = token_uri
+        self.server = server
+        self.token_uri = token_uri
 
         self.server.authorize_path = authorize_uri
-        self.server.token_path     = token_uri
+        self.server.token_path = token_uri
 
     def __call__(self, env, start_response):
         environ = {}
