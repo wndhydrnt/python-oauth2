@@ -1,6 +1,7 @@
+import base64
 from oauth2.test import unittest
 from mock import Mock
-from oauth2.client_authenticator import ClientAuthenticator
+from oauth2.client_authenticator import ClientAuthenticator, http_basic_auth
 from oauth2.datatype import Client
 from oauth2.error import OAuthInvalidNoRedirectError, ClientNotFoundError,\
     OAuthInvalidError
@@ -139,3 +140,39 @@ class ClientAuthenticatorTestCase(unittest.TestCase):
             self.authenticator.by_identifier_secret(request_mock)
 
         self.assertEqual(expected.exception.error, "invalid_client")
+
+
+class HttpBasicAuthTestCase(unittest.TestCase):
+    def test_valid(self):
+        client_id = "testclient"
+        client_secret = "secret"
+
+        encoded = base64.b64encode("{0}:{1}".format(client_id, client_secret))
+
+        request_mock = Mock(spec=Request)
+        request_mock.header.return_value = "Basic {0}".format(encoded)
+
+        result_client_id, result_client_secret = http_basic_auth(request=request_mock)
+
+        request_mock.header.assert_called_with("authorization")
+
+        self.assertEqual(result_client_id, client_id)
+        self.assertEqual(result_client_secret, client_secret)
+
+    def test_header_not_present(self):
+        request_mock = Mock(spec=Request)
+        request_mock.header.return_value = None
+
+        with self.assertRaises(OAuthInvalidError) as expected:
+            http_basic_auth(request=request_mock)
+
+        self.assertEqual(expected.exception.error, "invalid_request")
+
+    def test_invalid_authorization_header(self):
+        request_mock = Mock(spec=Request)
+        request_mock.header.return_value = base64.b64encode("some-data")
+
+        with self.assertRaises(OAuthInvalidError) as expected:
+            http_basic_auth(request=request_mock)
+
+        self.assertEqual(expected.exception.error, "invalid_request")
