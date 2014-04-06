@@ -266,10 +266,8 @@ class AuthRequestMixin(object):
         """
         self.client = self.client_authenticator.by_identifier(request)
 
-        print(self.client)
-
         response_type = request.get_param("response_type")
-        print(response_type)
+
         if self.client.response_type_supported(response_type) is False:
             raise OAuthInvalidError(error="unauthorized_client")
 
