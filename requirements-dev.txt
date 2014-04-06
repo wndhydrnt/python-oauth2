@@ -1,3 +1,4 @@
+basicauth
 mock
 nose
 tornado
