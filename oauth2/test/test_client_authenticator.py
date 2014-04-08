@@ -1,4 +1,5 @@
 import base64
+from base64 import b64encode
 from oauth2.test import unittest
 from mock import Mock
 from oauth2.client_authenticator import ClientAuthenticator, http_basic_auth
@@ -147,10 +148,13 @@ class HttpBasicAuthTestCase(unittest.TestCase):
         client_id = "testclient"
         client_secret = "secret"
 
-        encoded = base64.b64encode("{0}:{1}".format(client_id, client_secret))
+        credentials = "{0}:{1}".format(client_id, client_secret)
+
+        encoded = b64encode(credentials.encode("latin1"))
 
         request_mock = Mock(spec=Request)
-        request_mock.header.return_value = "Basic {0}".format(encoded)
+        request_mock.header.return_value = "Basic {0}".\
+            format(encoded.decode("latin1"))
 
         result_client_id, result_client_secret = http_basic_auth(request=request_mock)
 
@@ -170,7 +174,7 @@ class HttpBasicAuthTestCase(unittest.TestCase):
 
     def test_invalid_authorization_header(self):
         request_mock = Mock(spec=Request)
-        request_mock.header.return_value = base64.b64encode("some-data")
+        request_mock.header.return_value = "some-data"
 
         with self.assertRaises(OAuthInvalidError) as expected:
             http_basic_auth(request=request_mock)

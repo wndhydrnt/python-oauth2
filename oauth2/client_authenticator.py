@@ -1,5 +1,4 @@
-import basicauth
-from basicauth import DecodeError
+from base64 import b64decode
 from oauth2.error import OAuthInvalidNoRedirectError, RedirectUriUnknown, \
     OAuthInvalidError, ClientNotFoundError
 
@@ -112,9 +111,13 @@ def http_basic_auth(request):
         raise OAuthInvalidError(error="invalid_request",
                                 explanation="Missing authorization header")
 
-    try:
-        return basicauth.decode(auth_header)
-    except DecodeError:
+    auth_parts = auth_header.strip().encode("latin1").split(None)
+
+    if auth_parts[0].strip().lower() != b'basic':
         raise OAuthInvalidError(
             error="invalid_request",
-            explanation="Invalid value of authorization header")
+            explanation="Provider supports basic authentication only")
+
+    client_id, client_secret = b64decode(auth_parts[1]).split(b':', 1)
+
+    return client_id.decode("latin1"), client_secret.decode("latin1")
