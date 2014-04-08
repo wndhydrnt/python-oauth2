@@ -1,3 +1,4 @@
+from base64 import b64decode
 from oauth2.error import OAuthInvalidNoRedirectError, RedirectUriUnknown, \
     OAuthInvalidError, ClientNotFoundError
 
@@ -16,7 +17,7 @@ class ClientAuthenticator(object):
         self.source = source
 
         if self.source is None:
-            self.source = request_body_source
+            self.source = request_body
 
     def by_identifier(self, request):
         """
@@ -75,7 +76,14 @@ class ClientAuthenticator(object):
         return client
 
 
-def request_body_source(request):
+def request_body(request):
+    """
+    Extracts the credentials of a client from the body of a request.
+
+    :param request: An instance of :class:`oauth2.web.Request`
+
+    :return: A tuple of the format `(<CLIENT ID>, <CLIENT SECRET>)`
+    """
     client_id = request.post_param("client_id")
     if client_id is None:
         raise OAuthInvalidError(error="invalid_request",
@@ -87,3 +95,29 @@ def request_body_source(request):
                                 explanation="Missing client credentials")
 
     return client_id, client_secret
+
+
+def http_basic_auth(request):
+    """
+    Extracts the credentials of a client using HTTP Basic Auth.
+
+    :param request: An instance of :class:`oauth2.web.Request`
+
+    :return: A tuple of the format `(<CLIENT ID>, <CLIENT SECRET>)`
+    """
+    auth_header = request.header("authorization")
+
+    if auth_header is None:
+        raise OAuthInvalidError(error="invalid_request",
+                                explanation="Missing authorization header")
+
+    auth_parts = auth_header.strip().encode("latin1").split(None)
+
+    if auth_parts[0].strip().lower() != b'basic':
+        raise OAuthInvalidError(
+            error="invalid_request",
+            explanation="Provider supports basic authentication only")
+
+    client_id, client_secret = b64decode(auth_parts[1]).split(b':', 1)
+
+    return client_id.decode("latin1"), client_secret.decode("latin1")
