@@ -1535,7 +1535,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
 
         self.assertEqual(result, response)
         self.assertDictContainsSubset(expected_headers, result.headers)
-        self.assertEqual(json.dumps(expected_response_body), result.body)
+        self.assertDictEqual(expected_response_body, json.loads(result.body))
 
 
     @patch("time.time", mock_time)
