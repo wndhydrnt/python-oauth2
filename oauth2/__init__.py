@@ -94,7 +94,7 @@ python-oauth2 is available on
 """
 
 import json
-from oauth2.client_authenticator import ClientAuthenticator
+from oauth2.client_authenticator import ClientAuthenticator, request_body
 from oauth2.error import OAuthInvalidError, \
     ClientNotFoundError, OAuthInvalidNoRedirectError, UnsupportedGrantError
 from oauth2.web import Request, Response
@@ -110,12 +110,14 @@ class Provider(object):
     token_path = "/token"
 
     def __init__(self, access_token_store, auth_code_store, client_store,
-                 site_adapter, token_generator, response_class=Response):
+                 site_adapter, token_generator,
+                 client_authentication_source=request_body,
+                 response_class=Response):
         """
         Endpoint of requests to the OAuth 2.0 provider.
 
-        :param access_token_store: An object that implements methods defined by
-                                   :class:`oauth2.store.AccessTokenStore`.
+        :param access_token_store: An object that implements methods defined
+                                   by :class:`oauth2.store.AccessTokenStore`.
         :param auth_code_store: An object that implements methods defined by
                                 :class:`oauth2.store.AuthTokenStore`.
         :param client_store: An object that implements methods defined by
@@ -123,6 +125,9 @@ class Provider(object):
         :param site_adapter: An object that implements methods defined by
                              :class:`oauth2.web.SiteAdapter`.
         :param token_generator: Object to generate unique tokens.
+        :param client_authentication_source: A callable which when executed,
+                                             authenticates a client.
+                                             See :module:`oauth2.client_authenticator`.
         :param response_class: Class of the response object.
                                Defaults to :class:`oauth2.web.Response`.
 
@@ -133,7 +138,8 @@ class Provider(object):
         self.access_token_store = access_token_store
         self.auth_code_store = auth_code_store
         self.client_authenticator = ClientAuthenticator(
-            client_store=client_store)
+            client_store=client_store,
+            source=client_authentication_source)
         self.response_class = response_class
         self.site_adapter = site_adapter
         self.token_generator = token_generator
