@@ -1,23 +1,28 @@
+"""
+Every client that sends a request to obtain an access token needs to
+authenticate with the provider.
+
+The authentication of confidential clients can be handled in several ways,
+some of which come bundled with this module.
+"""
+
 from base64 import b64decode
 from oauth2.error import OAuthInvalidNoRedirectError, RedirectUriUnknown, \
     OAuthInvalidError, ClientNotFoundError
 
 
 class ClientAuthenticator(object):
-    def __init__(self, client_store, source=None):
-        """
-        Constructor.
+    """
+    Handles authentication of a client both by its identifier as well as by its
+    identifier and secret.
 
-        :param client_store: An instance of :class:`oauth2.store.ClientStore`.
-        :param source: A callable that returns a tuple
-                       (<client_id>, <client_secret>). Defaults to
-                       `oauth2.client_authenticator.request_body_source`.
-        """
+    :param client_store: An instance of :class:`oauth2.store.ClientStore`.
+    :param source: A callable that returns a tuple
+                   (<client_id>, <client_secret>).
+    """
+    def __init__(self, client_store, source):
         self.client_store = client_store
         self.source = source
-
-        if self.source is None:
-            self.source = request_body
 
     def by_identifier(self, request):
         """
@@ -78,11 +83,15 @@ class ClientAuthenticator(object):
 
 def request_body(request):
     """
-    Extracts the credentials of a client from the body of a request.
+    Extracts the credentials of a client from the
+    *application/x-www-form-urlencoded* body of a request.
+
+    Expects the client_id to be the value of the `client_id` parameter and
+    the client_secret to be the value of the `client_secret` parameter.
 
     :param request: An instance of :class:`oauth2.web.Request`
 
-    :return: A tuple of the format `(<CLIENT ID>, <CLIENT SECRET>)`
+    :return: A tuple in the format of `(<CLIENT ID>, <CLIENT SECRET>)`
     """
     client_id = request.post_param("client_id")
     if client_id is None:
@@ -101,9 +110,12 @@ def http_basic_auth(request):
     """
     Extracts the credentials of a client using HTTP Basic Auth.
 
+    Expects the client_id to be the username and the client_secret to be the
+    password part of the Authorization header.
+
     :param request: An instance of :class:`oauth2.web.Request`
 
-    :return: A tuple of the format `(<CLIENT ID>, <CLIENT SECRET>)`
+    :return: A tuple in the format of (<CLIENT ID>, <CLIENT SECRET>)`
     """
     auth_header = request.header("authorization")
 
