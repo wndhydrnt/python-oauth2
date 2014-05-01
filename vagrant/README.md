@@ -11,6 +11,7 @@ Requirements
 
 - [VirtualBox](https://www.virtualbox.org/wiki/Downloads) to create the VM.
 - [Vagrant](http://downloads.vagrantup.com/) to set up the VM.
+- [vagrant-omnibus](https://github.com/schisamo/vagrant-omnibus) to keep Chef up-to-date.
 - [Bundler](http://bundler.io/) to install gems
 
 Setup

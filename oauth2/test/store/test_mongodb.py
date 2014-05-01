@@ -6,6 +6,7 @@ from oauth2.datatype import AccessToken, AuthorizationCode, Client
 from oauth2.error import AccessTokenNotFound, AuthCodeNotFound, \
     ClientNotFoundError
 
+
 class MongodbAccessTokenStoreTestCase(unittest.TestCase):
     def setUp(self):
         self.access_token_data = {"client_id": "myclient",

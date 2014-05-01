@@ -505,7 +505,6 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
             handler.read_validate_params(request_mock)
 
         error = expected.exception
-        print(error.explanation)
 
         self.assertEqual(error.error, "invalid_grant")
         self.assertEqual(error.explanation, "Authorization code has expired")

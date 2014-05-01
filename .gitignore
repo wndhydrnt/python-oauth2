@@ -19,4 +19,5 @@ cover/
 .vagrant/
 Berksfile.lock
 cookbooks/
+Gemfile.lock
 
