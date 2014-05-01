@@ -33,3 +33,4 @@ Implementations
    store/memcache.rst
    store/memory.rst
    store/mongodb.rst
+   store/redisdb.rst

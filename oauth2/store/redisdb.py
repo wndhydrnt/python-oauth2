@@ -3,8 +3,10 @@ import redis
 import json
 
 from oauth2.datatype import AccessToken, AuthorizationCode, Client
-from oauth2.error import AccessTokenNotFound, AuthCodeNotFound
+from oauth2.error import AccessTokenNotFound, AuthCodeNotFound, \
+    ClientNotFoundError
 from oauth2.store import AccessTokenStore, AuthCodeStore, ClientStore
+
 
 class TokenStore(AccessTokenStore, AuthCodeStore):
     """
@@ -16,9 +18,9 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
     Initialization::
 
         import redisdb
-        
-        token_store = TokenStore(host="127.0.0.1", 
-            port=6379, 
+
+        token_store = TokenStore(host="127.0.0.1",
+            port=6379,
             db=0
         )
 
@@ -30,7 +32,6 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
             self.rs = rs
         else:
             self.rs = redis.StrictRedis(*args, **kwargs)
-
 
     def fetch_by_code(self, code):
         """
@@ -86,7 +87,7 @@ class TokenStore(AccessTokenStore, AuthCodeStore):
                                                   access_token.user_id)
         self.rs.set(self._generate_cache_key(unique_token_key),
                     json.dumps(access_token.__dict__))
-        self.rs.set("%s:%s"%(access_token.user_id,access_token.client_id), unique_token_key)
+        self.rs.set("%s:%s" % (access_token.user_id,access_token.client_id), unique_token_key)
 
         if access_token.refresh_token is not None:
             rft_key = self._generate_cache_key(access_token.refresh_token)
@@ -145,25 +146,24 @@ class ClientStore(ClientStore):
         :param redirect_uris: A ``list`` of URIs to redirect to.
 
         """
-        self.rs.set(client_id,json.dumps({
-            'identifier':client_id,
-            'secret':client_secret,
-            'redirect_uris':redirect_uris,
-            'authorized_grants':authorized_grants,
-            'authorized_response_types':authorized_response_types
+        self.rs.set(client_id, json.dumps({
+            'identifier': client_id,
+            'secret': client_secret,
+            'redirect_uris': redirect_uris,
+            'authorized_grants': authorized_grants,
+            'authorized_response_types': authorized_response_types
             #scopes, user_id
         }))
         return self.fetch_by_client_id(client_id)
 
-
     def fetch_by_client_id(self, client_id):
-        client_data  = self.rs.get(client_id)
+        client_data = self.rs.get(client_id)
 
         if client_data is None:
             raise ClientNotFoundError
 
         client_data = json.loads(client_data)
-        
+
         return Client(
             identifier=client_data['identifier'],
             secret=client_data['secret'],
