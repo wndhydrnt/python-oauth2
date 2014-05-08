@@ -11,7 +11,7 @@ Requirements
 
 - [VirtualBox](https://www.virtualbox.org/wiki/Downloads) to create the VM.
 - [Vagrant](http://downloads.vagrantup.com/) to set up the VM.
-- [Berkshelf](http://berkshelf.com/) to resolve cookbook dependencies.
+- [Bundler](http://bundler.io/) to install gems
 
 Setup
 -----
@@ -19,6 +19,8 @@ Setup
 Go into the ``/vagrant`` sub-directory and use vagrant to boot up the VM:
 
     $ cd ./vagrant
+    $ bundle install // install gems. this will install berkshelf.
+    $ bundle exec berks vendor ./cookbooks // install chef cookbooks
     $ vagrant up
 
 Creating the VM can take several minutes.

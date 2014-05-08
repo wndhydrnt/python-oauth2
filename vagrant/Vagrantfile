@@ -50,6 +50,8 @@ Vagrant.configure("2") do |config|
   # path, and data_bags path (all relative to this Vagrantfile), and adding
   # some recipes and/or roles.
   #
+  config.vm.provision "shell", inline: "wget -O - https://www.opscode.com/chef/install.sh | sudo bash"
+
   config.vm.provision :chef_solo do |chef|
     chef.cookbooks_path = "cookbooks"
 
@@ -61,7 +63,4 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.provision "shell", path: "setup.sh"
-
-  # Use Berkshelf to install dependencies on cookbooks
-  # config.berkshelf.enabled = true
 end
