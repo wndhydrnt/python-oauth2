@@ -67,12 +67,13 @@ class ClientAuthenticator(object):
             client = self.client_store.fetch_by_client_id(client_id)
         except ClientNotFoundError:
             raise OAuthInvalidError(error="invalid_client",
-                                    explanation="No client found")
+                                    explanation="No client could be found")
 
         grant_type = request.post_param("grant_type")
         if client.grant_type_supported(grant_type) is False:
             raise OAuthInvalidError(error="unauthorized_client",
-                                    explanation="Grant type not allowed")
+                                    explanation="The client is not allowed "
+                                                "to use this grant type")
 
         if client.secret != client_secret:
             raise OAuthInvalidError(error="invalid_client",
@@ -121,7 +122,7 @@ def http_basic_auth(request):
 
     if auth_header is None:
         raise OAuthInvalidError(error="invalid_request",
-                                explanation="Missing authorization header")
+                                explanation="Authorization header is missing")
 
     auth_parts = auth_header.strip().encode("latin1").split(None)
 
