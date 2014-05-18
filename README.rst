@@ -25,7 +25,7 @@ python-oauth2 is available on
 Usage
 *****
 
-Example Authorization server::
+Example Authorization server
 
 .. code-block:: python
 
