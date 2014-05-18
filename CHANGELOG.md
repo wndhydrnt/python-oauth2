@@ -4,7 +4,8 @@ Features:
 
   - Issue a new refresh token when requesting an access token through the refresh_token grant type (jswitzer)
   - Set the expiration time of a token for each grant individually (jswitzer)
-  - Redis store (bhoomit)
+  - Create redis stores (bhoomit)
+  - Create mysql stores
 
 Improvements:
 

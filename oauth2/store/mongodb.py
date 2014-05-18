@@ -54,7 +54,6 @@ class AccessTokenStore(AccessTokenStore, MongodbStore):
         """
         self.collection.remove({"refresh_token": refresh_token})
 
-
     def fetch_existing_token_of_user(self, client_id, grant_type, user_id):
         data = self.collection.find_one({"client_id": client_id,
                                          "grant_type": grant_type,

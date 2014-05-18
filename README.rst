@@ -27,6 +27,8 @@ Usage
 
 Example Authorization server::
 
+.. code-block:: python
+
     from wsgiref.simple_server import make_server
     import oauth2
     import oauth2.grant

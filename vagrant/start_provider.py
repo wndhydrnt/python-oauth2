@@ -1,8 +1,12 @@
+import argparse
+import MySQLdb
 from pymongo import MongoClient
 
 from wsgiref.simple_server import make_server
 
 from oauth2 import Provider
+from oauth2.store.dbapi.mysql import MysqlAccessTokenStore, MysqlAuthCodeStore, \
+    MysqlClientStore
 from oauth2.store.mongodb import AccessTokenStore, AuthCodeStore, ClientStore
 from oauth2.tokengenerator import Uuid4
 from oauth2.web import SiteAdapter, Wsgi
@@ -19,13 +23,31 @@ class TestSiteAdapter(SiteAdapter):
 
 
 def main():
-    client = MongoClient()
+    parser = argparse.ArgumentParser(description="python-oauth2 test provider")
+    parser.add_argument("--store", dest="store", type=str, default="mongodb",
+                        help="The store adapter to use. Can one of 'mongodb'"\
+                             "(default), 'mysql'")
+    args = parser.parse_args()
 
-    db = client.testdb
+    if args.store == "mongodb":
+        print("Using mongodb stores...")
+        client = MongoClient()
 
-    access_token_store = AccessTokenStore(collection=db["access_tokens"])
-    auth_code_store = AuthCodeStore(collection=db["auth_codes"])
-    client_store = ClientStore(collection=db["clients"])
+        db = client.testdb
+
+        access_token_store = AccessTokenStore(collection=db["access_tokens"])
+        auth_code_store = AuthCodeStore(collection=db["auth_codes"])
+        client_store = ClientStore(collection=db["clients"])
+    elif args.store == "mysql":
+        print("Using mysql stores...")
+        connection = MySQLdb.connect(host="127.0.0.1", user="root",
+                                     passwd="master", db="testdb")
+
+        access_token_store = MysqlAccessTokenStore(connection=connection)
+        auth_code_store = MysqlAuthCodeStore(connection=connection)
+        client_store = MysqlClientStore(connection=connection)
+    else:
+        raise Exception("Unknown store")
 
     provider = Provider(access_token_store=access_token_store,
                         auth_code_store=auth_code_store,
@@ -33,13 +55,11 @@ def main():
                         site_adapter=TestSiteAdapter(),
                         token_generator=Uuid4())
 
-    provider.add_grant(AuthorizationCodeGrant())
+    provider.add_grant(AuthorizationCodeGrant(expires_in=120))
     provider.add_grant(ImplicitGrant())
     provider.add_grant(ResourceOwnerGrant())
     provider.add_grant(ClientCredentialsGrant())
-    provider.add_grant(RefreshToken(expires_in=600))
-
-    provider.enable_unique_tokens()
+    provider.add_grant(RefreshToken(expires_in=60))
 
     app = Wsgi(server=provider)
 

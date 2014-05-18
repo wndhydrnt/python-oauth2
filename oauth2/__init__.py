@@ -182,8 +182,6 @@ class Provider(object):
             response.status_code = 400
             return response
         except OAuthInvalidError as err:
-            print(err.error)
-            print(err.explanation)
             response = self.response_class()
             return grant_type.handle_error(error=err, response=response)
         except UnsupportedGrantError:
