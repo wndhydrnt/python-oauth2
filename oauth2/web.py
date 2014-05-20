@@ -165,7 +165,9 @@ class Wsgi(object):
 
         response = self.server.dispatch(request, environ)
 
+        print(response.headers.items())
+
         start_response(self.HTTP_CODES[response.status_code],
-                       response.headers.items())
+                       list(response.headers.items()))
 
         return [response.body]

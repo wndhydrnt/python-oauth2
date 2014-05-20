@@ -11,6 +11,10 @@ Improvements:
 
   - Updated Tornado integration docs (kvio360)
 
+Bugfixes:
+
+  - Fix WSGI adapter not passing a list of tuples as headers in Python 3
+
 ## 0.6.0
 
 Features:

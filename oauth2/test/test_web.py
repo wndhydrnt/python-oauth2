@@ -132,5 +132,6 @@ class WsgiTestCase(unittest.TestCase):
         request_class_mock.assert_called_with(environment)
         server_mock.dispatch.assert_called_with(request_mock,
                                                 {"myvar": "value"})
-        start_response_mock.assert_called_with(http_code, headers.items())
+        start_response_mock.assert_called_with(http_code,
+                                               list(headers.items()))
         self.assertEqual(result, [body])
