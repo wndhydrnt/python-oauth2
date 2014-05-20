@@ -1,3 +1,9 @@
 # Run All unit tests
-unittest:
+test:
 	nosetests
+
+unittest:
+	nosetests --exclude='integration'
+
+functest:
+	nosetests --where=oauth2/test/integration
