@@ -1,4 +1,4 @@
-import MySQLdb
+import mysql.connector
 from pymongo import MongoClient
 
 client_id = "tc"
@@ -27,8 +27,8 @@ def create_in_mongodb():
 
 
 def create_in_mysql():
-    connection = MySQLdb.connect(host="127.0.0.1", user="root", passwd="master",
-                                 db="testdb")
+    connection = mysql.connector.connect(host="127.0.0.1", user="root",
+                                         passwd="", db="testdb")
 
     check_client = connection.cursor()
     check_client.execute("SELECT * FROM clients WHERE identifier = %s", (client_id,))
@@ -93,7 +93,6 @@ def create_in_mysql():
             connection.commit()
 
             create_redirect_uri.close()
-
 
 
 create_in_mysql()

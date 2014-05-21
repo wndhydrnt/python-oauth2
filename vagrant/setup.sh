@@ -10,6 +10,6 @@ then
     echo "export PYTHONPATH=/opt/python-oauth2" >> /home/vagrant/.bashrc
 fi
 # Create the testdb database in mysql
-mysql -uroot -pmaster < /vagrant/mysql-schema.sql
+mysql -uroot < /vagrant/mysql-schema.sql
 # Execute script to create a testclient entry in mongodb
 python /vagrant/create_testclient.py
