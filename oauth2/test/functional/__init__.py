@@ -86,7 +86,7 @@ class MemoryStoreCreator(StoreCreator):
 
 class MongoDbStoreCreator(StoreCreator):
     def initialize(self):
-        client = MongoClient('localhost', 27017)
+        client = MongoClient('127.0.0.1', 27017)
 
         self.db = client.test_database
 
