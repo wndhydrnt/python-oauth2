@@ -2,4 +2,3 @@ mock
 nose
 pymongo
 redis
-MySQL-python
