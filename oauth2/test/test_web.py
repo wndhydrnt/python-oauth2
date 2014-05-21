@@ -23,21 +23,21 @@ class RequestTestCase(unittest.TestCase):
         content_length = "42"
         request_method = "POST"
         query_string = ""
-        content = "foo=bar&baz=buz"
+        content = "foo=bar&baz=buz".encode('utf-8')
 
-        wsgiInputMock = Mock(spec=["read"])
-        wsgiInputMock.read.return_value = content
+        wsgi_input_mock = Mock(spec=["read"])
+        wsgi_input_mock.read.return_value = content
 
         environment = {"CONTENT_LENGTH": content_length,
                        "CONTENT_TYPE": "application/x-www-form-urlencoded",
                        "REQUEST_METHOD": request_method,
                        "QUERY_STRING": query_string,
                        "PATH_INFO": "/",
-                       "wsgi.input": wsgiInputMock}
+                       "wsgi.input": wsgi_input_mock}
 
         request = Request(environment)
 
-        wsgiInputMock.read.assert_called_with(int(content_length))
+        wsgi_input_mock.read.assert_called_with(int(content_length))
         self.assertEqual(request.method, request_method)
         self.assertEqual(request.query_params, {})
         self.assertEqual(request.query_string, query_string)
@@ -65,17 +65,17 @@ class RequestTestCase(unittest.TestCase):
         content_length = "42"
         request_method = "POST"
         query_string = ""
-        content = "foo=bar&baz=buz"
+        content = "foo=bar&baz=buz".encode('utf-8')
 
-        wsgiInputMock = Mock(spec=["read"])
-        wsgiInputMock.read.return_value = content
+        wsgi_input_mock = Mock(spec=["read"])
+        wsgi_input_mock.read.return_value = content
 
         environment = {"CONTENT_LENGTH": content_length,
                        "CONTENT_TYPE": "application/x-www-form-urlencoded",
                        "REQUEST_METHOD": request_method,
                        "QUERY_STRING": query_string,
                        "PATH_INFO": "/",
-                       "wsgi.input": wsgiInputMock}
+                       "wsgi.input": wsgi_input_mock}
 
         request = Request(environment)
 
@@ -87,7 +87,7 @@ class RequestTestCase(unittest.TestCase):
 
         self.assertEqual(result_default, None)
 
-        wsgiInputMock.read.assert_called_with(int(content_length))
+        wsgi_input_mock.read.assert_called_with(int(content_length))
 
     def test_header(self):
         environment = {"REQUEST_METHOD": "GET",
@@ -115,13 +115,13 @@ class WsgiTestCase(unittest.TestCase):
         request_mock = Mock(spec=Request)
         request_class_mock = Mock(return_value=request_mock)
 
-        responseMock = Mock(spec=Response)
-        responseMock.body = body
-        responseMock.headers = headers
-        responseMock.status_code = status_code
+        response_mock = Mock(spec=Response)
+        response_mock.body = body
+        response_mock.headers = headers
+        response_mock.status_code = status_code
 
         server_mock = Mock(spec=Provider)
-        server_mock.dispatch.return_value = responseMock
+        server_mock.dispatch.return_value = response_mock
 
         start_response_mock = Mock()
 
@@ -134,4 +134,4 @@ class WsgiTestCase(unittest.TestCase):
                                                 {"myvar": "value"})
         start_response_mock.assert_called_with(http_code,
                                                list(headers.items()))
-        self.assertEqual(result, [body])
+        self.assertEqual(result, [body.encode('utf-8')])

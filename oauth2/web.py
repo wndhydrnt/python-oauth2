@@ -120,8 +120,8 @@ class Response(object):
     """
     def __init__(self):
         self.status_code = 200
-        self._headers    = {"Content-Type": "text/html"}
-        self.body        = ""
+        self._headers = {"Content-Type": "text/html"}
+        self.body = ""
 
     @property
     def headers(self):
@@ -170,4 +170,4 @@ class Wsgi(object):
         start_response(self.HTTP_CODES[response.status_code],
                        list(response.headers.items()))
 
-        return [response.body.encode()]
+        return [response.body.encode('utf-8')]
