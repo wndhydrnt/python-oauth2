@@ -1,3 +1,5 @@
-pymongo==2.6.3
-MySQL-python==1.2.5
-wsgiref==0.1.2
+mock
+nose
+pymongo
+redis
+MySQL-python

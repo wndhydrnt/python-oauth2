@@ -8,6 +8,8 @@ from oauth2.test import unittest
 from oauth2.test.functional import NoLoggingHandler
 from oauth2.tokengenerator import Uuid4
 from oauth2.web import SiteAdapter, Wsgi
+from ..functional import store_factory
+import time
 
 
 try:
@@ -29,15 +31,13 @@ class AuthorizationCodeTestCase(unittest.TestCase):
         def run_provider():
             redirect_uri = "http://127.0.0.1:15487/callback"
 
-            token_store = TokenStore()
-            client_store = ClientStore()
+            stores = store_factory(client_identifier="abc",
+                                   client_secret="xyz",
+                                   redirect_uris=[redirect_uri])
 
-            client_store.add_client(client_id="abc", client_secret="xyz",
-                                    redirect_uris=[redirect_uri])
-
-            provider = Provider(access_token_store=token_store,
-                                auth_code_store=token_store,
-                                client_store=client_store,
+            provider = Provider(access_token_store=stores["access_token_store"],
+                                auth_code_store=stores["auth_code_store"],
+                                client_store=stores["client_store"],
                                 site_adapter=TestSiteAdapter(),
                                 token_generator=Uuid4())
 
@@ -63,10 +63,14 @@ class AuthorizationCodeTestCase(unittest.TestCase):
 
         uuid_regex = "^[a-z0-9]{8}\-[a-z0-9]{4}\-[a-z0-9]{4}\-[a-z0-9]{4}-[a-z0-9]{12}$"
 
-        self.client = Process(target=run_client)
-        self.client.start()
         self.provider = Process(target=run_provider)
         self.provider.start()
+
+        # Give the provider some time to connect to the database
+        time.sleep(1)
+
+        self.client = Process(target=run_client)
+        self.client.start()
 
         access_token_result = urlopen("http://127.0.0.1:15487/app").read()
 

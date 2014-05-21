@@ -1,5 +1,5 @@
 mock
 nose
-tornado
 pymongo
 redis
+MySQL-python

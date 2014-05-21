@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install pip and python development libs
-apt-get -y install python-pip python-dev libmysqlclient-dev
+apt-get -y install python-pip python-dev libmysqlclient-dev make
 # Install pythonb libs
 pip install -r /vagrant/requirements.txt
 # Make python-oauth2 available for python
