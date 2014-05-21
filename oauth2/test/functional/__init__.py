@@ -1,8 +1,10 @@
 import os
 from wsgiref.simple_server import WSGIRequestHandler
 from pymongo import MongoClient
+import mysql.connector
 import oauth2.store.mongodb
 import oauth2.store.memory
+import oauth2.store.dbapi.mysql
 
 
 class NoLoggingHandler(WSGIRequestHandler):
@@ -21,6 +23,8 @@ def store_factory(client_identifier, client_secret, redirect_uris):
 
     if database == "mongodb":
         creator_class = MongoDbStoreCreator
+    elif database == "mysql":
+        creator_class = MysqlStoreCreator
     else:
         creator_class = MemoryStoreCreator
 
@@ -109,3 +113,61 @@ class MongoDbStoreCreator(StoreCreator):
             "secret": "xyz",
             "redirect_uris": ["http://127.0.0.1:15487/callback"]
         })
+
+
+class MysqlStoreCreator(StoreCreator):
+    def initialize(self):
+        self.connection = mysql.connector.connect(host="127.0.0.1",
+                                                  user="root", passwd="",
+                                                  db="testdb")
+
+    def create_access_token_store(self):
+        return oauth2.store.dbapi.mysql.\
+            MysqlAccessTokenStore(connection=self.connection)
+
+    def create_auth_code_store(self):
+        return oauth2.store.dbapi.mysql.\
+            MysqlAuthCodeStore(connection=self.connection)
+
+    def create_client_store(self):
+        return oauth2.store.dbapi.mysql.\
+            MysqlClientStore(connection=self.connection)
+
+    def before_create(self):
+        cursor = self.connection.cursor()
+
+        try:
+            cursor.execute("TRUNCATE clients")
+            cursor.execute("TRUNCATE client_redirect_uris")
+
+            self.connection.commit()
+        finally:
+            cursor.close()
+
+    def after_create(self):
+        cursor = self.connection.cursor()
+
+        try:
+            cursor.execute(
+                "INSERT INTO clients (identifier, secret) VALUES (%s, %s)",
+                ("abc", "xyz"))
+
+            client_row_id = cursor.lastrowid
+
+            self.connection.commit()
+        finally:
+            cursor.close()
+
+        cursor = self.connection.cursor()
+
+        try:
+            cursor.execute(
+                """INSERT INTO client_redirect_uris
+                    (redirect_uri, client_id)
+                VALUES (%s, %s)""",
+                ("http://127.0.0.1:15487/callback", client_row_id)
+            )
+
+            self.connection.commit()
+        finally:
+            cursor.close()
