@@ -14,5 +14,5 @@ services:
 install:
   - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install unittest2; fi
   - if [ $TRAVIS_PYTHON_VERSION == '2.6' ] || [ $TRAVIS_PYTHON_VERSION == '2.7' ]; then pip install python-memcached; else pip install python3-memcached; fi
-  - pip install -r requirements-dev.txt --use-mirrors
+  - pip install -r requirements.txt --use-mirrors
 script: make test
