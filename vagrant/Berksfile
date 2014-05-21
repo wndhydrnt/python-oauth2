@@ -1,4 +1,5 @@
 source "http://api.berkshelf.com"
 
+cookbook 'memcached'
 cookbook 'mongodb'
 cookbook 'mysql'

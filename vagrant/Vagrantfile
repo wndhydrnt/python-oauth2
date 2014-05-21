@@ -58,6 +58,7 @@ Vagrant.configure("2") do |config|
     chef.cookbooks_path = "cookbooks"
 
     chef.add_recipe "apt"
+    chef.add_recipe "memcached"
     chef.add_recipe "mongodb::10gen_repo"
     chef.add_recipe "mongodb"
     chef.add_recipe "mysql::server"

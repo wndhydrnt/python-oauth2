@@ -3,7 +3,7 @@
 # Install pip and python development libs
 apt-get -y install python-pip python-dev libmysqlclient-dev make
 # Install pythonb libs
-pip install -r /vagrant/requirements.txt
+pip install -r /opt/python-oauth2/requirements.txt
 # Make python-oauth2 available for python
 if ! grep -Fxq "export PYTHONPATH=/opt/python-oauth2" /home/vagrant/.bashrc
 then
