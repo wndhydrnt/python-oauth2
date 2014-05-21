@@ -80,7 +80,9 @@ class Request(object):
             post_params = parse_qs(content)
 
             for param, value in post_params.items():
-                self.post_params[param] = value[0]
+                decoded_param = param.decode('utf-8')
+                decoded_value = value[0].decode('utf-8')
+                self.post_params[decoded_param] = decoded_value
 
     def get_param(self, name, default=None):
         """
@@ -168,4 +170,4 @@ class Wsgi(object):
         start_response(self.HTTP_CODES[response.status_code],
                        list(response.headers.items()))
 
-        return [response.body]
+        return [response.body.encode()]

@@ -1,7 +1,5 @@
 import json
 from multiprocessing.process import Process
-import urllib
-import urlparse
 from wsgiref.simple_server import make_server
 from oauth2 import Provider
 from oauth2.grant import AuthorizationCodeGrant, RefreshToken
@@ -10,6 +8,16 @@ from oauth2.test import unittest
 from oauth2.test.functional import NoLoggingHandler
 from oauth2.tokengenerator import Uuid4
 from oauth2.web import SiteAdapter, Wsgi
+
+
+try:
+    from urllib.request import urlopen
+    from urllib.parse import parse_qs, urlencode
+    from urllib.error import HTTPError
+except ImportError:
+    from urllib import urlencode
+    from urllib2 import urlopen, HTTPError
+    from urlparse import parse_qs
 
 
 class AuthorizationCodeTestCase(unittest.TestCase):
@@ -60,14 +68,9 @@ class AuthorizationCodeTestCase(unittest.TestCase):
         self.provider = Process(target=run_provider)
         self.provider.start()
 
-        access_token_result = urllib.urlopen("http://127.0.0.1:15487/app")
+        access_token_result = urlopen("http://127.0.0.1:15487/app").read()
 
-        access_token_content = ""
-
-        for line in access_token_result:
-            access_token_content += line
-
-        access_token_data = json.loads(access_token_content)
+        access_token_data = json.loads(access_token_result.decode('utf-8'))
 
         self.assertEqual(access_token_data["token_type"], "Bearer")
         self.assertEqual(access_token_data["expires_in"], 120)
@@ -81,15 +84,12 @@ class AuthorizationCodeTestCase(unittest.TestCase):
                         "client_id": "abc",
                         "client_secret": "xyz"}
 
-        refresh_token_result = urllib.urlopen("http://127.0.0.1:15486/token",
-                                              urllib.urlencode(request_data))
+        refresh_token_result = urlopen(
+            "http://127.0.0.1:15486/token",
+            urlencode(request_data).encode('utf-8')
+        )
 
-        refresh_token_content = ""
-
-        for line in refresh_token_result:
-            refresh_token_content += line
-
-        refresh_token_data = json.loads(refresh_token_content)
+        refresh_token_data = json.loads(refresh_token_result.read().decode('utf-8'))
 
         self.assertEqual(refresh_token_data["token_type"], "Bearer")
         self.assertEqual(refresh_token_data["expires_in"], 120)
@@ -124,18 +124,23 @@ class ClientApplication(object):
         self.token_type = ""
 
     def __call__(self, env, start_response):
-        if env["PATH_INFO"] == "/app":
-            status, body, headers = self._serve_application()
-        elif env["PATH_INFO"] == "/callback":
-            status, body, headers = self._read_auth_token(env)
-        else:
-            status = "301 Moved"
-            body = ""
-            headers = {"Location": "/app"}
+        try:
+            if env["PATH_INFO"] == "/app":
+                status, body, headers = self._serve_application()
+            elif env["PATH_INFO"] == "/callback":
+                status, body, headers = self._read_auth_token(env)
+            else:
+                status = "301 Moved"
+                body = ""
+                headers = {"Location": "/app"}
+        except HTTPError as http_error:
+            print("HTTPError occured:")
+            print(http_error.read())
+            raise
 
         start_response(status,
-                       [(header, val) for header, val in headers.iteritems()])
-        return body
+                       [(header, val) for header, val in list(headers.items())])
+        return [body]
 
     def _request_access_token(self):
         post_params = {"client_id": self.client_id,
@@ -145,32 +150,29 @@ class ClientApplication(object):
                        "redirect_uri": self.callback_url}
         token_endpoint = self.api_server_url + "/token"
 
-        result = urllib.urlopen(token_endpoint,
-                                urllib.urlencode(post_params))
-        content = ""
-        for line in result:
-            content += line
+        result = urlopen(token_endpoint,
+                         urlencode(post_params).encode('utf-8'))
 
-        result = json.loads(content)
+        result = json.loads(result.read().decode('utf-8'))
         self.access_token_result = result
 
-        return "302 Found", "", {"Location": "/app"}
+        return "302 Found", b"", {"Location": "/app"}
 
     def _read_auth_token(self, env):
-        query_params = urlparse.parse_qs(env["QUERY_STRING"])
+        query_params = parse_qs(env["QUERY_STRING"])
         self.auth_token = query_params["code"][0]
 
-        return "302 Found", "", {"Location": "/app"}
+        return "302 Found", b"", {"Location": "/app"}
 
     def _request_auth_token(self):
         auth_endpoint = self.api_server_url + "/authorize"
-        query = urllib.urlencode({"client_id": "abc",
-                                  "redirect_uri": self.callback_url,
-                                  "response_type": "code"})
+        query = urlencode({"client_id": "abc",
+                           "redirect_uri": self.callback_url,
+                           "response_type": "code"})
 
         location = "%s?%s" % (auth_endpoint, query)
 
-        return "302 Found", "", {"Location": location}
+        return "302 Found", b"", {"Location": location}
 
     def _serve_application(self):
         if self.access_token_result is None:
@@ -179,4 +181,5 @@ class ClientApplication(object):
             else:
                 return self._request_access_token()
         else:
-            return "200 OK", json.dumps(self.access_token_result), {}
+            return ("200 OK",
+                    json.dumps(self.access_token_result).encode('utf-8'), {})

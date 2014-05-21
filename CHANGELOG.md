@@ -14,6 +14,7 @@ Improvements:
 Bugfixes:
 
   - Fix WSGI adapter not passing a list of tuples as headers in Python 3
+  - Fix request for access token responding '400: Bad Request' in Python 3
 
 ## 0.6.0
 
