@@ -12,7 +12,7 @@ class AccessToken(object):
     An access token and associated data.
     """
     def __init__(self, client_id, grant_type, token, data={}, expires_at=None,
-                 refresh_token=None, refresh_expires_at=None, scopes=[], 
+                 refresh_token=None, refresh_expires_at=None, scopes=[],
                  user_id=None):
         self.client_id = client_id
         self.grant_type = grant_type

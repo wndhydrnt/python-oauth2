@@ -335,29 +335,32 @@ class DbApiClientStore(DatabaseStore, ClientStore):
         :raises: :class:`oauth2.error.ClientError` if no client could be
                  retrieved.
         """
+        grants = None
+        redirect_uris = None
+        response_types = None
+
         client_data = self.fetchone(self.fetch_client_query, client_id)
 
         if client_data is None:
             raise ClientNotFoundError
 
         grant_data = self.fetchall(self.fetch_grants_query, client_data[0])
-
-        grants = []
-        if grant_data is not None:
+        if grant_data:
+            grants = []
             for grant in grant_data:
                 grants.append(grant[0])
 
         redirect_uris_data = self.fetchall(self.fetch_redirect_uris_query,
                                            client_data[0])
-        redirect_uris = []
-        if redirect_uris_data is not None:
+        if redirect_uris_data:
+            redirect_uris = []
             for redirect_uri in redirect_uris_data:
                 redirect_uris.append(redirect_uri[0])
 
         response_types_data = self.fetchall(self.fetch_response_types_query,
                                             client_data[0])
-        response_types = []
-        if response_types_data is not None:
+        if response_types_data:
+            response_types = []
             for response_type in response_types_data:
                 response_types.append(response_type[0])
 
