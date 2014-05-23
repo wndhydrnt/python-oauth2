@@ -9,6 +9,9 @@ env:
   - DB=mongodb
   - DB=mysql
 
+before_script:
+  - sh -c "if [ '$DB' = 'mysql' ]; then mysql -e 'CREATE DATABASE IF NOT EXISTS testdb;'; fi"
+
 services:
   - mongodb
 

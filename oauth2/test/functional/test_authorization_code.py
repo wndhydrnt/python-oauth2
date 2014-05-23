@@ -67,7 +67,7 @@ class AuthorizationCodeTestCase(unittest.TestCase):
         self.provider.start()
 
         # Give the provider some time to connect to the database
-        time.sleep(1)
+        time.sleep(3)
 
         self.client = Process(target=run_client)
         self.client.start()
