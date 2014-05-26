@@ -1,4 +1,5 @@
 import json
+from multiprocessing import Queue
 from multiprocessing.process import Process
 from wsgiref.simple_server import make_server
 from oauth2 import Provider
@@ -28,7 +29,7 @@ class AuthorizationCodeTestCase(unittest.TestCase):
         self.provider = None
 
     def test_request_access_token(self):
-        def run_provider():
+        def run_provider(queue):
             redirect_uri = "http://127.0.0.1:15487/callback"
 
             stores = store_factory(client_identifier="abc",
@@ -48,9 +49,12 @@ class AuthorizationCodeTestCase(unittest.TestCase):
 
             httpd = make_server('', 15486, app,
                                 handler_class=NoLoggingHandler)
+
+            queue.put("started")
+
             httpd.serve_forever()
 
-        def run_client():
+        def run_client(queue):
             app = ClientApplication(
                 callback_url="http://127.0.0.1:15487/callback",
                 client_id="abc",
@@ -59,18 +63,27 @@ class AuthorizationCodeTestCase(unittest.TestCase):
 
             httpd = make_server('', 15487, app,
                                 handler_class=NoLoggingHandler)
+
+            queue.put("started")
+
             httpd.serve_forever()
 
         uuid_regex = "^[a-z0-9]{8}\-[a-z0-9]{4}\-[a-z0-9]{4}\-[a-z0-9]{4}-[a-z0-9]{12}$"
 
-        self.provider = Process(target=run_provider)
+        ready_queue = Queue()
+
+        self.provider = Process(target=run_provider, args=(ready_queue,))
         self.provider.start()
 
-        # Give the provider some time to connect to the database
-        time.sleep(5)
+        provider_started = ready_queue.get()
 
-        self.client = Process(target=run_client)
+        # Give the provider some time to connect to the database
+        # time.sleep(5)
+
+        self.client = Process(target=run_client, args=(ready_queue,))
         self.client.start()
+
+        client_started = ready_queue.get()
 
         access_token_result = urlopen("http://127.0.0.1:15487/app").read()
 
