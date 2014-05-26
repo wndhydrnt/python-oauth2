@@ -4,13 +4,11 @@ from multiprocessing.process import Process
 from wsgiref.simple_server import make_server
 from oauth2 import Provider
 from oauth2.grant import AuthorizationCodeGrant, RefreshToken
-from oauth2.store.memory import TokenStore, ClientStore
 from oauth2.test import unittest
 from oauth2.test.functional import NoLoggingHandler
 from oauth2.tokengenerator import Uuid4
 from oauth2.web import SiteAdapter, Wsgi
 from ..functional import store_factory
-import time
 
 
 try:
@@ -30,43 +28,50 @@ class AuthorizationCodeTestCase(unittest.TestCase):
 
     def test_request_access_token(self):
         def run_provider(queue):
-            redirect_uri = "http://127.0.0.1:15487/callback"
+            try:
 
-            stores = store_factory(client_identifier="abc",
-                                   client_secret="xyz",
-                                   redirect_uris=[redirect_uri])
+                redirect_uri = "http://127.0.0.1:15487/callback"
 
-            provider = Provider(access_token_store=stores["access_token_store"],
-                                auth_code_store=stores["auth_code_store"],
-                                client_store=stores["client_store"],
-                                site_adapter=TestSiteAdapter(),
-                                token_generator=Uuid4())
+                stores = store_factory(client_identifier="abc",
+                                       client_secret="xyz",
+                                       redirect_uris=[redirect_uri])
 
-            provider.add_grant(AuthorizationCodeGrant(expires_in=120))
-            provider.add_grant(RefreshToken(expires_in=60))
+                provider = Provider(access_token_store=stores["access_token_store"],
+                                    auth_code_store=stores["auth_code_store"],
+                                    client_store=stores["client_store"],
+                                    site_adapter=TestSiteAdapter(),
+                                    token_generator=Uuid4())
 
-            app = Wsgi(server=provider)
+                provider.add_grant(AuthorizationCodeGrant(expires_in=120))
+                provider.add_grant(RefreshToken(expires_in=60))
 
-            httpd = make_server('', 15486, app,
-                                handler_class=NoLoggingHandler)
+                app = Wsgi(server=provider)
 
-            queue.put("started")
+                httpd = make_server('', 15486, app,
+                                    handler_class=NoLoggingHandler)
 
-            httpd.serve_forever()
+                queue.put({"result": 0})
+
+                httpd.serve_forever()
+            except Exception as e:
+                queue.put({"result": 1, "error_message": str(e)})
 
         def run_client(queue):
-            app = ClientApplication(
-                callback_url="http://127.0.0.1:15487/callback",
-                client_id="abc",
-                client_secret="xyz",
-                provider_url="http://127.0.0.1:15486")
+            try:
+                app = ClientApplication(
+                    callback_url="http://127.0.0.1:15487/callback",
+                    client_id="abc",
+                    client_secret="xyz",
+                    provider_url="http://127.0.0.1:15486")
 
-            httpd = make_server('', 15487, app,
-                                handler_class=NoLoggingHandler)
+                httpd = make_server('', 15487, app,
+                                    handler_class=NoLoggingHandler)
 
-            queue.put("started")
+                queue.put({"result": 0})
 
-            httpd.serve_forever()
+                httpd.serve_forever()
+            except Exception as e:
+                queue.put({"result": 1, "error_message": str(e)})
 
         uuid_regex = "^[a-z0-9]{8}\-[a-z0-9]{4}\-[a-z0-9]{4}\-[a-z0-9]{4}-[a-z0-9]{12}$"
 
@@ -77,13 +82,19 @@ class AuthorizationCodeTestCase(unittest.TestCase):
 
         provider_started = ready_queue.get()
 
-        # Give the provider some time to connect to the database
-        # time.sleep(5)
+        if provider_started["result"] != 0:
+            raise Exception("Error starting Provider process with message"
+                            "'{0}'".format(provider_started["error_message"]))
 
         self.client = Process(target=run_client, args=(ready_queue,))
         self.client.start()
 
         client_started = ready_queue.get()
+
+        if client_started["result"] != 0:
+            raise Exception("Error starting Client Application process with "
+                            "message '{0}'"
+                            .format(client_started["error_message"]))
 
         access_token_result = urlopen("http://127.0.0.1:15487/app").read()
 
@@ -114,11 +125,13 @@ class AuthorizationCodeTestCase(unittest.TestCase):
                                  uuid_regex)
 
     def tearDown(self):
-        self.client.terminate()
-        self.client.join()
+        if self.client is not None:
+            self.client.terminate()
+            self.client.join()
 
-        self.provider.terminate()
-        self.provider.join()
+        if self.provider is not None:
+            self.provider.terminate()
+            self.provider.join()
 
 
 class TestSiteAdapter(SiteAdapter):
