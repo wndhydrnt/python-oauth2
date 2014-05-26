@@ -1,5 +1,6 @@
 # Run All unit tests
-test: unittest
+test:
+	nosetests
 
 unittest:
 	nosetests --exclude='functional'
