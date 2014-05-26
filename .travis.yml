@@ -8,6 +8,7 @@ python:
 env:
   - DB=mongodb
   - DB=mysql
+  - DB=redis-server
 
 before_script:
   - sh -c "if [ '$DB' = 'mysql' ]; then mysql -e 'CREATE DATABASE IF NOT EXISTS testdb;'; fi"
