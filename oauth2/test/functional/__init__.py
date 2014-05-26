@@ -1,10 +1,12 @@
 import os
+import redis
 from wsgiref.simple_server import WSGIRequestHandler
 from pymongo import MongoClient
 import mysql.connector
 import oauth2.store.mongodb
 import oauth2.store.memory
 import oauth2.store.dbapi.mysql
+import oauth2.store.redisdb
 
 
 class NoLoggingHandler(WSGIRequestHandler):
@@ -25,6 +27,8 @@ def store_factory(client_identifier, client_secret, redirect_uris):
         creator_class = MongoDbStoreCreator
     elif database == "mysql":
         creator_class = MysqlStoreCreator
+    elif database == "redis-server":
+        creator_class = RedisStoreCreator
     else:
         creator_class = MemoryStoreCreator
 
@@ -228,6 +232,9 @@ ENGINE = InnoDB;"""
             MysqlClientStore(connection=self.connection)
 
     def before_create(self):
+        # Execute each query on its own instead of one big query.
+        # The one big query caused errors where some tables were not created
+        # in every run of the tests.
         for stmt in self.create_tables.split(';'):
             cursor = self.connection.cursor()
 
@@ -265,3 +272,25 @@ ENGINE = InnoDB;"""
             self.connection.commit()
         finally:
             cursor.close()
+
+
+class RedisStoreCreator(StoreCreator):
+    def initialize(self):
+        self.r = redis.StrictRedis(host="localhost", port=6379, db=0)
+
+        self.client_store = oauth2.store.redisdb.ClientStore(rs=self.r)
+        self.token_store = oauth2.store.redisdb.TokenStore(rs=self.r)
+
+    def create_access_token_store(self):
+        return self.token_store
+
+    def create_auth_code_store(self):
+        return self.token_store
+
+    def create_client_store(self):
+        return self.client_store
+
+    def after_create(self):
+        self.client_store.add_client(client_id=self.client_identifier,
+                                     client_secret=self.client_secret,
+                                     redirect_uris=self.redirect_uris)
