@@ -10,11 +10,12 @@ Features:
 Improvements:
 
   - Updated Tornado integration docs (@kvio360)
+  - Add functional tests for supported storage backends. (@wndhydrnt)
 
 Bugfixes:
 
-  - Fix WSGI adapter not passing a list of tuples as headers in Python 3 (@wndhydrnt)
-  - Fix request for access token responding '400: Bad Request' in Python 3 (@wndhydrnt)
+  - Fix WSGI adapter not passing a list of tuples as headers in Python 3. (@wndhydrnt)
+  - Fix request for access token responding '400: Bad Request' in Python 3. (@wndhydrnt)
 
 ## 0.6.0
 
