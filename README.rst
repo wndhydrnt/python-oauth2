@@ -99,21 +99,27 @@ Example Authorization server
         httpd = make_server('', 8080, app)
         httpd.serve_forever()
 
-Storage adapters
-================
+Supported storage backends
+**************************
 
-python-oauth2 handles the request/response flow needed to create a OAuth 2.0 token.
-It does not define how a token is stored so you can choose the
-persistence strategy that works best for you. It is possible to write a token to
-mysql or mongodb for persistence, save it in memcache or redis for fast access or
-mix both approaches. This flexibility is achieved by the use of storage adapters
-that define an interface which is called by a Grant handler during processing.
+python-oauth2 does not force you to use a specific database.
+It currently supports these storage backends out-of-the-box:
 
-The ``oauth2.store`` module defines base classes for each type of storage.
-Also take a look at the examples in the *examples* directory of the project.
+- MongoDB
+- MySQL
+- Redis
+- Memcached
+
+However, you are not not bound to these implementations.
+By adhering to the interface defined by the base classes in ``oauth2.store``,
+you can easily add an implementation of your backend.
+It also is possible to mix different backends and e.g. read data of a client
+from MongoDB while saving all tokens in memcached for fast access.
+
+Take a look at the examples in the *examples* directory of the project.
 
 Site adapter
-============
+************
 
 Like for storage, python-oauth2 does not define how you identify a user or
 show a confirmation dialogue.
