@@ -9,7 +9,7 @@ Features:
 
 Improvements:
 
-  - Update Tornado integration docs ([@kvio360][])
+  - Update Tornado integration docs ([@kivo360][])
   - Add functional tests for supported storage backends. ([@wndhydrnt][])
 
 Bugfixes:
