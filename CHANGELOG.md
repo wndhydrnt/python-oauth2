@@ -1,4 +1,4 @@
-## 0.7.0 (unreleased)
+## 0.7.0
 
 Features:
 
@@ -9,7 +9,7 @@ Features:
 
 Improvements:
 
-  - Updated Tornado integration docs (@kvio360)
+  - Update Tornado integration docs (@kvio360)
   - Add functional tests for supported storage backends. (@wndhydrnt)
 
 Bugfixes:
