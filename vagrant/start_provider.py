@@ -1,5 +1,5 @@
 import argparse
-import MySQLdb
+import mysql.connector
 from pymongo import MongoClient
 
 from wsgiref.simple_server import make_server
@@ -40,8 +40,8 @@ def main():
         client_store = ClientStore(collection=db["clients"])
     elif args.store == "mysql":
         print("Using mysql stores...")
-        connection = MySQLdb.connect(host="127.0.0.1", user="root",
-                                     passwd="master", db="testdb")
+        connection = mysql.connector.connect(host="127.0.0.1", user="root",
+                                             passwd="", db="testdb")
 
         access_token_store = MysqlAccessTokenStore(connection=connection)
         auth_code_store = MysqlAuthCodeStore(connection=connection)
