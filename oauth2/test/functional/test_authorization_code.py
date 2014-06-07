@@ -1,6 +1,5 @@
 import json
 from multiprocessing import Queue
-from multiprocessing.process import Process
 from wsgiref.simple_server import make_server
 from oauth2 import Provider
 from oauth2.grant import AuthorizationCodeGrant, RefreshToken
@@ -19,6 +18,11 @@ except ImportError:
     from urllib import urlencode
     from urllib2 import urlopen, HTTPError
     from urlparse import parse_qs
+
+try:
+    from multiprocessing.process import Process
+except ImportError:
+    from multiprocessing import Process
 
 
 class AuthorizationCodeTestCase(unittest.TestCase):
