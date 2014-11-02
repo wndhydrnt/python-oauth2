@@ -17,6 +17,7 @@ from oauth2.tokengenerator import Uuid4
 from oauth2.web import SiteAdapter, Wsgi
 from oauth2.grant import AuthorizationCodeGrant
 
+
 class ClientRequestHandler(WSGIRequestHandler):
     """
     Request handler that enables formatting of the log messages on the console.
@@ -26,6 +27,7 @@ class ClientRequestHandler(WSGIRequestHandler):
     def address_string(self):
         return "client app"
 
+
 class OAuthRequestHandler(WSGIRequestHandler):
     """
     Request handler that enables formatting of the log messages on the console.
@@ -34,6 +36,7 @@ class OAuthRequestHandler(WSGIRequestHandler):
     """
     def address_string(self):
         return "python-oauth2"
+
 
 class TestSiteAdapter(SiteAdapter):
     """
@@ -76,6 +79,7 @@ class TestSiteAdapter(SiteAdapter):
             if request.post_param("confirm") == "0":
                 return True
         return False
+
 
 class ClientApplication(object):
     """
@@ -162,6 +166,7 @@ class ClientApplication(object):
             confirmation = "Current access token '%s' of type '%s'" % (self.access_token, self.token_type)
             return "200 OK", str(confirmation), {}
 
+
 def run_app_server():
     app = ClientApplication()
 
@@ -172,6 +177,7 @@ def run_app_server():
         httpd.serve_forever()
     except KeyboardInterrupt:
         httpd.server_close()
+
 
 def run_auth_server():
     try:
@@ -197,6 +203,7 @@ def run_auth_server():
         httpd.serve_forever()
     except KeyboardInterrupt:
         httpd.server_close()
+
 
 def main():
     auth_server = Process(target=run_auth_server)
