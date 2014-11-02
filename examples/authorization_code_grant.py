@@ -86,15 +86,15 @@ class ClientApplication(object):
     Very basic application that simulates calls to the API of the
     python-oauth2 app.
     """
-    callback_url   = "http://localhost:8081/callback"
+    callback_url = "http://localhost:8081/callback"
     client_id = "abc"
     client_secret = "xyz"
     api_server_url = "http://localhost:8080"
 
     def __init__(self):
         self.access_token = None
-        self.auth_token   = None
-        self.token_type   = ""
+        self.auth_token = None
+        self.token_type = ""
 
     def __call__(self, env, start_response):
         if env["PATH_INFO"] == "/app":
@@ -128,7 +128,7 @@ class ClientApplication(object):
 
         result = json.loads(content)
         self.access_token = result["access_token"]
-        self.token_type   = result["token_type"]
+        self.token_type = result["token_type"]
 
         confirmation = "Received access token '%s' of type '%s'" % (self.access_token, self.token_type)
         print(confirmation)
@@ -173,7 +173,7 @@ def run_app_server():
     try:
         httpd = make_server('', 8081, app, handler_class=ClientRequestHandler)
 
-        print("Starting Authorization Code Grant client app on http://localhost:8081/...")
+        print("Starting Client app on http://localhost:8081/...")
         httpd.serve_forever()
     except KeyboardInterrupt:
         httpd.server_close()
@@ -199,7 +199,7 @@ def run_auth_server():
 
         httpd = make_server('', 8080, app, handler_class=OAuthRequestHandler)
 
-        print("Starting implicit_grant oauth2 server on http://localhost:8080/...")
+        print("Starting OAuth2 server on http://localhost:8080/...")
         httpd.serve_forever()
     except KeyboardInterrupt:
         httpd.server_close()
