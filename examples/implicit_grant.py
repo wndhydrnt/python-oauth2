@@ -14,6 +14,7 @@ from oauth2.tokengenerator import Uuid4
 from oauth2.grant import ImplicitGrant
 from oauth2.store.memory import ClientStore, TokenStore
 
+
 class TestSiteAdapter(SiteAdapter):
     CONFIRMATION_TEMPLATE = """
 <html>
@@ -51,6 +52,7 @@ class TestSiteAdapter(SiteAdapter):
             if request.post_param("confirm") == "0":
                 return True
         return False
+
 
 def run_app_server():
     def application(env, start_response):
@@ -133,6 +135,7 @@ def run_auth_server():
         httpd.serve_forever()
     except KeyboardInterrupt:
         httpd.server_close()
+
 
 def main():
     auth_server = Process(target=run_auth_server)
