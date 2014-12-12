@@ -52,13 +52,13 @@ def encode_scopes(scopes, use_quote=False):
     return scopes_as_string
 
 
-def json_error_response(error, response):
+def json_error_response(error, response, status_code=400):
     """
     Formats an error as a response containing a JSON body.
     """
     msg = {"error": error.error, "error_description": error.explanation}
 
-    response.status_code = 400
+    response.status_code = status_code
     response.add_header("Content-Type", "application/json")
     response.body = json.dumps(msg)
 
@@ -307,12 +307,13 @@ class AuthorizeMixin(object):
         try:
             result = self.site_adapter.authenticate(request, environ, scopes)
 
-            return self._sanitize_return_value(result)
+            return self.sanitize_return_value(result)
         except UserNotAuthenticated:
             return self.site_adapter.render_auth_page(request, response,
                                                       environ, scopes)
 
-    def _sanitize_return_value(self, value):
+    @staticmethod
+    def sanitize_return_value(value):
         if isinstance(value, tuple) and len(value) is 2:
             return value
 
@@ -726,17 +727,30 @@ class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant):
             unique_token=self.unique_token)
 
 
-class ResourceOwnerGrantHandler(GrantHandler, AuthorizeMixin,
-                                AccessTokenMixin):
+class ResourceOwnerGrantHandler(GrantHandler, AccessTokenMixin):
     """
     Class for handling Resource Owner authorization requests.
 
     See http://tools.ietf.org/html/rfc6749#section-4.3
     """
 
-    def __init__(self, client_authenticator, scope_handler, **kwargs):
+    OWNER_NOT_AUTHENTICATED = "Unable to authenticate resource owner"
+
+    def __init__(self, client_authenticator, scope_handler, site_adapter,
+                 **kwargs):
+        """
+        :param client_authenticator: Client authenticator
+        :type client_authenticator: oauth2.client_authenticator.ClientAuthenticator
+
+        :param scope_handler: Scope handler
+        :type scope_handler: oauth2.grant.Scope
+
+        :param site_adapter: Site adapter
+        :type site_adapter: oauth2.web.SiteAdapter
+        """
         self.client_authenticator = client_authenticator
         self.scope_handler = scope_handler
+        self.site_adapter = site_adapter
 
         self.client = None
         self.password = None
@@ -750,9 +764,13 @@ class ResourceOwnerGrantHandler(GrantHandler, AuthorizeMixin,
         it and issues a new access token that is returned to the client on
         successful validation.
         """
-        data = self.authorize(request=request, response=response,
-                              environ=environ,
-                              scopes=self.scope_handler.scopes)
+        try:
+            data = self.site_adapter.authenticate(request, environ,
+                                                  self.scope_handler.scopes)
+            data = AuthorizeMixin.sanitize_return_value(data)
+        except UserNotAuthenticated:
+            raise OAuthInvalidError(error="invalid_client",
+                                    explanation=self.OWNER_NOT_AUTHENTICATED)
 
         if isinstance(data, Response):
             return data
@@ -785,7 +803,11 @@ class ResourceOwnerGrantHandler(GrantHandler, AuthorizeMixin,
         return True
 
     def handle_error(self, error, response):
-        return json_error_response(error, response)
+        status_code = 400
+        if error.explanation == self.OWNER_NOT_AUTHENTICATED:
+            status_code = 401
+
+        return json_error_response(error, response, status_code=status_code)
 
 
 class RefreshToken(GrantHandlerFactory, ScopeGrant):

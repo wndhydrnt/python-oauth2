@@ -5,6 +5,7 @@ import sys
 import urllib2
 
 from multiprocessing.process import Process
+from urllib2 import HTTPError
 from wsgiref.simple_server import make_server
 
 sys.path.insert(0, os.path.abspath(os.path.realpath(__file__) + '/../../'))
@@ -27,10 +28,12 @@ class ClientApplication(object):
     client_secret = "xyz"
     token_endpoint = "http://localhost:8080/token"
 
-    LOGIN_TEMPLATE = """
-<html>
+    LOGIN_TEMPLATE = """<html>
     <body>
         <h1>Test Login</h1>
+        <div style="color: red;">
+            {failed_message}
+        </div>
         <form method="POST" name="confirmation_form" action="/request_token">
             <div>
                 Username (foo): <input name="username" type="text" />
@@ -43,19 +46,16 @@ class ClientApplication(object):
             </div>
         </form>
     </body>
-</html>
-    """
+</html>"""
 
-    TOKEN_TEMPLATE = """
-<html>
+    TOKEN_TEMPLATE = """<html>
     <body>
         <div>Access token: {access_token}</div>
         <div>
             <a href="/reset">Reset</a>
         </div>
     </body>
-</html>
-    """
+</html>"""
 
     def __init__(self):
         self.token = None
@@ -63,7 +63,7 @@ class ClientApplication(object):
 
     def __call__(self, env, start_response):
         if env["PATH_INFO"] == "/login":
-            status, body, headers = self._login()
+            status, body, headers = self._login(failed=env["QUERY_STRING"] == "failed=1")
         elif env["PATH_INFO"] == "/":
             status, body, headers = self._display_token()
         elif env["PATH_INFO"] == "/request_token":
@@ -90,13 +90,17 @@ class ClientApplication(object):
         return ("200 OK",
                 self.TOKEN_TEMPLATE.format(
                     access_token=self.token["access_token"]),
-                {})
+                {"Content-Type": "text/html"})
 
-    def _login(self):
+    def _login(self, failed=False):
         """
         Login prompt
         """
-        return "200 OK", self.LOGIN_TEMPLATE, {}
+        if failed:
+            content = self.LOGIN_TEMPLATE.format(failed_message="Login failed")
+        else:
+            content = self.LOGIN_TEMPLATE.format(failed_message="")
+        return "200 OK", content, {"Content-Type": "text/html"}
 
     def _request_token(self, env):
         """
@@ -117,7 +121,11 @@ class ClientApplication(object):
         params["client_id"] = self.client_id
         params["client_secret"] = self.client_secret
         # Request an access token by POSTing a request to the auth server.
-        response = urllib2.urlopen(self.token_endpoint, urlencode(params))
+        try:
+            response = urllib2.urlopen(self.token_endpoint, urlencode(params))
+        except HTTPError, he:
+            if he.code == 401:
+                return "302 Found", "", {"Location": "/login?failed=1"}
 
         self.token = json.load(response)
 
