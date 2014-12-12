@@ -1,5 +1,9 @@
 ## 0.8.0 (unreleased)
 
+Bugfixes:
+
+  - Fix Resource Owner Grant responding with HTTP status code '500' in case an owner could not be authorized ([@wndhydrnt][])
+
 ## 0.7.0
 
 Features:

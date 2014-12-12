@@ -996,7 +996,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         handler.client = Client(identifier="abc", secret="xyz",
                                 redirect_uris=[redirect_uri])
         altered_response = handler.handle_error(error_mock,
-                                                        response_mock)
+                                                response_mock)
 
         response_mock.add_header.assert_called_with(
             "Location",
@@ -1039,6 +1039,7 @@ class ResourceOwnerGrantTestCase(unittest.TestCase):
 
         request_mock.post_param.assert_called_with("grant_type")
         self.assertEqual(handler, None)
+
 
 class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
     def test_process(self):
@@ -1093,7 +1094,6 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
     @patch("time.time", mock_time)
     def test_process_with_refresh_token(self):
         access_token = "0aef"
-        client_id = "abcd"
         expected_response_body = {"access_token": access_token,
                                   "token_type": "Bearer",
                                   "refresh_token": "wxyz", "expires_in": 600}
@@ -1184,9 +1184,35 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         self.assertDictEqual(expected_response_body, json.loads(result.body))
         self.assertEqual(result, response_mock)
 
+    def test_process_invalid_user(self):
+        response_mock = Mock(Response)
+
+        scope_handler_mock = Mock(Scope)
+        scope_handler_mock.scopes = ["scopes"]
+        scope_handler_mock.send_back = False
+
+        site_adapter_mock = Mock(SiteAdapter)
+
+        site_adapter_mock.authenticate.side_effect = UserNotAuthenticated
+
+        handler = ResourceOwnerGrantHandler(
+            access_token_store=Mock(AccessTokenStore),
+            client_authenticator=Mock(ClientAuthenticator),
+            scope_handler=scope_handler_mock,
+            site_adapter=site_adapter_mock,
+            token_generator=Mock(TokenGenerator))
+        handler.client = Client(identifier="abc", secret="xyz")
+
+        with self.assertRaises(OAuthInvalidError) as expected:
+            handler.process(Mock(Request), response_mock, {})
+
+        e = expected.exception
+
+        self.assertEqual(e.error, "invalid_client")
+        self.assertEqual(e.explanation,
+                         ResourceOwnerGrantHandler.OWNER_NOT_AUTHENTICATED)
+
     def test_read_validate_params(self):
-        client_id = "abcd"
-        client_secret = "xyz"
         password = "johnpw"
         username = "johndoe"
 
@@ -1216,6 +1242,24 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         self.assertEqual(handler.username, username)
         self.assertEqual(handler.password, password)
         self.assertTrue(result)
+
+    def test_handle_error_owner_not_authenticated(self):
+        error = OAuthInvalidError(
+            error="invalid_client",
+            explanation=ResourceOwnerGrantHandler.OWNER_NOT_AUTHENTICATED)
+
+        response = Response()
+
+        handler = ResourceOwnerGrantHandler(
+            access_token_store=Mock(AccessTokenStore),
+            client_authenticator=Mock(),
+            scope_handler=Mock(),
+            site_adapter=Mock(),
+            token_generator=Mock())
+
+        result = handler.handle_error(error, response)
+
+        self.assertEqual(result.status_code, 401)
 
 
 class ScopeTestCase(unittest.TestCase):

@@ -136,6 +136,7 @@ class Wsgi(object):
                   301: "301 Moved Permanently",
                   302: "302 Found",
                   400: "400 Bad Request",
+                  401: "401 Unauthorized",
                   404: "404 Not Found"}
 
     def __init__(self, server, authorize_uri="/authorize", env_vars=None,
