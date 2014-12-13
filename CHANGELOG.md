@@ -1,5 +1,9 @@
 ## 0.8.0 (unreleased)
 
+Improvements:
+
+  - Catch unexpected exceptions and respond with a OAuth2 'server_error'
+
 Bugfixes:
 
   - Fix Resource Owner Grant responding with HTTP status code '500' in case an owner could not be authorized ([@wndhydrnt][])

@@ -48,6 +48,14 @@ class ClientApplication(object):
     </body>
 </html>"""
 
+    SERVER_ERROR_TEMPLATE = """<html>
+    <body>
+        <h1>OAuth2 server responded with an error</h1>
+        Error type: {error_type}
+        Error description: {error_description}
+    </body>
+</html>"""
+
     TOKEN_TEMPLATE = """<html>
     <body>
         <div>Access token: {access_token}</div>
@@ -124,6 +132,12 @@ class ClientApplication(object):
         try:
             response = urllib2.urlopen(self.token_endpoint, urlencode(params))
         except HTTPError, he:
+            if he.code == 400:
+                error_body = json.loads(he.read())
+                body = self.SERVER_ERROR_TEMPLATE\
+                    .format(error_type=error_body["error"],
+                            error_description=error_body["error_description"])
+                return "400 Bad Request", body, {"Content-Type": "text/html"}
             if he.code == 401:
                 return "302 Found", "", {"Location": "/login?failed=1"}
 

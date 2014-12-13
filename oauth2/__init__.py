@@ -194,6 +194,12 @@ class Provider(object):
             })
 
             return response
+        except:
+            response = self.response_class()
+            return grant_type.handle_error(
+                error=OAuthInvalidError(error="server_error",
+                                        explanation="Internal server error"),
+                response=response)
 
     def enable_unique_tokens(self):
         """

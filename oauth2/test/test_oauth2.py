@@ -1,6 +1,6 @@
 import json
 from mock import Mock
-from oauth2.error import OAuthInvalidNoRedirectError
+from oauth2.error import OAuthInvalidNoRedirectError, OAuthInvalidError
 from oauth2.test import unittest
 from oauth2 import Provider
 from oauth2.store import ClientStore
@@ -95,3 +95,16 @@ class ProviderTestCase(unittest.TestCase):
                                                          "text/plain")
         self.assertEqual(self.response_mock.status_code, 400)
         self.assertEqual(self.response_mock.body, "")
+
+    def test_dispatch_general_exception(self):
+        request_mock = Mock(spec=Request)
+
+        grant_handler_mock = Mock(spec=GrantHandler)
+        grant_handler_mock.process.side_effect = KeyError
+
+        grant_factory_mock = Mock(return_value=grant_handler_mock)
+
+        self.auth_server.add_grant(grant_factory_mock)
+        self.auth_server.dispatch(request_mock, {})
+
+        self.assertTrue(grant_handler_mock.handle_error.called)
