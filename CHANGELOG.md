@@ -1,9 +1,12 @@
 ## 0.8.0 (unreleased)
 
+Features:
+
+  - Logging support
+
 Improvements:
 
   - Catch unexpected exceptions and respond with a OAuth2 'server_error'
-  - Logging support
 
 Bugfixes:
 
