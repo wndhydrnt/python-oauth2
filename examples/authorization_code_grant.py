@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import urllib
@@ -16,6 +17,9 @@ from oauth2.store.memory import ClientStore, TokenStore
 from oauth2.tokengenerator import Uuid4
 from oauth2.web import SiteAdapter, Wsgi
 from oauth2.grant import AuthorizationCodeGrant
+
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class ClientRequestHandler(WSGIRequestHandler):

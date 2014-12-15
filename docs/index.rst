@@ -12,6 +12,7 @@ Contents:
    oauth2.rst
    web.rst
    client_authenticator.rst
+   log.rst
    error.rst
    unique_token.rst
    frameworks.rst
