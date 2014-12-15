@@ -15,7 +15,7 @@ from oauth2 import Provider
 from oauth2.error import UserNotAuthenticated
 from oauth2.store.memory import ClientStore, TokenStore
 from oauth2.tokengenerator import Uuid4
-from oauth2.web import SiteAdapter, Wsgi
+from oauth2.web import Wsgi, AuthorizationCodeGrantSiteAdapter
 from oauth2.grant import AuthorizationCodeGrant
 
 
@@ -42,7 +42,7 @@ class OAuthRequestHandler(WSGIRequestHandler):
         return "python-oauth2"
 
 
-class TestSiteAdapter(SiteAdapter):
+class TestSiteAdapter(AuthorizationCodeGrantSiteAdapter):
     """
     This adapter renders a confirmation page so the user can confirm the auth
     request.
@@ -195,9 +195,10 @@ def run_auth_server():
             access_token_store=token_store,
             auth_code_store=token_store,
             client_store=client_store,
-            site_adapter=TestSiteAdapter(),
             token_generator=Uuid4())
-        auth_controller.add_grant(AuthorizationCodeGrant())
+        auth_controller.add_grant(
+            AuthorizationCodeGrant(site_adapter=TestSiteAdapter())
+        )
 
         app = Wsgi(server=auth_controller)
 

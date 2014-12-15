@@ -11,8 +11,9 @@ Helpers and base classes
 .. autoclass:: ScopeGrant
 
 .. autoclass:: Scope
+   :members: parse
 
-.. automethod:: Scope.parse
+.. autoclass:: SiteAdapterMixin
 
 Grant classes
 -------------

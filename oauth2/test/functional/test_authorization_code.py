@@ -6,7 +6,7 @@ from oauth2.grant import AuthorizationCodeGrant, RefreshToken
 from oauth2.test import unittest
 from oauth2.test.functional import NoLoggingHandler
 from oauth2.tokengenerator import Uuid4
-from oauth2.web import SiteAdapter, Wsgi
+from oauth2.web import Wsgi, AuthorizationCodeGrantSiteAdapter
 from ..functional import store_factory
 
 
@@ -43,10 +43,15 @@ class AuthorizationCodeTestCase(unittest.TestCase):
                 provider = Provider(access_token_store=stores["access_token_store"],
                                     auth_code_store=stores["auth_code_store"],
                                     client_store=stores["client_store"],
-                                    site_adapter=TestSiteAdapter(),
                                     token_generator=Uuid4())
 
-                provider.add_grant(AuthorizationCodeGrant(expires_in=120))
+                provider.add_grant(
+                    AuthorizationCodeGrant(
+                        expires_in=120,
+                        site_adapter=TestSiteAdapter()
+                    )
+                )
+
                 provider.add_grant(RefreshToken(expires_in=60))
 
                 app = Wsgi(server=provider)
@@ -138,7 +143,7 @@ class AuthorizationCodeTestCase(unittest.TestCase):
             self.provider.join()
 
 
-class TestSiteAdapter(SiteAdapter):
+class TestSiteAdapter(AuthorizationCodeGrantSiteAdapter):
     def authenticate(self, request, environ, scopes):
         return {"additional": "data"}, 1
 

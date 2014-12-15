@@ -16,7 +16,7 @@ from oauth2 import Provider
 from oauth2.error import UserNotAuthenticated
 from oauth2.store.memory import ClientStore, TokenStore
 from oauth2.tokengenerator import Uuid4
-from oauth2.web import SiteAdapter, Wsgi
+from oauth2.web import Wsgi, ResourceOwnerGrantSiteAdapter
 from oauth2.grant import ResourceOwnerGrant
 
 
@@ -155,7 +155,7 @@ class ClientApplication(object):
         return "302 Found", "", {"Location": "/login"}
 
 
-class TestSiteAdapter(SiteAdapter):
+class TestSiteAdapter(ResourceOwnerGrantSiteAdapter):
     def authenticate(self, request, environ, scopes):
         username = request.post_param("username")
         password = request.post_param("password")
@@ -165,10 +165,6 @@ class TestSiteAdapter(SiteAdapter):
             return
 
         raise UserNotAuthenticated
-
-    def user_has_denied_access(self, request):
-        # In case of Resource Owner Grant a user cannot deny access.
-        return False
 
 
 def run_app_server():
@@ -195,9 +191,11 @@ def run_auth_server():
             access_token_store=token_store,
             auth_code_store=token_store,
             client_store=client_store,
-            site_adapter=TestSiteAdapter(),
             token_generator=Uuid4())
-        auth_controller.add_grant(ResourceOwnerGrant())
+
+        auth_controller.add_grant(
+            ResourceOwnerGrant(site_adapter=TestSiteAdapter())
+        )
 
         app = Wsgi(server=auth_controller)
 

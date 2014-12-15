@@ -2,12 +2,13 @@ from mock import Mock, call, patch
 import json
 from oauth2.client_authenticator import ClientAuthenticator
 from oauth2.test import unittest
-from oauth2.web import Request, Response, SiteAdapter
+from oauth2.web import Request, Response, ResourceOwnerGrantSiteAdapter, \
+    ImplicitGrantSiteAdapter, AuthorizationCodeGrantSiteAdapter
 from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler, \
     AuthRequestMixin, AuthorizationCodeTokenHandler, ImplicitGrant, \
     AuthorizationCodeGrant, ResourceOwnerGrantHandler, ResourceOwnerGrant, \
     Scope, RefreshToken, RefreshTokenHandler, ClientCredentialsGrant, \
-    ClientCredentialsHandler, AuthorizeMixin
+    ClientCredentialsHandler, AuthorizeMixin, SiteAdapterMixin
 from oauth2.store import ClientStore, AuthCodeStore, AccessTokenStore
 from oauth2.error import OAuthInvalidError, UserNotAuthenticated, \
     AccessTokenNotFound, UserIdentifierMissingError, AuthCodeNotFound
@@ -40,12 +41,14 @@ class AuthorizationCodeGrantTestCase(unittest.TestCase):
         server_mock.authorize_path = path
         server_mock.auth_code_store = Mock()
         server_mock.client_authenticator = Mock()
-        server_mock.site_adapter = Mock()
         server_mock.token_generator = Mock()
 
-        factory = AuthorizationCodeGrant(default_scope=default_scope,
-                                         scopes=scopes,
-                                         scope_class=scope_mock)
+        factory = AuthorizationCodeGrant(
+            default_scope=default_scope,
+            scopes=scopes,
+            scope_class=scope_mock,
+            site_adapter=Mock(spec=AuthorizationCodeGrantSiteAdapter)
+        )
         result_class = factory(request_mock, server_mock)
 
         request_mock.get_param.assert_called_with("response_type")
@@ -67,7 +70,9 @@ class AuthorizationCodeGrantTestCase(unittest.TestCase):
         server_mock.client_store = Mock()
         server_mock.token_generator = Mock()
 
-        factory = AuthorizationCodeGrant()
+        factory = AuthorizationCodeGrant(
+            site_adapter=Mock(spec=AuthorizationCodeGrantSiteAdapter)
+        )
         result_class = factory(request_mock, server_mock)
 
         request_mock.post_param.assert_called_with("grant_type")
@@ -79,7 +84,9 @@ class AuthorizationCodeGrantTestCase(unittest.TestCase):
         request_mock.get_param.return_value = "no-code"
         request_mock.post_param.return_value = "no-authorization_code"
 
-        factory = AuthorizationCodeGrant()
+        factory = AuthorizationCodeGrant(
+            site_adapter=Mock(spec=AuthorizationCodeGrantSiteAdapter)
+        )
         result_class = factory(request_mock, Mock())
 
         request_mock.get_param.assert_called_with("response_type")
@@ -125,7 +132,7 @@ class AuthorizeMixinTestCase(unittest.TestCase):
         """
         AuthorizeMixin.authorize should raise an OAuthUserError if the user did not authorize the request
         """
-        site_adapter_mock = Mock(spec=SiteAdapter)
+        site_adapter_mock = Mock(spec=ImplicitGrantSiteAdapter)
         site_adapter_mock.user_has_denied_access.return_value = True
 
         auth_mixin = AuthorizeMixin(site_adapter=site_adapter_mock)
@@ -139,7 +146,7 @@ class AuthorizeMixinTestCase(unittest.TestCase):
         """
         test_data = {"test": "data"}
 
-        site_adapter_mock = Mock(spec=SiteAdapter)
+        site_adapter_mock = Mock(spec=ImplicitGrantSiteAdapter)
         site_adapter_mock.user_has_denied_access.return_value = False
         site_adapter_mock.authenticate.return_value = test_data
 
@@ -157,7 +164,7 @@ class AuthorizeMixinTestCase(unittest.TestCase):
         """
         test_data = ({"test": "data"}, 123)
 
-        site_adapter_mock = Mock(spec=SiteAdapter)
+        site_adapter_mock = Mock(spec=ImplicitGrantSiteAdapter)
         site_adapter_mock.user_has_denied_access.return_value = False
         site_adapter_mock.authenticate.return_value = test_data
 
@@ -172,7 +179,7 @@ class AuthorizeMixinTestCase(unittest.TestCase):
     def test_authorize_user_not_authenticated(self):
         response_mock = Mock(spec=Response)
 
-        site_adapter_mock = Mock(spec=SiteAdapter)
+        site_adapter_mock = Mock(spec=ImplicitGrantSiteAdapter)
         site_adapter_mock.user_has_denied_access.return_value = False
         site_adapter_mock.authenticate.side_effect = UserNotAuthenticated
         site_adapter_mock.render_auth_page.return_value = response_mock
@@ -205,7 +212,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         scope_handler_mock.scopes = scopes
         scope_handler_mock.send_back = False
 
-        site_adapter_mock = Mock(spec=SiteAdapter)
+        site_adapter_mock = Mock(spec=AuthorizationCodeGrantSiteAdapter)
         site_adapter_mock.authenticate.return_value = user_data
         site_adapter_mock.user_has_denied_access.return_value = False
 
@@ -245,7 +252,7 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         scope_handler_mock = Mock(Scope)
         scope_handler_mock.scopes = scopes
 
-        site_adapter_mock = Mock(spec=SiteAdapter)
+        site_adapter_mock = Mock(spec=AuthorizationCodeGrantSiteAdapter)
         site_adapter_mock.authenticate.side_effect = UserNotAuthenticated
         site_adapter_mock.render_auth_page.return_value = response_mock
 
@@ -761,16 +768,14 @@ class ImplicitGrantTestCase(unittest.TestCase):
         request_mock.path = path
         request_mock.get_param.return_value = "token"
 
-        site_adapter_mock = Mock()
         token_generator_mock = Mock()
 
         server_mock = Mock()
         server_mock.authorize_path = path
         server_mock.client_authenticator = Mock()
-        server_mock.site_adapter = site_adapter_mock
         server_mock.token_generator = token_generator_mock
 
-        factory = ImplicitGrant()
+        factory = ImplicitGrant(site_adapter=ImplicitGrantSiteAdapter())
         result_class = factory(request_mock, server_mock)
 
         request_mock.get_param.assert_called_with("response_type")
@@ -782,7 +787,7 @@ class ImplicitGrantTestCase(unittest.TestCase):
 
         server_mock = Mock()
 
-        factory = ImplicitGrant()
+        factory = ImplicitGrant(site_adapter=ImplicitGrantSiteAdapter())
         result_class = factory(request_mock, server_mock)
 
         request_mock.get_param.assert_called_with("response_type")
@@ -807,7 +812,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         scope_handler_mock.scopes = scopes
         scope_handler_mock.send_back = False
 
-        site_adapter_mock = Mock(spec=SiteAdapter)
+        site_adapter_mock = Mock(spec=ImplicitGrantSiteAdapter)
         site_adapter_mock.authenticate.return_value = user_data
 
         token_generator_mock = Mock(spec=["generate"])
@@ -855,7 +860,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         scope_handler_mock.scopes = []
         scope_handler_mock.send_back = False
 
-        site_adapter_mock = Mock(spec=SiteAdapter)
+        site_adapter_mock = Mock(spec=ImplicitGrantSiteAdapter)
         site_adapter_mock.authenticate.return_value = user_data
 
         token_generator_mock = Mock(spec=["generate"])
@@ -895,7 +900,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         scope_handler_mock.scopes = scopes
         scope_handler_mock.send_back = True
 
-        site_adapter_mock = Mock(spec=SiteAdapter)
+        site_adapter_mock = Mock(spec=ImplicitGrantSiteAdapter)
         site_adapter_mock.authenticate.return_value = ({}, 1)
 
         token_generator_mock = Mock(spec=["generate"])
@@ -930,7 +935,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         scope_handler_mock = Mock(Scope)
         scope_handler_mock.scopes = scopes
 
-        site_adapter_mock = Mock(spec=SiteAdapter)
+        site_adapter_mock = Mock(spec=ImplicitGrantSiteAdapter)
         site_adapter_mock.authenticate.side_effect = UserNotAuthenticated
         site_adapter_mock.render_auth_page.return_value = response_mock
 
@@ -957,7 +962,7 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         scope_handler_mock = Mock(spec=Scope)
         scope_handler_mock.scopes = []
 
-        site_adapter_mock = Mock(spec=SiteAdapter)
+        site_adapter_mock = Mock(spec=ImplicitGrantSiteAdapter)
         site_adapter_mock.user_has_denied_access.return_value = True
 
         handler = ImplicitGrantHandler(
@@ -1011,16 +1016,16 @@ class ResourceOwnerGrantTestCase(unittest.TestCase):
         request_mock.post_param.return_value = "password"
 
         access_token_store_mock = Mock(AccessTokenStore)
-        site_adapter_mock = Mock(SiteAdapter)
         token_generator_mock = Mock()
 
         server_mock = Mock(Provider)
         server_mock.access_token_store = access_token_store_mock
         server_mock.client_authenticator = Mock(ClientAuthenticator)
-        server_mock.site_adapter = site_adapter_mock
         server_mock.token_generator = token_generator_mock
 
-        factory = ResourceOwnerGrant()
+        factory = ResourceOwnerGrant(
+            site_adapter=ResourceOwnerGrantSiteAdapter()
+        )
 
         handler = factory(request_mock, server_mock)
 
@@ -1033,7 +1038,9 @@ class ResourceOwnerGrantTestCase(unittest.TestCase):
 
         server_mock = Mock(Provider)
 
-        factory = ResourceOwnerGrant()
+        factory = ResourceOwnerGrant(
+            site_adapter=ResourceOwnerGrantSiteAdapter()
+        )
 
         handler = factory(request_mock, server_mock)
 
@@ -1060,7 +1067,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         scope_handler_mock.scopes = scopes
         scope_handler_mock.send_back = False
 
-        site_adapter_mock = Mock(SiteAdapter)
+        site_adapter_mock = Mock(spec=ResourceOwnerGrantSiteAdapter)
         site_adapter_mock.authenticate.return_value = user
 
         token_generator_mock = Mock(spec=TokenGenerator)
@@ -1112,7 +1119,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         scope_handler_mock.scopes = scopes
         scope_handler_mock.send_back = False
 
-        site_adapter_mock = Mock(SiteAdapter)
+        site_adapter_mock = Mock(spec=ResourceOwnerGrantSiteAdapter)
         site_adapter_mock.authenticate.return_value = user
 
         token_generator_mock = Mock(spec=TokenGenerator)
@@ -1155,7 +1162,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
 
         response_mock = Mock(Response)
 
-        site_adapter_mock = Mock(SiteAdapter)
+        site_adapter_mock = Mock(spec=ResourceOwnerGrantSiteAdapter)
         site_adapter_mock.authenticate.return_value = ({"test": "data"}, 123)
 
         scope_handler_mock = Mock(Scope)
@@ -1191,7 +1198,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         scope_handler_mock.scopes = ["scopes"]
         scope_handler_mock.send_back = False
 
-        site_adapter_mock = Mock(SiteAdapter)
+        site_adapter_mock = Mock(spec=ResourceOwnerGrantSiteAdapter)
 
         site_adapter_mock.authenticate.side_effect = UserNotAuthenticated
 
@@ -1230,7 +1237,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
             access_token_store=Mock(AccessTokenStore),
             client_authenticator=client_auth_mock,
             scope_handler=scope_handler_mock,
-            site_adapter=Mock(SiteAdapter),
+            site_adapter=Mock(spec=ResourceOwnerGrantSiteAdapter),
             token_generator=Mock())
         result = handler.read_validate_params(request_mock)
 

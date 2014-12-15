@@ -2,11 +2,12 @@
 
 Features:
 
-  - Logging support
+  - Logging support ([@wndhydrnt][])
+  - Each grant accepts its own site adapter (see [Migration notes](http://python-oauth2.readthedocs.org/en/latest/migration.html)) ([@wndhydrnt][])
 
 Improvements:
 
-  - Catch unexpected exceptions and respond with a OAuth2 'server_error'
+  - Catch unexpected exceptions and respond with a OAuth2 'server_error' ([@wndhydrnt][])
 
 Bugfixes:
 

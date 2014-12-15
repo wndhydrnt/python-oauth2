@@ -4,7 +4,8 @@ from oauth2.error import OAuthInvalidNoRedirectError, OAuthInvalidError
 from oauth2.test import unittest
 from oauth2 import Provider
 from oauth2.store import ClientStore
-from oauth2.web import Response, Request, SiteAdapter
+from oauth2.web import Response, Request, AuthorizationCodeGrantSiteAdapter, \
+    ResourceOwnerGrantSiteAdapter
 from oauth2.grant import RefreshToken, AuthorizationCodeGrant, GrantHandler, \
     ResourceOwnerGrant
 
@@ -24,7 +25,6 @@ class ProviderTestCase(unittest.TestCase):
         self.auth_server = Provider(access_token_store=Mock(),
                                     auth_code_store=Mock(),
                                     client_store=self.client_store_mock,
-                                    site_adapter=Mock(),
                                     token_generator=self.token_generator_mock,
                                     response_class=response_class_mock)
 
@@ -32,8 +32,18 @@ class ProviderTestCase(unittest.TestCase):
         """
         Provider.add_grant() should set the expiration time on the instance of TokenGenerator
         """
-        self.auth_server.add_grant(AuthorizationCodeGrant(expires_in=400))
-        self.auth_server.add_grant(ResourceOwnerGrant(expires_in=500))
+        self.auth_server.add_grant(
+            AuthorizationCodeGrant(
+                expires_in=400,
+                site_adapter=Mock(spec=AuthorizationCodeGrantSiteAdapter)
+            )
+        )
+        self.auth_server.add_grant(
+            ResourceOwnerGrant(
+                expires_in=500,
+                site_adapter=Mock(spec=ResourceOwnerGrantSiteAdapter)
+            )
+        )
         self.auth_server.add_grant(RefreshToken(expires_in=1200))
 
         self.assertEqual(self.token_generator_mock.expires_in[AuthorizationCodeGrant.grant_type], 400)
@@ -51,7 +61,9 @@ class ProviderTestCase(unittest.TestCase):
 
         grant_factory_mock = Mock(return_value=grant_handler_mock)
 
-        self.auth_server.site_adapter = Mock(spec=SiteAdapter)
+        self.auth_server.site_adapter = Mock(
+            spec=AuthorizationCodeGrantSiteAdapter
+        )
         self.auth_server.add_grant(grant_factory_mock)
         result = self.auth_server.dispatch(request_mock, environ)
 

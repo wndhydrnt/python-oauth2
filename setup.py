@@ -1,6 +1,5 @@
 from setuptools import setup
-
-VERSION = "0.8.0"
+from oauth2 import VERSION
 
 setup(name="python-oauth2",
       version=VERSION,
@@ -11,7 +10,6 @@ setup(name="python-oauth2",
       url="https://github.com/wndhydrnt/python-oauth2",
       packages=["oauth2", "oauth2.store", "oauth2.store.dbapi",
                 "oauth2.test"],
-      install_requires=["basicauth==0.2"],
       classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: MIT License",
@@ -21,5 +19,6 @@ setup(name="python-oauth2",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
     ]
 )

@@ -21,8 +21,16 @@ class AuthCodeNotFound(Exception):
 
 class ClientNotFoundError(Exception):
     """
-    Error raised by an implementation of :class:`oauth2.store.ClientStore` if a
-    client does not exists.
+    Error raised by an implementation of :class:`oauth2.store.ClientStore` if
+    a client does not exists.
+    """
+    pass
+
+
+class InvalidSiteAdapter(Exception):
+    """
+    Raised by :class:`oauth2.grant.SiteAdapterMixin` in case an invalid site
+    adapter was passed to the instance.
     """
     pass
 

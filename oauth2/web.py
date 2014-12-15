@@ -5,40 +5,60 @@ Classes for handling a HTTP request/response flow.
 from oauth2.compatibility import parse_qs
 
 
-class SiteAdapter(object):
+class AuthenticatingSiteAdapter(object):
     """
-    Interact with a user.
-
-    Display HTML or redirect the user agent to another page of your website
-    where she can do something before being returned to the OAuth 2.0 server.
+    Extended by site adapters that need to authenticate the user.
     """
     def authenticate(self, request, environ, scopes):
         """
         Authenticates a user and checks if she has authorized access.
 
-        :param request: An instance of :class:`oauth2.web.Request`.
+        :param request: Incoming request data.
+        :type request: oauth2.web.Request
+
         :param environ: Environment variables of the request.
+        :type environ: dict
+
         :param scopes: A list of strings with each string being one requested
                        scope.
+        :type scopes: list
+
         :return: A ``dict`` containing arbitrary data that will be passed to
                  the current storage adapter and saved with auth code and
                  access token. Return a tuple in the form
                  `(additional_data, user_id)` if you want to use
                  :doc:`unique_token`.
+
         :raises: :class:`oauth2.error.UserNotAuthenticated` if the user could
                  not be authenticated.
         """
         raise NotImplementedError
 
+
+class UserFacingSiteAdapter(object):
+    """
+    Extended by site adapters that need to interact with the user.
+
+    Display HTML or redirect the user agent to another page of your website
+    where she can do something before being returned to the OAuth 2.0 server.
+    """
     def render_auth_page(self, request, response, environ, scopes):
         """
         Defines how to display a confirmation page to the user.
 
-        :param request: An instance of :class:`oauth2.web.Request`.
-        :param response: An instance of :class:`oauth2.web.Response`.
+        :param request: Incoming request data.
+        :type request: oauth2.web.Request
+
+        :param response: Response to return to a client.
+        :type response: oauth2.web.Response
+
         :param environ: Environment variables of the request.
+        :type environ: dict
+
         :param scopes: A list of strings with each string being one requested
                        scope.
+        :type scopes: list
+
         :return: The response passed in as a parameter.
                  It can contain HTML or issue a redirect.
         """
@@ -49,10 +69,38 @@ class SiteAdapter(object):
         Checks if the user has denied access. This will lead to python-oauth2
         returning a "acess_denied" response to the requesting client app.
 
-        :param request: An instance of :class:`oauth2.web.Request`.
+        :param request: Incoming request data.
+        :type request: oauth2.web.Request
+
         :return: Return ``True`` if the user has denied access.
         """
         raise NotImplementedError
+
+
+class AuthorizationCodeGrantSiteAdapter(UserFacingSiteAdapter,
+                                        AuthenticatingSiteAdapter):
+    """
+    Definition of a site adapter as required by
+    :class:`oauth2.grant.AuthorizationCodeGrant`.
+    """
+    pass
+
+
+class ImplicitGrantSiteAdapter(UserFacingSiteAdapter,
+                               AuthenticatingSiteAdapter):
+    """
+    Definition of a site adapter as required by
+    :class:`oauth2.grant.ImplicitGrant`.
+    """
+    pass
+
+
+class ResourceOwnerGrantSiteAdapter(AuthenticatingSiteAdapter):
+    """
+    Definition of a site adapter as required by
+    :class:`oauth2.grant.ResourceOwnerGrant`.
+    """
+    pass
 
 
 class Request(object):
@@ -128,6 +176,9 @@ class Response(object):
         return self._headers
 
     def add_header(self, header, value):
+        """
+        Add a header to the response.
+        """
         self._headers[header] = str(value)
 
 
