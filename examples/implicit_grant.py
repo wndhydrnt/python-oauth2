@@ -1,3 +1,4 @@
+import logging
 import os
 import signal
 import sys
@@ -13,6 +14,9 @@ from oauth2.web import Wsgi, SiteAdapter
 from oauth2.tokengenerator import Uuid4
 from oauth2.grant import ImplicitGrant
 from oauth2.store.memory import ClientStore, TokenStore
+
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class TestSiteAdapter(SiteAdapter):

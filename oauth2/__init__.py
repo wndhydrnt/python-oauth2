@@ -97,6 +97,7 @@ import json
 from oauth2.client_authenticator import ClientAuthenticator, request_body
 from oauth2.error import OAuthInvalidError, \
     ClientNotFoundError, OAuthInvalidNoRedirectError, UnsupportedGrantError
+from oauth2.log import app_log
 from oauth2.web import Request, Response
 from oauth2.tokengenerator import Uuid4
 from oauth2.grant import Scope, AuthorizationCodeGrant, ImplicitGrant, \
@@ -195,6 +196,7 @@ class Provider(object):
 
             return response
         except:
+            app_log.error("Uncaught Exception", exc_info=True)
             response = self.response_class()
             return grant_type.handle_error(
                 error=OAuthInvalidError(error="server_error",

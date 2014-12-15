@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import signal
 import sys
@@ -17,6 +18,9 @@ from oauth2.store.memory import ClientStore, TokenStore
 from oauth2.tokengenerator import Uuid4
 from oauth2.web import SiteAdapter, Wsgi
 from oauth2.grant import ResourceOwnerGrant
+
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class ClientApplication(object):
