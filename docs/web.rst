@@ -3,15 +3,35 @@
 
 .. automodule:: oauth2.web
 
-.. autoclass:: SiteAdapter
+Site adapters
+-------------
 
-.. automethod:: SiteAdapter.authenticate
-.. automethod:: SiteAdapter.render_auth_page
-.. automethod:: SiteAdapter.user_has_denied_access
+.. autoclass:: UserFacingSiteAdapter
+   :members:
+
+.. autoclass:: AuthenticatingSiteAdapter
+   :members:
+
+.. autoclass:: AuthorizationCodeGrantSiteAdapter
+   :members:
+   :inherited-members:
+   :show-inheritance:
+
+.. autoclass:: ImplicitGrantSiteAdapter
+   :members:
+   :inherited-members:
+   :show-inheritance:
+
+.. autoclass:: ResourceOwnerGrantSiteAdapter
+   :members:
+   :inherited-members:
+   :show-inheritance:
+
+HTTP flow
+---------
 
 .. autoclass:: Request
-
-.. automethod:: Request.get_param
-.. automethod:: Request.post_param
+   :members:
 
 .. autoclass:: Response
+   :members:

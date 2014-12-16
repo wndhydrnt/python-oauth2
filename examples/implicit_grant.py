@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.realpath(__file__) + '/../../'))
 
 from oauth2 import Provider
 from oauth2.error import UserNotAuthenticated
-from oauth2.web import Wsgi, SiteAdapter
+from oauth2.web import Wsgi, ImplicitGrantSiteAdapter
 from oauth2.tokengenerator import Uuid4
 from oauth2.grant import ImplicitGrant
 from oauth2.store.memory import ClientStore, TokenStore
@@ -19,7 +19,7 @@ from oauth2.store.memory import ClientStore, TokenStore
 logging.basicConfig(level=logging.DEBUG)
 
 
-class TestSiteAdapter(SiteAdapter):
+class TestSiteAdapter(ImplicitGrantSiteAdapter):
     CONFIRMATION_TEMPLATE = """
 <html>
     <body>
@@ -127,9 +127,8 @@ def run_auth_server():
             access_token_store=token_store,
             auth_code_store=token_store,
             client_store=client_store,
-            site_adapter=TestSiteAdapter(),
             token_generator=Uuid4())
-        auth_server.add_grant(ImplicitGrant())
+        auth_server.add_grant(ImplicitGrant(site_adapter=TestSiteAdapter()))
 
         app = Wsgi(server=auth_server)
 

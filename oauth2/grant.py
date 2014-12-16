@@ -29,12 +29,13 @@ So there are two remaining parties:
 """
 from oauth2.error import OAuthInvalidError, UserNotAuthenticated, \
     AccessTokenNotFound, UserIdentifierMissingError, RedirectUriUnknown, \
-    AuthCodeNotFound
+    AuthCodeNotFound, InvalidSiteAdapter
 from oauth2.compatibility import urlencode, quote
 import json
 import time
 from oauth2.datatype import AuthorizationCode, AccessToken
-from oauth2.web import Response
+from oauth2.web import Response, AuthorizationCodeGrantSiteAdapter, \
+    ImplicitGrantSiteAdapter, ResourceOwnerGrantSiteAdapter
 
 
 def encode_scopes(scopes, use_quote=False):
@@ -380,6 +381,27 @@ class AccessTokenMixin(object):
         return token_data
 
 
+class SiteAdapterMixin(object):
+    """
+    Mixed in by Grant classes that require a site adapter.
+
+    A concrete class must set the class attribute ``site_adapter_class`` that
+    contains a reference to the site adapter class that this class expects.
+    """
+    site_adapter_class = None
+
+    def __init__(self, site_adapter, **kwargs):
+        if isinstance(site_adapter, self.site_adapter_class) is False:
+            raise InvalidSiteAdapter(
+                "Site adapter must inherit from class '{0}'"
+                .format(self.site_adapter_class.__name__)
+            )
+
+        self.site_adapter = site_adapter
+
+        super(SiteAdapterMixin, self).__init__(**kwargs)
+
+
 class AuthorizationCodeAuthHandler(AuthorizeMixin, AuthRequestMixin,
                                    GrantHandler):
     """
@@ -557,7 +579,8 @@ class AuthorizationCodeTokenHandler(AccessTokenMixin, GrantHandler):
         self.user_id = stored_code.user_id
 
 
-class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
+class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant,
+                             SiteAdapterMixin):
     """
     Implementation of the Authorization Code Grant auth flow.
 
@@ -569,9 +592,14 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
         auth_controller = AuthorizationController()
 
         auth_controller.add_grant_type(AuthorizationCodeGrant())
+
+    .. versionchanged:: 0.8.0
+       Require parameter ``site_adapter``.
     """
 
     grant_type = "authorization_code"
+
+    site_adapter_class = AuthorizationCodeGrantSiteAdapter
 
     def __init__(self, unique_token=False, expires_in=0, **kwargs):
         self.unique_token = unique_token
@@ -597,13 +625,13 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant):
                 auth_token_store=server.auth_code_store,
                 client_authenticator=server.client_authenticator,
                 scope_handler=scope_handler,
-                site_adapter=server.site_adapter,
+                site_adapter=self.site_adapter,
                 token_generator=server.token_generator)
 
         return None
 
 
-class ImplicitGrant(GrantHandlerFactory, ScopeGrant):
+class ImplicitGrant(GrantHandlerFactory, ScopeGrant, SiteAdapterMixin):
     """
     Implementation of the Implicit Grant auth flow.
 
@@ -615,9 +643,14 @@ class ImplicitGrant(GrantHandlerFactory, ScopeGrant):
         auth_controller = AuthorizationController()
 
         auth_controller.add_grant_type(ImplicitGrant())
+
+    .. versionchanged:: 0.8.0
+       Require parameter ``site_adapter``.
     """
 
     grant_type = "implicit"
+
+    site_adapter_class = ImplicitGrantSiteAdapter
 
     def __call__(self, request, server):
         response_type = request.get_param("response_type")
@@ -628,7 +661,7 @@ class ImplicitGrant(GrantHandlerFactory, ScopeGrant):
                 access_token_store=server.access_token_store,
                 client_authenticator=server.client_authenticator,
                 scope_handler=self._create_scope_handler(),
-                site_adapter=server.site_adapter,
+                site_adapter=self.site_adapter,
                 token_generator=server.token_generator)
         return None
 
@@ -686,7 +719,7 @@ class ImplicitGrantHandler(AuthorizeMixin, AuthRequestMixin, GrantHandler):
         return response
 
 
-class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant):
+class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant, SiteAdapterMixin):
     """
     Implementation of the Resource Owner Password Credentials Grant auth flow.
 
@@ -700,9 +733,14 @@ class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant):
         auth_controller = AuthorizationController()
 
         auth_controller.add_grant_type(ResourceOwnerGrant())
+
+    .. versionchanged:: 0.8.0
+       Require parameter ``site_adapter``.
     """
 
     grant_type = "password"
+
+    site_adapter_class = ResourceOwnerGrantSiteAdapter
 
     def __init__(self, unique_token=False, expires_in=0, **kwargs):
         self.unique_token = unique_token
@@ -722,7 +760,7 @@ class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant):
             access_token_store=server.access_token_store,
             client_authenticator=server.client_authenticator,
             scope_handler=self._create_scope_handler(),
-            site_adapter=server.site_adapter,
+            site_adapter=self.site_adapter,
             token_generator=server.token_generator,
             unique_token=self.unique_token)
 
@@ -831,8 +869,7 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
 
     grant_type = "refresh_token"
 
-    def __init__(self, expires_in,
-                 reissue_refresh_tokens=False, **kwargs):
+    def __init__(self, expires_in, reissue_refresh_tokens=False, **kwargs):
 
         self.refresh_expires_in = expires_in
         self.reissue_refresh_tokens = reissue_refresh_tokens
@@ -856,8 +893,8 @@ class RefreshToken(GrantHandlerFactory, ScopeGrant):
             client_authenticator=server.client_authenticator,
             scope_handler=self._create_scope_handler(),
             token_generator=server.token_generator,
-            reissue_refresh_tokens = self.reissue_refresh_tokens,
-            )
+            reissue_refresh_tokens=self.reissue_refresh_tokens
+        )
 
 
 class RefreshTokenHandler(GrantHandler):
@@ -875,6 +912,7 @@ class RefreshTokenHandler(GrantHandler):
 
         self.client = None
         self.data = {}
+        self.refresh_grant_type = None
         self.refresh_token = None
         self.user_id = None
 
@@ -944,7 +982,6 @@ class RefreshTokenHandler(GrantHandler):
         except AccessTokenNotFound:
             raise OAuthInvalidError(error="invalid_request",
                                     explanation="Invalid refresh token")
-
 
         refresh_token_expires_at = access_token.refresh_expires_at
         self.refresh_grant_type = access_token.grant_type
