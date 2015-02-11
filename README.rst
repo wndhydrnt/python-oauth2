@@ -39,7 +39,8 @@ Example Authorization server
 
     # Create a SiteAdapter to interact with the user.
     # This can be used to display confirmation dialogs and the like.
-    class ExampleSiteAdapter(oauth2.web.SiteAdapter):
+    class ExampleSiteAdapter(oauth2.web.AuthorizationCodeGrantSiteAdapter,
+                             oauth2.web.ImplicitGrantSiteAdapter):
         def authenticate(self, request, environ, scopes):
             # Check if the user has granted access
             if request.post_param("confirm") == "confirm":
@@ -80,13 +81,14 @@ Example Authorization server
         access_token_store=token_store,
         auth_code_store=token_store,
         client_store=client_store,
-        site_adapter=ExampleSiteAdapter(),
         token_generator=oauth2.tokengenerator.Uuid4()
     )
 
+    site_adapter = ExampleSiteAdapter()
+
     # Add Grants you want to support
-    auth_controller.add_grant(oauth2.grant.AuthorizationCodeGrant())
-    auth_controller.add_grant(oauth2.grant.ImplicitGrant())
+    auth_controller.add_grant(oauth2.grant.AuthorizationCodeGrant(site_adapter=site_adapter))
+    auth_controller.add_grant(oauth2.grant.ImplicitGrant(site_adapter=site_adapter))
 
     # Add refresh token capability and set expiration time of access tokens
     # to 30 days
@@ -98,6 +100,10 @@ Example Authorization server
     if __name__ == "__main__":
         httpd = make_server('', 8080, app)
         httpd.serve_forever()
+
+This example only shows how to instantiate the server.
+It is not a working example as a client app is missing. Take a look at the
+`examples <examples/>`_ directory.
 
 Supported storage backends
 **************************
