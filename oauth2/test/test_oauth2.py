@@ -4,8 +4,9 @@ from oauth2.error import OAuthInvalidNoRedirectError, OAuthInvalidError
 from oauth2.test import unittest
 from oauth2 import Provider
 from oauth2.store import ClientStore
-from oauth2.web import Response, Request, AuthorizationCodeGrantSiteAdapter, \
+from oauth2.web import Response, AuthorizationCodeGrantSiteAdapter, \
     ResourceOwnerGrantSiteAdapter
+from oauth2.web.wsgi import Request
 from oauth2.grant import RefreshToken, AuthorizationCodeGrant, GrantHandler, \
     ResourceOwnerGrant
 

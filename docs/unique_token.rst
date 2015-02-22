@@ -33,7 +33,7 @@ client but also to a user. To make this work the Provider needs some kind of
 identifier that is unique for each user (typically the ID of a user in the
 database). The identifier is stored along with all the other information of an
 access token. It has to be returned as the second item of a tuple by your
-implementation of :class:`oauth2.web.SiteAdapter.authenticate`::
+implementation of :class:`oauth2.web.AuthenticatingSiteAdapter.authenticate`::
 
     class MySiteAdapter(SiteAdapter):
 
@@ -61,5 +61,6 @@ initialization of :class:`oauth2.Provider`::
 .. note::
 
     If you enable the feature but forgot to make
-    :class:`oauth2.web.SiteAdapter.authenticate` return a user identifier, the
-    Provider will respond with an error to requests for a token.
+    :class:`oauth2.web.AuthenticatingSiteAdapter.authenticate` return a user
+    identifier, the Provider will respond with an error to requests for a
+    token.

@@ -1,7 +1,9 @@
 from oauth2.test import unittest
 from mock import Mock
-from oauth2.web import Request, Response, Wsgi
+from oauth2.web import Response
+from oauth2.web.wsgi import Request, Application
 from oauth2 import Provider
+
 
 class RequestTestCase(unittest.TestCase):
     def test_initialization_no_post_data(self):
@@ -102,7 +104,7 @@ class RequestTestCase(unittest.TestCase):
         self.assertEqual(request.header("unknown", default=0), 0)
 
 
-class WsgiTestCase(unittest.TestCase):
+class ServerTestCase(unittest.TestCase):
     def test_call(self):
         body = "body"
         headers = {"header": "value"}
@@ -120,18 +122,19 @@ class WsgiTestCase(unittest.TestCase):
         response_mock.headers = headers
         response_mock.status_code = status_code
 
-        server_mock = Mock(spec=Provider)
-        server_mock.dispatch.return_value = response_mock
+        provider_mock = Mock(spec=Provider)
+        provider_mock.dispatch.return_value = response_mock
 
         start_response_mock = Mock()
 
-        wsgi = Wsgi(server=server_mock, authorize_uri=path,
-                    request_class=request_class_mock, env_vars=["myvar"])
+        wsgi = Application(provider=provider_mock, authorize_uri=path,
+                           request_class=request_class_mock,
+                           env_vars=["myvar"])
         result = wsgi(environment, start_response_mock)
 
         request_class_mock.assert_called_with(environment)
-        server_mock.dispatch.assert_called_with(request_mock,
-                                                {"myvar": "value"})
+        provider_mock.dispatch.assert_called_with(request_mock,
+                                                  {"myvar": "value"})
         start_response_mock.assert_called_with(http_code,
                                                list(headers.items()))
         self.assertEqual(result, [body.encode('utf-8')])

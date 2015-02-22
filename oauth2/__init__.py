@@ -10,80 +10,9 @@ an application stack.
 Usage
 =====
 
-Example::
+Example:
 
-    from wsgiref.simple_server import make_server
-    import oauth2
-    import oauth2.grant
-    import oauth2.error
-    import oauth2.store.memory
-    import oauth2.tokengenerator
-    import oauth2.web
-
-    # Create a SiteAdapter to interact with the user.
-    # This can be used to display confirmation dialogs and the like.
-    class ExampleSiteAdapter(oauth2.web.AuthorizationCodeGrantSiteAdapter,
-                             oauth2.web.ImplicitGrantSiteAdapter):
-        def authenticate(self, request, environ, scopes):
-            # Check if the user has granted access
-            if request.post_param("confirm") == "confirm":
-                return {}
-
-            raise oauth2.error.UserNotAuthenticated
-
-        def render_auth_page(self, request, response, environ, scopes):
-            response.body = '''
-    <html>
-        <body>
-            <form method="POST" name="confirmation_form">
-                <input type="submit" name="confirm" value="confirm" />
-                <input type="submit" name="deny" value="deny" />
-            </form>
-        </body>
-    </html>'''
-            return response
-
-        def user_has_denied_access(self, request):
-            # Check if the user has denied access
-            if request.post_param("deny") == "deny":
-                return True
-            return False
-
-    # Create an in-memory storage to store your client apps.
-    client_store = oauth2.store.memory.ClientStore()
-    # Add a client
-    client_store.add_client(client_id="abc", client_secret="xyz",
-                            redirect_uris=["http://localhost/callback"])
-
-    site_adapter = ExampleSiteAdapter()
-
-    # Create an in-memory storage to store issued tokens.
-    # LocalTokenStore can store access and auth tokens
-    token_store = oauth2.store.memory.TokenStore()
-
-    # Create the controller.
-    auth_controller = oauth2.Provider(
-        access_token_store=token_store,
-        auth_code_store=token_store,
-        client_store=client_store,
-        token_generator=oauth2.tokengenerator.Uuid4()
-    )
-
-    # Add Grants you want to support
-    auth_controller.add_grant(oauth2.grant.AuthorizationCodeGrant(site_adapter=site_adapter))
-    auth_controller.add_grant(oauth2.grant.ImplicitGrant(site_adapter=site_adapter))
-
-    # Add refresh token capability and set expiration time of access tokens
-    # to 30 days
-    auth_controller.add_grant(oauth2.grant.RefreshToken(expires_in=2592000))
-
-    # Wrap the controller with the Wsgi adapter
-    app = oauth2.web.Wsgi(server=auth_controller)
-
-    if __name__ == "__main__":
-        httpd = make_server('', 8080, app)
-        httpd.serve_forever()
-
+.. literalinclude:: examples/base_server.py
 
 Installation
 ============
@@ -100,12 +29,12 @@ from oauth2.client_authenticator import ClientAuthenticator, request_body
 from oauth2.error import OAuthInvalidError, \
     ClientNotFoundError, OAuthInvalidNoRedirectError, UnsupportedGrantError
 from oauth2.log import app_log
-from oauth2.web import Request, Response
+from oauth2.web import Response
 from oauth2.tokengenerator import Uuid4
 from oauth2.grant import Scope, AuthorizationCodeGrant, ImplicitGrant, \
     ClientCredentialsGrant, ResourceOwnerGrant, RefreshToken
 
-VERSION = "0.8.0"
+VERSION = "1.0.0"
 
 
 class Provider(object):
@@ -126,7 +55,7 @@ class Provider(object):
     :param response_class: Class of the response object.
                            Defaults to :class:`oauth2.web.Response`.
 
-    .. versionchanged:: 0.8.0
+    .. versionchanged:: 1.0.0
        Removed parameter ``site_adapter``.
     """
     authorize_path = "/authorize"
@@ -165,8 +94,10 @@ class Provider(object):
         """
         Checks which Grant supports the current request and dispatches to it.
 
-        :param request: An instance of :class:`oauth2.web.Request`.
-        :param environ: Hash containing variables of the environment.
+        :param request: The incoming request.
+        :type request: :class:`oauth2.web.Request`
+        :param environ: Dict containing variables of the environment.
+        :type environ: dict
 
         :return: An instance of ``oauth2.web.Response``.
         """

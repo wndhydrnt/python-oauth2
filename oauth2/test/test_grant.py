@@ -3,8 +3,9 @@ import json
 from oauth2.client_authenticator import ClientAuthenticator
 from oauth2.compatibility import quote
 from oauth2.test import unittest
-from oauth2.web import Request, Response, ResourceOwnerGrantSiteAdapter, \
+from oauth2.web import Response, ResourceOwnerGrantSiteAdapter, \
     ImplicitGrantSiteAdapter, AuthorizationCodeGrantSiteAdapter
+from oauth2.web.wsgi import Request
 from oauth2.grant import ImplicitGrantHandler, AuthorizationCodeAuthHandler, \
     AuthRequestMixin, AuthorizationCodeTokenHandler, ImplicitGrant, \
     AuthorizationCodeGrant, ResourceOwnerGrantHandler, ResourceOwnerGrant, \
@@ -29,10 +30,12 @@ class AuthorizationCodeGrantTestCase(unittest.TestCase):
         AuthorizationCodeGrant() should return a new instance of AuthorizationCodeAuthHandler on request
         """
         default_scope = "default_scope"
+        method = "GET"
         scopes = ["first", "second"]
         path = "/auth"
 
         request_mock = Mock(spec=Request)
+        request_mock.method = method
         request_mock.path = path
         request_mock.get_param.return_value = "code"
 
@@ -60,6 +63,7 @@ class AuthorizationCodeGrantTestCase(unittest.TestCase):
         path = "/token"
 
         request_mock = Mock(spec=Request)
+        request_mock.method = "POST"
         request_mock.path = path
         request_mock.post_param.return_value = "authorization_code"
 
@@ -82,6 +86,7 @@ class AuthorizationCodeGrantTestCase(unittest.TestCase):
 
     def test_create_no_match(self):
         request_mock = Mock(spec=Request)
+        request_mock.method = "POST"
         request_mock.get_param.return_value = "no-code"
         request_mock.post_param.return_value = "no-authorization_code"
 
@@ -90,7 +95,6 @@ class AuthorizationCodeGrantTestCase(unittest.TestCase):
         )
         result_class = factory(request_mock, Mock())
 
-        request_mock.get_param.assert_called_with("response_type")
         request_mock.post_param.assert_called_with("grant_type")
         self.assertEqual(result_class, None)
 

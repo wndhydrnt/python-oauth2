@@ -9,14 +9,15 @@ from multiprocessing.process import Process
 from urllib2 import HTTPError
 from wsgiref.simple_server import make_server
 
-sys.path.insert(0, os.path.abspath(os.path.realpath(__file__) + '/../../'))
+sys.path.insert(0, os.path.abspath(os.path.realpath(__file__) + '/../../../'))
 
 from oauth2.compatibility import parse_qs, urlencode
 from oauth2 import Provider
 from oauth2.error import UserNotAuthenticated
 from oauth2.store.memory import ClientStore, TokenStore
 from oauth2.tokengenerator import Uuid4
-from oauth2.web import Wsgi, ResourceOwnerGrantSiteAdapter
+from oauth2.web import ResourceOwnerGrantSiteAdapter
+from oauth2.web.wsgi import Application
 from oauth2.grant import ResourceOwnerGrant
 
 
@@ -187,17 +188,17 @@ def run_auth_server():
 
         token_store = TokenStore()
 
-        auth_controller = Provider(
+        provider = Provider(
             access_token_store=token_store,
             auth_code_store=token_store,
             client_store=client_store,
             token_generator=Uuid4())
 
-        auth_controller.add_grant(
+        provider.add_grant(
             ResourceOwnerGrant(site_adapter=TestSiteAdapter())
         )
 
-        app = Wsgi(server=auth_controller)
+        app = Application(provider=provider)
 
         httpd = make_server('', 8080, app)
 

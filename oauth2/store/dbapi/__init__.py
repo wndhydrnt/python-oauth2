@@ -87,7 +87,7 @@ class DbApiAccessTokenStore(DatabaseStore, AccessTokenStore):
     :class:`oauth2.store.AccessTokenStore`.
 
     A concrete implementation extends this class and defines all or a subset
-    of the *_query class attributes.
+    of the \*_query class attributes.
     """
     #: Insert an access token.
     create_access_token_query = None
@@ -222,7 +222,7 @@ class DbApiAuthCodeStore(DatabaseStore, AuthCodeStore):
     Base class of a DBApi 2.0 compatible :class:`oauth2.store.AuthCodeStore`.
 
     A concrete implementation extends this class and defines all or a subset
-    of the *_query class attributes.
+    of the \*_query class attributes.
     """
     #: Insert an auth code.
     create_auth_code_query = None
@@ -313,7 +313,7 @@ class DbApiClientStore(DatabaseStore, ClientStore):
     Base class of a DBApi 2.0 compatible :class:`oauth2.store.ClientStore`.
 
     A concrete implementation extends this class and defines all or a subset
-    of the *_query class attributes.
+    of the \*_query class attributes.
     """
     #: Retrieve a client by its identifier.
     fetch_client_query = None

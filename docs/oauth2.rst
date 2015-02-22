@@ -1,4 +1,4 @@
-``oauth2`` --- Provider class
+``oauth2`` --- Provider Class
 =============================
 
 .. autoclass:: oauth2.Provider

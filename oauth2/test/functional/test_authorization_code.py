@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import json
 from multiprocessing import Queue
 from wsgiref.simple_server import make_server
@@ -6,9 +8,13 @@ from oauth2.grant import AuthorizationCodeGrant, RefreshToken
 from oauth2.test import unittest
 from oauth2.test.functional import NoLoggingHandler
 from oauth2.tokengenerator import Uuid4
-from oauth2.web import Wsgi, AuthorizationCodeGrantSiteAdapter
+from oauth2.web import AuthorizationCodeGrantSiteAdapter
+from oauth2.web.wsgi import Application
 from ..functional import store_factory
-
+from tornado.ioloop import IOLoop
+from tornado.web import Application as TornadoApplication
+from tornado.web import url
+from ...web.tornado import OAuth2Handler
 
 try:
     from urllib.request import urlopen
@@ -25,69 +31,74 @@ except ImportError:
     from multiprocessing import Process
 
 
+def create_provider():
+    redirect_uri = "http://127.0.0.1:15487/callback"
+
+    stores = store_factory(client_identifier="abc",
+                           client_secret="xyz",
+                           redirect_uris=[redirect_uri])
+
+    provider = Provider(access_token_store=stores["access_token_store"],
+                        auth_code_store=stores["auth_code_store"],
+                        client_store=stores["client_store"],
+                        token_generator=Uuid4())
+
+    provider.add_grant(
+        AuthorizationCodeGrant(
+            expires_in=120,
+            site_adapter=TestSiteAdapter()
+        )
+    )
+
+    provider.add_grant(RefreshToken(expires_in=60))
+
+    return provider
+
+
+def run_client(queue):
+    try:
+        app = ClientApplication(
+            callback_url="http://127.0.0.1:15487/callback",
+            client_id="abc",
+            client_secret="xyz",
+            provider_url="http://127.0.0.1:15486")
+
+        httpd = make_server('', 15487, app,
+                            handler_class=NoLoggingHandler)
+
+        queue.put({"result": 0})
+
+        httpd.serve_forever()
+    except Exception as e:
+        queue.put({"result": 1, "error_message": str(e)})
+
+
 class AuthorizationCodeTestCase(unittest.TestCase):
     def setUp(self):
         self.client = None
-        self.provider = None
+        self.server = None
 
-    def test_request_access_token(self):
+    def test_tornado(self):
         def run_provider(queue):
             try:
+                provider = create_provider()
 
-                redirect_uri = "http://127.0.0.1:15487/callback"
-
-                stores = store_factory(client_identifier="abc",
-                                       client_secret="xyz",
-                                       redirect_uris=[redirect_uri])
-
-                provider = Provider(access_token_store=stores["access_token_store"],
-                                    auth_code_store=stores["auth_code_store"],
-                                    client_store=stores["client_store"],
-                                    token_generator=Uuid4())
-
-                provider.add_grant(
-                    AuthorizationCodeGrant(
-                        expires_in=120,
-                        site_adapter=TestSiteAdapter()
-                    )
-                )
-
-                provider.add_grant(RefreshToken(expires_in=60))
-
-                app = Wsgi(server=provider)
-
-                httpd = make_server('', 15486, app,
-                                    handler_class=NoLoggingHandler)
+                app = TornadoApplication([
+                    url(r"/authorize", OAuth2Handler, dict(provider=provider)),
+                    url(r"/token", OAuth2Handler, dict(provider=provider))
+                ], debug=True)
+                app.listen(15486)
 
                 queue.put({"result": 0})
 
-                httpd.serve_forever()
+                IOLoop.current().start()
             except Exception as e:
                 queue.put({"result": 1, "error_message": str(e)})
-
-        def run_client(queue):
-            try:
-                app = ClientApplication(
-                    callback_url="http://127.0.0.1:15487/callback",
-                    client_id="abc",
-                    client_secret="xyz",
-                    provider_url="http://127.0.0.1:15486")
-
-                httpd = make_server('', 15487, app,
-                                    handler_class=NoLoggingHandler)
-
-                queue.put({"result": 0})
-
-                httpd.serve_forever()
-            except Exception as e:
-                queue.put({"result": 1, "error_message": str(e)})
-
-        uuid_regex = "^[a-z0-9]{8}\-[a-z0-9]{4}\-[a-z0-9]{4}\-[a-z0-9]{4}-[a-z0-9]{12}$"
 
         ready_queue = Queue()
 
-        self.provider = Process(target=run_provider, args=(ready_queue,))
-        self.provider.start()
+        self.server = Process(target=run_provider, args=(ready_queue,))
+        self.server.start()
 
         provider_started = ready_queue.get()
 
@@ -105,7 +116,55 @@ class AuthorizationCodeTestCase(unittest.TestCase):
                             "message '{0}'"
                             .format(client_started["error_message"]))
 
-        access_token_result = urlopen("http://127.0.0.1:15487/app").read()
+        self.access_token()
+
+    def test_wsgi(self):
+        def run_provider(queue):
+            try:
+                provider = create_provider()
+
+                app = Application(provider=provider)
+
+                httpd = make_server('', 15486, app,
+                                    handler_class=NoLoggingHandler)
+
+                queue.put({"result": 0})
+
+                httpd.serve_forever()
+            except Exception as e:
+                queue.put({"result": 1, "error_message": str(e)})
+
+        ready_queue = Queue()
+
+        self.server = Process(target=run_provider, args=(ready_queue,))
+        self.server.start()
+
+        provider_started = ready_queue.get()
+
+        if provider_started["result"] != 0:
+            raise Exception("Error starting Provider process with message"
+                            "'{0}'".format(provider_started["error_message"]))
+
+        self.client = Process(target=run_client, args=(ready_queue,))
+        self.client.start()
+
+        client_started = ready_queue.get()
+
+        if client_started["result"] != 0:
+            raise Exception("Error starting Client Application process with "
+                            "message '{0}'"
+                            .format(client_started["error_message"]))
+
+        self.access_token()
+
+    def access_token(self):
+        uuid_regex = "^[a-z0-9]{8}\-[a-z0-9]{4}\-[a-z0-9]{4}\-[a-z0-9]{4}-[a-z0-9]{12}$"
+
+        try:
+            access_token_result = urlopen("http://127.0.0.1:15487/app").read()
+        except HTTPError as e:
+            print(e.read())
+            exit(1)
 
         access_token_data = json.loads(access_token_result.decode('utf-8'))
 
@@ -138,9 +197,9 @@ class AuthorizationCodeTestCase(unittest.TestCase):
             self.client.terminate()
             self.client.join()
 
-        if self.provider is not None:
-            self.provider.terminate()
-            self.provider.join()
+        if self.server is not None:
+            self.server.terminate()
+            self.server.join()
 
 
 class TestSiteAdapter(AuthorizationCodeGrantSiteAdapter):

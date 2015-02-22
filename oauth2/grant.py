@@ -593,7 +593,7 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant,
 
         auth_controller.add_grant_type(AuthorizationCodeGrant())
 
-    .. versionchanged:: 0.8.0
+    .. versionchanged:: 1.0.0
        Require parameter ``site_adapter``.
     """
 
@@ -608,7 +608,15 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant,
         super(AuthorizationCodeGrant, self).__init__(**kwargs)
 
     def __call__(self, request, server):
-        if (request.post_param("grant_type") == "authorization_code"
+        """
+        :param request: Incoming request
+        :type request: oauth2.web.Request
+
+        .. versionchanged:: 1.0.0
+           Check the HTTP method of a request
+        """
+        if (request.method == "POST"
+                and request.post_param("grant_type") == "authorization_code"
                 and request.path == server.token_path):
             return AuthorizationCodeTokenHandler(
                 access_token_store=server.access_token_store,
@@ -617,7 +625,8 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant,
                 token_generator=server.token_generator,
                 unique_token=self.unique_token)
 
-        if (request.get_param("response_type") == "code"
+        if (request.method == "GET"
+                and request.get_param("response_type") == "code"
                 and request.path == server.authorize_path):
             scope_handler = self._create_scope_handler()
 
@@ -644,7 +653,7 @@ class ImplicitGrant(GrantHandlerFactory, ScopeGrant, SiteAdapterMixin):
 
         auth_controller.add_grant_type(ImplicitGrant())
 
-    .. versionchanged:: 0.8.0
+    .. versionchanged:: 1.0.0
        Require parameter ``site_adapter``.
     """
 
@@ -734,7 +743,7 @@ class ResourceOwnerGrant(GrantHandlerFactory, ScopeGrant, SiteAdapterMixin):
 
         auth_controller.add_grant_type(ResourceOwnerGrant())
 
-    .. versionchanged:: 0.8.0
+    .. versionchanged:: 1.0.0
        Require parameter ``site_adapter``.
     """
 

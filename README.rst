@@ -35,7 +35,8 @@ Example Authorization server
     import oauth2.error
     import oauth2.store.memory
     import oauth2.tokengenerator
-    import oauth2.web
+    import oauth2.web.wsgi
+
 
     # Create a SiteAdapter to interact with the user.
     # This can be used to display confirmation dialogs and the like.
@@ -72,38 +73,39 @@ Example Authorization server
     client_store.add_client(client_id="abc", client_secret="xyz",
                             redirect_uris=["http://localhost/callback"])
 
+    site_adapter = ExampleSiteAdapter()
+
     # Create an in-memory storage to store issued tokens.
     # LocalTokenStore can store access and auth tokens
     token_store = oauth2.store.memory.TokenStore()
 
     # Create the controller.
-    auth_controller = oauth2.Provider(
+    provider = oauth2.Provider(
         access_token_store=token_store,
         auth_code_store=token_store,
         client_store=client_store,
         token_generator=oauth2.tokengenerator.Uuid4()
     )
 
-    site_adapter = ExampleSiteAdapter()
-
     # Add Grants you want to support
-    auth_controller.add_grant(oauth2.grant.AuthorizationCodeGrant(site_adapter=site_adapter))
-    auth_controller.add_grant(oauth2.grant.ImplicitGrant(site_adapter=site_adapter))
+    provider.add_grant(oauth2.grant.AuthorizationCodeGrant(site_adapter=site_adapter))
+    provider.add_grant(oauth2.grant.ImplicitGrant(site_adapter=site_adapter))
 
     # Add refresh token capability and set expiration time of access tokens
     # to 30 days
-    auth_controller.add_grant(oauth2.grant.RefreshToken(expires_in=2592000))
+    provider.add_grant(oauth2.grant.RefreshToken(expires_in=2592000))
 
     # Wrap the controller with the Wsgi adapter
-    app = oauth2.web.Wsgi(server=auth_controller)
+    app = oauth2.web.wsgi.Application(provider=provider)
 
     if __name__ == "__main__":
         httpd = make_server('', 8080, app)
         httpd.serve_forever()
 
+
 This example only shows how to instantiate the server.
 It is not a working example as a client app is missing. Take a look at the
-`examples <examples/>`_ directory.
+`examples <docs/examples/>`_ directory.
 
 Supported storage backends
 **************************
