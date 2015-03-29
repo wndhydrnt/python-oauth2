@@ -1,6 +1,7 @@
 from mock import Mock, call, patch
 import json
 from oauth2.client_authenticator import ClientAuthenticator
+from oauth2.compatibility import quote
 from oauth2.test import unittest
 from oauth2.web import Request, Response, ResourceOwnerGrantSiteAdapter, \
     ImplicitGrantSiteAdapter, AuthorizationCodeGrantSiteAdapter
@@ -196,11 +197,11 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         code = "abcd"
         environ = {"session": "data"}
         scopes = ["scope"]
-        state = "mystate"
+        state = "my%state"
         redirect_uri = "https://callback"
         user_data = {"user_id": 789}
 
-        location_uri = "%s?code=%s&state=%s" % (redirect_uri, code, state)
+        location_uri = "%s?code=%s&state=%s" % (redirect_uri, code, quote(state))
 
         auth_code_store_mock = Mock(spec=AuthCodeStore)
 
@@ -793,6 +794,7 @@ class ImplicitGrantTestCase(unittest.TestCase):
         request_mock.get_param.assert_called_with("response_type")
         self.assertEqual(result_class, None)
 
+
 class ImplicitGrantHandlerTestCase(unittest.TestCase):
     def test_process_redirect_with_token(self):
         client_id = "abc"
@@ -848,11 +850,11 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         ImplicitGrantHandler should include the value of the "state" query parameter from request in redirect
         """
         redirect_uri = "http://callback"
-        state = "XHGFI"
+        state = "XH%GFI"
         token = "tokencode"
         user_data = ({}, 1)
 
-        expected_redirect_uri = "%s#access_token=%s&token_type=bearer&state=%s" % (redirect_uri, token, state)
+        expected_redirect_uri = "%s#access_token=%s&token_type=bearer&state=%s" % (redirect_uri, token, quote(state))
 
         response_mock = Mock(spec=Response)
 

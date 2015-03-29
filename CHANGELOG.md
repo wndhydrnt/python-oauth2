@@ -12,6 +12,7 @@ Improvements:
 Bugfixes:
 
   - Fix Resource Owner Grant responding with HTTP status code '500' in case an owner could not be authorized ([@wndhydrnt][])
+  - Fix "scope" parameter not being urlencoded ([@wndhydrnt][])
 
 ## 0.7.0
 

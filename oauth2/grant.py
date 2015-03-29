@@ -466,7 +466,7 @@ class AuthorizationCodeAuthHandler(AuthorizeMixin, AuthRequestMixin,
         query = "code=" + code
 
         if self.state is not None:
-            query += "&state=" + self.state
+            query += "&state=" + quote(self.state)
 
         return "%s?%s" % (self.client.redirect_uri, query)
 
@@ -705,7 +705,7 @@ class ImplicitGrantHandler(AuthorizeMixin, AuthRequestMixin, GrantHandler):
             format(self.client.redirect_uri, token)
 
         if self.state is not None:
-            uri_with_fragment += "&state=" + self.state
+            uri_with_fragment += "&state=" + quote(self.state)
 
         if self.scope_handler.send_back is True:
             scopes_as_string = encode_scopes(self.scope_handler.scopes,
