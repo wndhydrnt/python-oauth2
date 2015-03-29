@@ -1,5 +1,12 @@
+import sys
+
 from setuptools import setup
 from oauth2 import VERSION
+
+if sys.version_info < (3, 0, 0):
+    memcache_require = "python-memcached"
+else:
+    memcache_require = "python3-memcached"
 
 setup(name="python-oauth2",
       version=VERSION,
@@ -10,6 +17,11 @@ setup(name="python-oauth2",
       url="https://github.com/wndhydrnt/python-oauth2",
       packages=["oauth2", "oauth2.store", "oauth2.store.dbapi",
                 "oauth2.test"],
+      extras_require={
+        "memcache": [memcache_require],
+        "mongodb": ["pymongo"],
+        "redis": ["redis"]
+      },
       classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: MIT License",

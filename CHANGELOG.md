@@ -8,6 +8,7 @@ Features:
 Improvements:
 
   - Catch unexpected exceptions and respond with a OAuth2 'server_error' ([@wndhydrnt][])
+  - Declare optional dependencies in setup.py ([@wndhydrnt][])
 
 Bugfixes:
 
