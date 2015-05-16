@@ -1,21 +1,18 @@
 import os
 import sys
-import urllib
-import urlparse
-import json
 import signal
 
 from multiprocessing.process import Process
 from wsgiref.simple_server import make_server, WSGIRequestHandler
 
-sys.path.insert(0, os.path.abspath(os.path.realpath(__file__) + '/../../'))
+sys.path.insert(0, os.path.abspath(os.path.realpath(__file__) + '/../../../'))
 
 from oauth2 import Provider
-from oauth2.error import UserNotAuthenticated
 from oauth2.store.memory import ClientStore, TokenStore
 from oauth2.tokengenerator import Uuid4
-from oauth2.web import Wsgi
+from oauth2.web.wsgi import Application
 from oauth2.grant import ClientCredentialsGrant
+
 
 class OAuthRequestHandler(WSGIRequestHandler):
     """
@@ -44,7 +41,7 @@ def run_auth_server():
             token_generator=token_gen)
         auth_controller.add_grant(ClientCredentialsGrant())
 
-        app = Wsgi(server=auth_controller)
+        app = Application(provider=auth_controller)
 
         httpd = make_server('', 8080, app, handler_class=OAuthRequestHandler)
 

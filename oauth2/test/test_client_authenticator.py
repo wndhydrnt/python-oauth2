@@ -8,7 +8,7 @@ from oauth2.datatype import Client
 from oauth2.error import OAuthInvalidNoRedirectError, ClientNotFoundError,\
     OAuthInvalidError
 from oauth2.store import ClientStore
-from oauth2.web import Request
+from oauth2.web.wsgi import Request
 
 
 class ClientAuthenticatorTestCase(unittest.TestCase):

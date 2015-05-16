@@ -1,21 +1,22 @@
 Migration
 =========
 
-0.7.0 --> 0.8.0
----------------
+0.7.0 -> 1.0.0
+--------------
 
 One site adapter per grant
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Starting from ``0.8.0``, the grants
+Starting from ``1.0.0``, the grants
 :class:`oauth2.grant.AuthorizationCodeGrant`,
 :class:`oauth2.grant.ImplicitGrant` and
 :class:`oauth2.grant.ResourceOwnerGrant` expect the parameter ``site_adapter``
 to be passed to them.
 
-:class:`oauth2.Provider` does not accept the parameter ``site_adapter``.
+:class:`oauth2.Provider` does not accept the parameter ``site_adapter``
+anymore.
 
-``oauth2.web.SiteAdapter`` has been deleted.
+The base class ``oauth2.web.SiteAdapter`` does not exist anymore.
 
 Code that looks like this in version ``0.7.0``
 
@@ -44,9 +45,41 @@ has to be rewritten to look similar to the following
    from oauth2.grant import AuthorizationCodeGrant
 
    class ExampleSiteAdapter(AuthorizationCodeGrantSiteAdapter):
+       # Override the methods defined in AuthorizationCodeGrantSiteAdapter to suite your needs
        ...
 
    # No site_adapter anymore
    provider = Provider(...)
 
    provider.add_grant(AuthorizationCodeGrant(site_adapter=ExampleSiteAdapter()))
+
+
+WSGI adapter classes refactoring
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+All code to connect ``python-oauth2`` with a WSGI compliant server has been
+moved to the module ``oauth2.web.wsgi``.
+
+Also the class ``Wsgi`` has been renamed to ``Application`` and now expects
+the parameter ``provider`` instead of ``server``.
+
+Before:
+
+.. code-block:: python
+
+    from oauth2.web import Wsgi
+
+    # Instantiating storage and provider...
+
+    app = Wsgi(server=provider)
+
+
+After:
+
+.. code-block:: python
+
+    from oauth2.web.wsgi import Application
+
+    # Instantiating storage and provider...
+
+    app = Application(provider=provider)

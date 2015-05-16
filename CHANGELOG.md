@@ -1,14 +1,17 @@
-## 0.8.0 (unreleased)
+## 1.0.0 (unreleased)
 
 Features:
 
   - Logging support ([@wndhydrnt][])
   - Each grant accepts its own site adapter (see [Migration notes](http://python-oauth2.readthedocs.org/en/latest/migration.html)) ([@wndhydrnt][])
+  - [Tornado](http://www.tornadoweb.org/) adapter
 
 Improvements:
 
   - Catch unexpected exceptions and respond with a OAuth2 'server_error' ([@wndhydrnt][])
   - Declare optional dependencies in setup.py ([@wndhydrnt][])
+  - Move WSGI server code into its own module ([@wndhydrnt][])
+  - Renamed class acting as entrypoint for WSGI server from 'Server' to 'Application' ([@wndhydrnt][])
 
 Bugfixes:
 

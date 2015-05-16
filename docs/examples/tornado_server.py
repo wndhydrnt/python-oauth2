@@ -1,22 +1,25 @@
 import logging
+import json
 import os
+import signal
 import sys
 import urllib
 import urlparse
-import json
-import signal
 
 from multiprocessing.process import Process
-from wsgiref.simple_server import make_server, WSGIRequestHandler
 
-sys.path.insert(0, os.path.abspath(os.path.realpath(__file__) + '/../../'))
+sys.path.insert(0, os.path.abspath(os.path.realpath(__file__) + '/../../../'))
 
 from oauth2 import Provider
 from oauth2.error import UserNotAuthenticated
-from oauth2.store.memory import ClientStore, TokenStore
-from oauth2.tokengenerator import Uuid4
-from oauth2.web import Wsgi, AuthorizationCodeGrantSiteAdapter
 from oauth2.grant import AuthorizationCodeGrant
+from oauth2.tokengenerator import Uuid4
+from oauth2.store.memory import ClientStore, TokenStore
+from oauth2.web import AuthorizationCodeGrantSiteAdapter
+from oauth2.web.tornado import OAuth2Handler
+from tornado.ioloop import IOLoop
+from tornado.web import Application, url
+from wsgiref.simple_server import make_server, WSGIRequestHandler
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -102,7 +105,7 @@ class ClientApplication(object):
 
     def __call__(self, env, start_response):
         if env["PATH_INFO"] == "/app":
-            status, body, headers = self._serve_application()
+            status, body, headers = self._serve_application(env)
         elif env["PATH_INFO"] == "/callback":
             status, body, headers = self._read_auth_token(env)
         else:
@@ -142,6 +145,11 @@ class ClientApplication(object):
         print("Receiving authorization token...")
 
         query_params = urlparse.parse_qs(env["QUERY_STRING"])
+
+        if "error" in query_params:
+            location = "/app?error=" + query_params["error"][0]
+            return "302 Found", "", {"Location": location}
+
         self.auth_token = query_params["code"][0]
 
         print("Received temporary authorization token '%s'" % (self.auth_token,))
@@ -160,7 +168,13 @@ class ClientApplication(object):
 
         return "302 Found", "", {"Location": location}
 
-    def _serve_application(self):
+    def _serve_application(self, env):
+        query_params = urlparse.parse_qs(env["QUERY_STRING"])
+
+        if ("error" in query_params
+                and query_params["error"][0] == "access_denied"):
+            return "200 OK", "User has denied access", {}
+
         if self.access_token is None:
             if self.auth_token is None:
                 return self._request_auth_token()
@@ -184,30 +198,29 @@ def run_app_server():
 
 
 def run_auth_server():
+    client_store = ClientStore()
+    client_store.add_client(client_id="abc", client_secret="xyz",
+                            redirect_uris=["http://localhost:8081/callback"])
+
+    token_store = TokenStore()
+
+    provider = Provider(access_token_store=token_store,
+                        auth_code_store=token_store, client_store=client_store,
+                        token_generator=Uuid4())
+    provider.add_grant(AuthorizationCodeGrant(site_adapter=TestSiteAdapter()))
+
     try:
-        client_store = ClientStore()
-        client_store.add_client(client_id="abc", client_secret="xyz",
-                                redirect_uris=["http://localhost:8081/callback"])
+        app = Application([
+            url(provider.authorize_path, OAuth2Handler, dict(provider=provider)),
+            url(provider.token_path, OAuth2Handler, dict(provider=provider)),
+        ])
 
-        token_store = TokenStore()
-
-        auth_controller = Provider(
-            access_token_store=token_store,
-            auth_code_store=token_store,
-            client_store=client_store,
-            token_generator=Uuid4())
-        auth_controller.add_grant(
-            AuthorizationCodeGrant(site_adapter=TestSiteAdapter())
-        )
-
-        app = Wsgi(server=auth_controller)
-
-        httpd = make_server('', 8080, app, handler_class=OAuthRequestHandler)
-
+        app.listen(8080)
         print("Starting OAuth2 server on http://localhost:8080/...")
-        httpd.serve_forever()
+        IOLoop.current().start()
+
     except KeyboardInterrupt:
-        httpd.server_close()
+        IOLoop.close()
 
 
 def main():

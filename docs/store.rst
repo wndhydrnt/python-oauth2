@@ -3,7 +3,7 @@
 
 .. automodule:: oauth2.store
 
-Data types
+Data Types
 ----------
 
 .. autoclass:: oauth2.datatype.AccessToken
@@ -12,7 +12,7 @@ Data types
 
 .. autoclass:: oauth2.datatype.Client
 
-Base classes
+Base Classes
 ------------
 
 .. autoclass:: AccessTokenStore
