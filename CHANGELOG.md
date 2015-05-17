@@ -12,6 +12,7 @@ Improvements:
   - Declare optional dependencies in setup.py ([@wndhydrnt][])
   - Move WSGI server code into its own module ([@wndhydrnt][])
   - Renamed class acting as entrypoint for WSGI server from 'Server' to 'Application' ([@wndhydrnt][])
+  - Client Credentials Grant example ([@shupp][])
 
 Bugfixes:
 
@@ -113,3 +114,4 @@ Features:
 [@jswitzer]: https://github.com/jswitzer
 [@kivo360]: https://github.com/kivo360
 [@bhoomit]: https://github.com/bhoomit
+[@shupp]: https://github.com/shupp
