@@ -1,5 +1,6 @@
 """
-Provides various implementations of algorithms to generate a token.
+Provides various implementations of algorithms to generate an Access Token or
+Refresh Token.
 """
 
 import hashlib
@@ -14,10 +15,6 @@ class TokenGenerator(object):
     def __init__(self):
         """
         Create a new instance of a token generator.
-
-        :param expires_in: Timeframe in seconds that defines how long a
-                           generated token will be valid. Default: 0
-                           This is defined per grant-type.
         """
         self.expires_in = {}
         self.refresh_expires_in = 0
@@ -26,9 +23,13 @@ class TokenGenerator(object):
         """
         Create data needed by an access token.
 
+        :param grant_type:
+        :type grant_type: str
+
         :return: A ``dict`` containing he ``access_token`` and the
                  ``token_type``. If the value of ``TokenGenerator.expires_in``
                  is larger than 0, a ``refresh_token`` will be generated too.
+        :rtype: dict
         """
         result = {"access_token": self.generate(), "token_type": "Bearer"}
 
@@ -42,6 +43,8 @@ class TokenGenerator(object):
     def generate(self):
         """
         Implemented by generators extending this base class.
+
+        :raises NotImplementedError:
         """
         raise NotImplementedError
 
@@ -56,7 +59,8 @@ class URandomTokenGenerator(TokenGenerator):
 
     def generate(self):
         """
-        Returns a new token.
+        :return: A new token
+        :rtype: str
         """
         random_data = os.urandom(100)
 
@@ -72,6 +76,7 @@ class Uuid4(TokenGenerator):
     """
     def generate(self):
         """
-        Returns a new token.
+        :return: A new token
+        :rtype: str
         """
         return str(uuid.uuid4())

@@ -25,9 +25,10 @@ class AuthenticatingSiteAdapter(object):
                  access token. Return a tuple in the form
                  `(additional_data, user_id)` if you want to use
                  :doc:`unique_token`.
+        :rtype: dict
 
-        :raises: :class:`oauth2.error.UserNotAuthenticated` if the user could
-                 not be authenticated.
+        :raises oauth2.error.UserNotAuthenticated: If the user could not be
+                                                   authenticated.
         """
         raise NotImplementedError
 
@@ -58,6 +59,7 @@ class UserFacingSiteAdapter(object):
 
         :return: The response passed in as a parameter.
                  It can contain HTML or issue a redirect.
+        :rtype: oauth2.web.Response
         """
         raise NotImplementedError
 
@@ -70,6 +72,7 @@ class UserFacingSiteAdapter(object):
         :type request: oauth2.web.Request
 
         :return: Return ``True`` if the user has denied access.
+        :rtype: bool
         """
         raise NotImplementedError
 

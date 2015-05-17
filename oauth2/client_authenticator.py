@@ -13,12 +13,14 @@ from oauth2.error import OAuthInvalidNoRedirectError, RedirectUriUnknown, \
 
 class ClientAuthenticator(object):
     """
-    Handles authentication of a client both by its identifier as well as by its
-    identifier and secret.
+    Handles authentication of a client both by its identifier as well as by
+    its identifier and secret.
 
-    :param client_store: An instance of :class:`oauth2.store.ClientStore`.
+    :param client_store: The Client Store to retrieve a client from.
+    :type client_store: oauth2.store.ClientStore
     :param source: A callable that returns a tuple
-                   (<client_id>, <client_secret>).
+                   (<client_id>, <client_secret>)
+    :type source: callable
     """
     def __init__(self, client_store, source):
         self.client_store = client_store
@@ -28,9 +30,12 @@ class ClientAuthenticator(object):
         """
         Authenticates a client by its identifier.
 
-        :param request: An instance of :class:`oauth2.web.Request`.
+        :param request: The incoming request
+        :type request: oauth2.web.Request
 
-        :return: An instance of :class:`oauth2.datatype.Client`.
+        :return: The identified client
+        :rtype: oauth2.datatype.Client
+
         :raises: :class OAuthInvalidNoRedirectError:
         """
         client_id = request.get_param("client_id")
@@ -57,9 +62,15 @@ class ClientAuthenticator(object):
         """
         Authenticates a client by its identifier and secret (aka password).
 
-        :param request: An instance of :class:`oauth2.web.Request`.
+        :param request: The incoming request
+        :type request: oauth2.web.Request
 
-        :return: An instance of :class:`oauth2.datatype.Client`.
+        :return: The identified client
+        :rtype: oauth2.datatype.Client
+
+        :raises OAuthInvalidError: If the client could not be found, is not
+                                   allowed to to use the current grant or
+                                   supplied invalid credentials
         """
         client_id, client_secret = self.source(request=request)
 
@@ -87,12 +98,14 @@ def request_body(request):
     Extracts the credentials of a client from the
     *application/x-www-form-urlencoded* body of a request.
 
-    Expects the client_id to be the value of the `client_id` parameter and
-    the client_secret to be the value of the `client_secret` parameter.
+    Expects the client_id to be the value of the ``client_id`` parameter and
+    the client_secret to be the value of the ``client_secret`` parameter.
 
-    :param request: An instance of :class:`oauth2.web.Request`
+    :param request: The incoming request
+    :type request: oauth2.web.Request
 
     :return: A tuple in the format of `(<CLIENT ID>, <CLIENT SECRET>)`
+    :rtype: tuple
     """
     client_id = request.post_param("client_id")
     if client_id is None:
@@ -111,12 +124,14 @@ def http_basic_auth(request):
     """
     Extracts the credentials of a client using HTTP Basic Auth.
 
-    Expects the client_id to be the username and the client_secret to be the
-    password part of the Authorization header.
+    Expects the ``client_id`` to be the username and the ``client_secret`` to
+    be the password part of the Authorization header.
 
-    :param request: An instance of :class:`oauth2.web.Request`
+    :param request: The incoming request
+    :type request: oauth2.web.Request
 
     :return: A tuple in the format of (<CLIENT ID>, <CLIENT SECRET>)`
+    :rtype: tuple
     """
     auth_header = request.header("authorization")
 

@@ -45,15 +45,20 @@ class Provider(object):
                                by :class:`oauth2.store.AccessTokenStore`.
     :type access_token_store: oauth2.store.AccessTokenStore
     :param auth_code_store: An object that implements methods defined by
-                            :class:`oauth2.store.AuthTokenStore`.
+                            :class:`oauth2.store.AuthCodeStore`.
+    :type auth_code_store: oauth2.store.AuthCodeStore
     :param client_store: An object that implements methods defined by
                          :class:`oauth2.store.ClientStore`.
+    :type client_store: oauth2.store.ClientStore
     :param token_generator: Object to generate unique tokens.
+    :type token_generator: oauth2.tokengenerator.TokenGenerator
     :param client_authentication_source: A callable which when executed,
                                          authenticates a client.
                                          See :mod:`oauth2.client_authenticator`.
+    :type client_authentication_source: callable
     :param response_class: Class of the response object.
                            Defaults to :class:`oauth2.web.Response`.
+    :type response_class: oauth2.web.Response
 
     .. versionchanged:: 1.0.0
        Removed parameter ``site_adapter``.
@@ -81,6 +86,7 @@ class Provider(object):
 
         :param grant: An instance of a class that extends
                       :class:`oauth2.grant.GrantHandlerFactory`
+        :type grant: oauth2.grant.GrantHandlerFactory
         """
         if hasattr(grant, "expires_in"):
             self.token_generator.expires_in[grant.grant_type] = grant.expires_in

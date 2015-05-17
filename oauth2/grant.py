@@ -612,6 +612,9 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant,
         :param request: Incoming request
         :type request: oauth2.web.Request
 
+        :param server: The OAuth2 provider instance
+
+
         .. versionchanged:: 1.0.0
            Check the HTTP method of a request
         """
