@@ -15,7 +15,7 @@ setup(name="python-oauth2",
       author="Markus Meyer",
       author_email="hydrantanderwand@gmail.com",
       url="https://github.com/wndhydrnt/python-oauth2",
-      packages=["oauth2", "oauth2.store", "oauth2.store.dbapi",
+      packages=["oauth2", "oauth2.web", "oauth2.store", "oauth2.store.dbapi",
                 "oauth2.test"],
       extras_require={
         "memcache": [memcache_require],
