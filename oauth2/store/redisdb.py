@@ -121,7 +121,6 @@ class TokenStore(AccessTokenStore, AuthCodeStore, RedisStore):
         access_token = self.fetch_by_refresh_token(refresh_token)
 
         self.delete(access_token.token)
-        self.delete(access_token.token)
 
     def fetch_by_refresh_token(self, refresh_token):
         token_data = self.read(refresh_token)
