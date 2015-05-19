@@ -51,7 +51,7 @@ class RedisStore(object):
         if data is None:
             return None
 
-        return json.loads(data)
+        return json.loads(data.decode("utf-8"))
 
     def _generate_cache_key(self, identifier):
         return self.prefix + "_" + identifier

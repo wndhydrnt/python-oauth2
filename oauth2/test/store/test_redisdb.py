@@ -15,7 +15,7 @@ class TokenStoreTestCase(unittest.TestCase):
                                    token="xyz")
 
         redisdb_mock = Mock(spec=["delete", "get"])
-        redisdb_mock.get.return_value = json.dumps(access_token.__dict__)
+        redisdb_mock.get.return_value = bytes(json.dumps(access_token.__dict__).encode('utf-8'))
 
         store = TokenStore(rs=redisdb_mock)
         store.delete_refresh_token(refresh_token_id)
