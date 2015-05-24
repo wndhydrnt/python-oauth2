@@ -203,7 +203,7 @@ class AuthorizationCodeTestCase(unittest.TestCase):
 
 
 class TestSiteAdapter(AuthorizationCodeGrantSiteAdapter):
-    def authenticate(self, request, environ, scopes):
+    def authenticate(self, request, environ, scopes, client):
         return {"additional": "data"}, 1
 
     def user_has_denied_access(self, request):

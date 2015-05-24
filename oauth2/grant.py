@@ -306,12 +306,14 @@ class AuthorizeMixin(object):
                                     explanation="Authorization denied by user")
 
         try:
-            result = self.site_adapter.authenticate(request, environ, scopes)
+            result = self.site_adapter.authenticate(request, environ, scopes,
+                                                    self.client)
 
             return self.sanitize_return_value(result)
         except UserNotAuthenticated:
             return self.site_adapter.render_auth_page(request, response,
-                                                      environ, scopes)
+                                                      environ, scopes,
+                                                      self.client)
 
     @staticmethod
     def sanitize_return_value(value):
@@ -816,7 +818,8 @@ class ResourceOwnerGrantHandler(GrantHandler, AccessTokenMixin):
         """
         try:
             data = self.site_adapter.authenticate(request, environ,
-                                                  self.scope_handler.scopes)
+                                                  self.scope_handler.scopes,
+                                                  self.client)
             data = AuthorizeMixin.sanitize_return_value(data)
         except UserNotAuthenticated:
             raise OAuthInvalidError(error="invalid_client",

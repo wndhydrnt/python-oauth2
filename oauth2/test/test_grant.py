@@ -149,6 +149,8 @@ class AuthorizeMixinTestCase(unittest.TestCase):
         """
         AuthorizeMixin.authorize should return a tuple even if the SiteAdapter returns a dict
         """
+        client_mock = Mock(spec=Client)
+
         test_data = {"test": "data"}
 
         site_adapter_mock = Mock(spec=ImplicitGrantSiteAdapter)
@@ -156,6 +158,7 @@ class AuthorizeMixinTestCase(unittest.TestCase):
         site_adapter_mock.authenticate.return_value = test_data
 
         auth_mixin = AuthorizeMixin(site_adapter=site_adapter_mock)
+        auth_mixin.client = client_mock
         result = auth_mixin.authorize(Mock(spec=Request), Mock(spec=Response),
                                       environ={}, scopes=[])
 
@@ -167,6 +170,8 @@ class AuthorizeMixinTestCase(unittest.TestCase):
         """
         AuthorizeMixin.authorize should return the tuple returned by the SiteAdapter
         """
+        client_mock = Mock(spec=Client)
+
         test_data = ({"test": "data"}, 123)
 
         site_adapter_mock = Mock(spec=ImplicitGrantSiteAdapter)
@@ -174,6 +179,7 @@ class AuthorizeMixinTestCase(unittest.TestCase):
         site_adapter_mock.authenticate.return_value = test_data
 
         auth_mixin = AuthorizeMixin(site_adapter=site_adapter_mock)
+        auth_mixin.client = client_mock
         result = auth_mixin.authorize(Mock(spec=Request), Mock(spec=Response),
                                       environ={}, scopes=[])
 
@@ -182,6 +188,8 @@ class AuthorizeMixinTestCase(unittest.TestCase):
         self.assertEqual(result[1], test_data[1])
 
     def test_authorize_user_not_authenticated(self):
+        client_mock = Mock(spec=Client)
+
         response_mock = Mock(spec=Response)
 
         site_adapter_mock = Mock(spec=ImplicitGrantSiteAdapter)
@@ -190,6 +198,7 @@ class AuthorizeMixinTestCase(unittest.TestCase):
         site_adapter_mock.render_auth_page.return_value = response_mock
 
         auth_mixin = AuthorizeMixin(site_adapter=site_adapter_mock)
+        auth_mixin.client = client_mock
         result = auth_mixin.authorize(Mock(spec=Request), response_mock,
                                       environ={}, scopes=[])
 
@@ -208,6 +217,9 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         location_uri = "%s?code=%s&state=%s" % (redirect_uri, code, quote(state))
 
         auth_code_store_mock = Mock(spec=AuthCodeStore)
+
+        client = Client(identifier="abc", secret="xyz",
+                        redirect_uris=[redirect_uri])
 
         response_mock = Mock(spec=Response)
 
@@ -231,14 +243,14 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
             token_generator=token_generator_mock
         )
 
-        handler.client = Client(identifier="abc", secret="xyz",
-                                redirect_uris=[redirect_uri])
+        handler.client = client
         handler.state = state
         response = handler.process(request_mock, response_mock, environ)
 
         token_generator_mock.generate.assert_called_with()
         site_adapter_mock.authenticate.assert_called_with(request_mock,
-                                                          environ, scopes)
+                                                          environ, scopes,
+                                                          client)
         self.assertTrue(auth_code_store_mock.save_code.called)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.body, "")
@@ -251,6 +263,8 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
         environ = {"session": "data"}
         response_mock = Mock(spec=Response)
         scopes = ["scopes"]
+
+        client_mock = Mock(spec=Client)
 
         request_mock = Mock(spec=Request)
 
@@ -266,12 +280,14 @@ class AuthorizationCodeAuthHandlerTestCase(unittest.TestCase):
             scope_handler=scope_handler_mock, site_adapter=site_adapter_mock,
             token_generator=Mock()
         )
+        handler.client = client_mock
         response = handler.process(request_mock, response_mock, environ)
 
         site_adapter_mock.render_auth_page.assert_called_with(request_mock,
                                                               response_mock,
                                                               environ,
-                                                              scopes)
+                                                              scopes,
+                                                              client_mock)
         self.assertEqual(response, response_mock)
 
     def test_redirect_oauth_error(self):
@@ -801,7 +817,6 @@ class ImplicitGrantTestCase(unittest.TestCase):
 
 class ImplicitGrantHandlerTestCase(unittest.TestCase):
     def test_process_redirect_with_token(self):
-        client_id = "abc"
         environ = {"session": "data"}
         redirect_uri = "http://callback"
         scopes = ["scopes"]
@@ -809,6 +824,9 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         user_data = ({}, 1)
 
         access_token_store_mock = Mock(spec=AccessTokenStore)
+
+        client = Client(identifier="abc", secret="xyz",
+                        redirect_uris=[redirect_uri])
 
         request_mock = Mock(spec=Request)
 
@@ -831,12 +849,12 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
             client_authenticator=Mock(), scope_handler=scope_handler_mock,
             site_adapter=site_adapter_mock,
             token_generator=token_generator_mock)
-        handler.client = Client(identifier="abc", secret="xyz",
-                                redirect_uris=[redirect_uri])
+        handler.client = client
         result_response = handler.process(request_mock, responseMock, environ)
 
         site_adapter_mock.authenticate.assert_called_with(request_mock,
-                                                          environ, scopes)
+                                                          environ, scopes,
+                                                          client)
 
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
@@ -934,6 +952,8 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         scopes = ["scopes"]
         environ = {"session": "data"}
 
+        client_mock = Mock(spec=Client)
+
         request_mock = Mock(spec=Request)
 
         response_mock = Mock(spec=Response)
@@ -950,14 +970,17 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
             scope_handler=scope_handler_mock, site_adapter=site_adapter_mock,
             token_generator=Mock()
         )
+        handler.client = client_mock
         result_response = handler.process(request_mock, response_mock, environ)
 
         site_adapter_mock.authenticate.assert_called_with(request_mock,
-                                                          environ, scopes)
+                                                          environ, scopes,
+                                                          client_mock)
         site_adapter_mock.render_auth_page.assert_called_with(request_mock,
                                                               response_mock,
                                                               environ,
-                                                              scopes)
+                                                              scopes,
+                                                              client_mock)
         self.assertEqual(result_response, response_mock)
 
     def test_process_user_denied_access(self):
@@ -1057,6 +1080,7 @@ class ResourceOwnerGrantTestCase(unittest.TestCase):
 class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
     def test_process(self):
         access_token = "0aef"
+        client = Client(identifier="abc", secret="xyz")
         expected_response_body = {"access_token": access_token,
                                   "token_type": "Bearer"}
         scopes = ["scope"]
@@ -1085,11 +1109,11 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
             scope_handler=scope_handler_mock,
             site_adapter=site_adapter_mock,
             token_generator=token_generator_mock)
-        handler.client = Client(identifier="abc", secret="xyz")
+        handler.client = client
         result = handler.process(request_mock, response_mock, {})
 
         site_adapter_mock.authenticate.assert_called_with(request_mock, {},
-                                                          scopes)
+                                                          scopes, client)
         token_generator_mock.create_access_token_data.assert_called_with(ResourceOwnerGrant.grant_type)
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
@@ -1107,6 +1131,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
     @patch("time.time", mock_time)
     def test_process_with_refresh_token(self):
         access_token = "0aef"
+        client = Client(identifier="abc", secret="xyz")
         expected_response_body = {"access_token": access_token,
                                   "token_type": "Bearer",
                                   "refresh_token": "wxyz", "expires_in": 600}
@@ -1138,11 +1163,11 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
             scope_handler=scope_handler_mock,
             site_adapter=site_adapter_mock,
             token_generator=token_generator_mock)
-        handler.client = Client(identifier="abc", secret="xyz")
+        handler.client = client
         result = handler.process(request_mock, response_mock, {})
 
         site_adapter_mock.authenticate.assert_called_with(request_mock, {},
-                                                          scopes)
+                                                          scopes, client)
         token_generator_mock.create_access_token_data.assert_called_with(ResourceOwnerGrant.grant_type)
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
