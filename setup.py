@@ -1,3 +1,4 @@
+import os
 import sys
 
 from setuptools import setup
@@ -15,8 +16,7 @@ setup(name="python-oauth2",
       author="Markus Meyer",
       author_email="hydrantanderwand@gmail.com",
       url="https://github.com/wndhydrnt/python-oauth2",
-      packages=["oauth2", "oauth2.web", "oauth2.store", "oauth2.store.dbapi",
-                "oauth2.test"],
+      packages=[d[0].replace("/", ".") for d in os.walk("oauth2") if not d[0].endswith("__pycache__")],
       extras_require={
         "memcache": [memcache_require],
         "mongodb": ["pymongo"],

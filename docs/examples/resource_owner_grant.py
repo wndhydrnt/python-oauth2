@@ -157,7 +157,7 @@ class ClientApplication(object):
 
 
 class TestSiteAdapter(ResourceOwnerGrantSiteAdapter):
-    def authenticate(self, request, environ, scopes):
+    def authenticate(self, request, environ, scopes, client):
         username = request.post_param("username")
         password = request.post_param("password")
         # A real world application could connect to a database, try to

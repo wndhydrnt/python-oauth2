@@ -83,3 +83,32 @@ After:
     # Instantiating storage and provider...
 
     app = Application(provider=provider)
+
+
+Client passed to methods authenticate and render_auth_page of a Site Adapter
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before:
+
+.. code-block:: python
+
+    class ExampleSiteAdapter(AuthenticatingSiteAdapter, UserFacingSiteAdapter):
+        def authenticate(self, request, environ, scopes):
+            # code
+
+        def render_auth_page(self, request, response, environ, scopes):
+            # code
+
+
+After:
+
+.. code-block:: python
+
+    class ExampleSiteAdapter(AuthenticatingSiteAdapter, UserFacingSiteAdapter):
+        def authenticate(self, request, environ, scopes, client):
+            # code
+
+        def render_auth_page(self, request, response, environ, scopes, client):
+            # code
+
+

@@ -6,7 +6,7 @@ class AuthenticatingSiteAdapter(object):
     """
     Extended by site adapters that need to authenticate the user.
     """
-    def authenticate(self, request, environ, scopes):
+    def authenticate(self, request, environ, scopes, client):
         """
         Authenticates a user and checks if she has authorized access.
 
@@ -19,6 +19,9 @@ class AuthenticatingSiteAdapter(object):
         :param scopes: A list of strings with each string being one requested
                        scope.
         :type scopes: list
+
+        :param client: The client that initiated the authorization process
+        :type client: oauth2.datatype.Client
 
         :return: A ``dict`` containing arbitrary data that will be passed to
                  the current storage adapter and saved with auth code and
@@ -40,7 +43,7 @@ class UserFacingSiteAdapter(object):
     Display HTML or redirect the user agent to another page of your website
     where she can do something before being returned to the OAuth 2.0 server.
     """
-    def render_auth_page(self, request, response, environ, scopes):
+    def render_auth_page(self, request, response, environ, scopes, client):
         """
         Defines how to display a confirmation page to the user.
 
@@ -56,6 +59,9 @@ class UserFacingSiteAdapter(object):
         :param scopes: A list of strings with each string being one requested
                        scope.
         :type scopes: list
+
+        :param client: The client that initiated the authorization process
+        :type client: oauth2.datatype.Client
 
         :return: The response passed in as a parameter.
                  It can contain HTML or issue a redirect.

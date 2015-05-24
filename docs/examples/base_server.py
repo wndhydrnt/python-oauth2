@@ -11,14 +11,14 @@ import oauth2.web.wsgi
 # This can be used to display confirmation dialogs and the like.
 class ExampleSiteAdapter(oauth2.web.AuthorizationCodeGrantSiteAdapter,
                          oauth2.web.ImplicitGrantSiteAdapter):
-    def authenticate(self, request, environ, scopes):
+    def authenticate(self, request, environ, scopes, client):
         # Check if the user has granted access
         if request.post_param("confirm") == "confirm":
             return {}
 
         raise oauth2.error.UserNotAuthenticated
 
-    def render_auth_page(self, request, response, environ, scopes):
+    def render_auth_page(self, request, response, environ, scopes, client):
         response.body = '''
 <html>
     <body>

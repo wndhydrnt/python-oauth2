@@ -13,6 +13,7 @@ Improvements:
   - Move WSGI server code into its own module ([@wndhydrnt][])
   - Renamed class acting as entrypoint for WSGI server from 'Server' to 'Application' ([@wndhydrnt][])
   - Client Credentials Grant example ([@shupp][])
+  - Methods `authenticate` and `render_auth_page` of a Site Adapter accept an instance of `oauth2.datatype.Client` ([@wndhydrnt][])
 
 Bugfixes:
 

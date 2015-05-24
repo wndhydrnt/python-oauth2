@@ -40,13 +40,13 @@ class TestSiteAdapter(ImplicitGrantSiteAdapter):
 </html>
     """
 
-    def render_auth_page(self, request, response, environ, scopes):
+    def render_auth_page(self, request, response, environ, scopes, client):
         # Add check if the user is logged or a redirect to the login page here
         response.body = self.CONFIRMATION_TEMPLATE
 
         return response
 
-    def authenticate(self, request, environ, scopes):
+    def authenticate(self, request, environ, scopes, client):
         if request.method == "POST":
             if request.post_param("confirm") == "1":
                 return
