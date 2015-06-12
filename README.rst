@@ -42,6 +42,18 @@ Example Authorization server
     # This can be used to display confirmation dialogs and the like.
     class ExampleSiteAdapter(oauth2.web.AuthorizationCodeGrantSiteAdapter,
                              oauth2.web.ImplicitGrantSiteAdapter):
+        TEMPLATE = '''
+    <html>
+        <body>
+            <p>
+                <a href="{url}&confirm=confirm">confirm</a>
+            </p>
+            <p>
+                <a href="{url}&deny=deny">deny</a>
+            </p>
+        </body>
+    </html>'''
+
         def authenticate(self, request, environ, scopes, client):
             # Check if the user has granted access
             if request.post_param("confirm") == "confirm":
@@ -51,15 +63,8 @@ Example Authorization server
 
         def render_auth_page(self, request, response, environ, scopes,
                              client):
-            response.body = '''
-    <html>
-        <body>
-            <form method="POST" name="confirmation_form">
-                <input type="submit" name="confirm" value="confirm" />
-                <input type="submit" name="deny" value="deny" />
-            </form>
-        </body>
-    </html>'''
+            url = request.path + "?" + request.query_string
+            response.body = self.TEMPLATE.format(url=url)
             return response
 
         def user_has_denied_access(self, request):
