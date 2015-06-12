@@ -24,37 +24,32 @@ class TestSiteAdapter(ImplicitGrantSiteAdapter):
     CONFIRMATION_TEMPLATE = """
 <html>
     <body>
-        <form method="POST" name="confirmation_form">
-            <input name="confirm" type="hidden" value="1" />
-            <div>
-                <input type="submit" value="confirm" />
-            </div>
-        </form>
-        <form method="POST" name="confirmation_form">
-            <input name="confirm" type="hidden" value="0" />
-            <div>
-                <input type="submit" value="deny" />
-            </div>
-        </form>
+        <p>
+            <a href="{url}&confirm=1">confirm</a>
+        </p>
+        <p>
+            <a href="{url}&confirm=0">deny</a>
+        </p>
     </body>
 </html>
     """
 
     def render_auth_page(self, request, response, environ, scopes, client):
+        url = request.path + "?" + request.query_string
         # Add check if the user is logged or a redirect to the login page here
-        response.body = self.CONFIRMATION_TEMPLATE
+        response.body = self.CONFIRMATION_TEMPLATE.format(url=url)
 
         return response
 
     def authenticate(self, request, environ, scopes, client):
-        if request.method == "POST":
-            if request.post_param("confirm") == "1":
+        if request.method == "GET":
+            if request.get_param("confirm") == "1":
                 return
         raise UserNotAuthenticated
 
     def user_has_denied_access(self, request):
-        if request.method == "POST":
-            if request.post_param("confirm") == "0":
+        if request.method == "GET":
+            if request.get_param("confirm") == "0":
                 return True
         return False
 

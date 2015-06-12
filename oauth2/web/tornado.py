@@ -32,6 +32,10 @@ class Request(object):
     def path(self):
         return self.handler.request.path
 
+    @property
+    def query_string(self):
+        return self.handler.request.query
+
     def get_param(self, name, default=None):
         return self.handler.get_query_argument(name=name, default=default)
 
