@@ -1,4 +1,3 @@
-__author__ = 'Bhoomit'
 
 from pyramid.view import view_config
 
