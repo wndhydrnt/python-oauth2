@@ -1,4 +1,3 @@
-__author__ = 'Bhoomit'
 
 import json
 from pyramid.response import Response as PyramidResponse
