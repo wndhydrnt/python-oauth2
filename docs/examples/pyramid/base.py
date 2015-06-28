@@ -27,7 +27,7 @@ class BaseAuthController(object):
     def __init__(self, request, site_adapter):
         self.request = Request(request)
         self.site_adapter = site_adapter
-        self.token_generator=Uuid4()
+        self.token_generator = Uuid4()
 
         self.client_store = self._get_client_store()
         self.access_token_store = self._get_token_store()
