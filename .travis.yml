@@ -1,25 +1,31 @@
 sudo: false
 language: python
 python:
-  - 2.6
-  - 2.7
-  - 3.3
-  - 3.4
-
+- 2.6
+- 2.7
+- 3.3
+- 3.4
 env:
-  - DB=mongodb
-  - DB=mysql
-  - DB=redis-server
-
+- DB=mongodb
+- DB=mysql
+- DB=redis-server
 before_script:
-  - sh -c "if [ '$DB' = 'mysql' ]; then mysql -e 'CREATE DATABASE IF NOT EXISTS testdb;'; fi"
-
+- sh -c "if [ '$DB' = 'mysql' ]; then mysql -e 'CREATE DATABASE IF NOT EXISTS testdb;';
+  fi"
 services:
-  - mongodb
-  - redis-server
-
+- mongodb
+- redis-server
 install:
-  - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install unittest2; fi
-  - if [ $TRAVIS_PYTHON_VERSION == '2.6' ] || [ $TRAVIS_PYTHON_VERSION == '2.7' ]; then pip install python-memcached; else pip install python3-memcached; fi
-  - pip install -r requirements.txt --use-mirrors
+- if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install unittest2; fi
+- if [ $TRAVIS_PYTHON_VERSION == '2.6' ] || [ $TRAVIS_PYTHON_VERSION == '2.7' ]; then
+  pip install python-memcached; else pip install python3-memcached; fi
+- pip install -r requirements.txt --use-mirrors
 script: make test
+deploy:
+  provider: pypi
+  user: wandhydrant
+  password:
+    secure: F1Sg5YXT6ZwsOvo5mfGGLwRTgyaYE/jXQMEyN9Sz223IeuJy8YQYempMAhPZbJY8zKI4FM9KIVNZB6JH9AXjV7fUS4axee8eqrSHFYqEz+gPVk6BYepYtUBw1U6xRbJeMFwNg6kaJvY+TGmyAKEeWyHPLDNEdU+tKHB4fyLnbIc=
+  on:
+    tags: true
+    repo: wndhydrnt/python-oauth2
