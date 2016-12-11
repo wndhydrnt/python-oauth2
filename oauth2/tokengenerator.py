@@ -24,8 +24,12 @@ class TokenGenerator(object):
         """
         Create data needed by an access token.
 
+        :param data: Arbitrary data as returned by the ``authenticate()`` method of a ``SiteAdapter``.
+        :type data: dict
         :param grant_type:
         :type grant_type: str
+        :param user_id: Identifier of the current user as returned by the ``authenticate()`` method of a ``SiteAdapter``.
+        :type user_id: int
 
         :return: A ``dict`` containing the ``access_token`` and the
                  ``token_type``. If the value of ``TokenGenerator.expires_in``
@@ -47,6 +51,11 @@ class TokenGenerator(object):
     def generate(self, data=None, user_id=None):
         """
         Implemented by generators extending this base class.
+
+        :param data: Arbitrary data as returned by the ``authenticate()`` method of a ``SiteAdapter``.
+        :type data: dict
+        :param user_id: Identifier of the current user as returned by the ``authenticate()`` method of a ``SiteAdapter``.
+        :type user_id: int
 
         :raises NotImplementedError:
 
