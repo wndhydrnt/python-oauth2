@@ -343,14 +343,14 @@ class AccessTokenMixin(object):
                 raise UserIdentifierMissingError
 
             try:
-                access_token = self.access_token_store.\
+                access_token = self.access_token_store. \
                     fetch_existing_token_of_user(
-                        client_id,
-                        grant_type,
-                        user_id)
+                    client_id,
+                    grant_type,
+                    user_id)
 
                 if (access_token.scopes == scopes
-                        and access_token.is_expired() is False):
+                    and access_token.is_expired() is False):
                     token_data = {"access_token": access_token.token,
                                   "token_type": "Bearer"}
 
@@ -396,7 +396,7 @@ class SiteAdapterMixin(object):
         if isinstance(site_adapter, self.site_adapter_class) is False:
             raise InvalidSiteAdapter(
                 "Site adapter must inherit from class '{0}'"
-                .format(self.site_adapter_class.__name__)
+                    .format(self.site_adapter_class.__name__)
             )
 
         self.site_adapter = site_adapter
@@ -621,8 +621,8 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant,
            Check the HTTP method of a request
         """
         if (request.method == "POST"
-                and request.post_param("grant_type") == "authorization_code"
-                and request.path == server.token_path):
+            and request.post_param("grant_type") == "authorization_code"
+            and request.path == server.token_path):
             return AuthorizationCodeTokenHandler(
                 access_token_store=server.access_token_store,
                 auth_token_store=server.auth_code_store,
@@ -631,8 +631,8 @@ class AuthorizationCodeGrant(GrantHandlerFactory, ScopeGrant,
                 unique_token=self.unique_token)
 
         if (request.method == "GET"
-                and request.get_param("response_type") == "code"
-                and request.path == server.authorize_path):
+            and request.get_param("response_type") == "code"
+            and request.path == server.authorize_path):
             scope_handler = self._create_scope_handler()
 
             return AuthorizationCodeAuthHandler(
@@ -670,7 +670,7 @@ class ImplicitGrant(GrantHandlerFactory, ScopeGrant, SiteAdapterMixin):
         response_type = request.get_param("response_type")
 
         if (response_type == "token"
-                and request.path == server.authorize_path):
+            and request.path == server.authorize_path):
             return ImplicitGrantHandler(
                 access_token_store=server.access_token_store,
                 client_authenticator=server.client_authenticator,
@@ -1002,7 +1002,7 @@ class RefreshTokenHandler(GrantHandler):
         self.refresh_grant_type = access_token.grant_type
 
         if refresh_token_expires_at != 0 and \
-           refresh_token_expires_at < int(time.time()):
+                        refresh_token_expires_at < int(time.time()):
             raise OAuthInvalidError(error="invalid_request",
                                     explanation="Invalid refresh token")
 
@@ -1048,8 +1048,11 @@ class ClientCredentialsHandler(GrantHandler):
         body = {"token_type": "Bearer"}
 
         token = self.token_generator.generate()
-        expires_in = self.token_generator.expires_in[ClientCredentialsGrant.grant_type]
-        expires_at = int(time.time()) + expires_in
+        expires_in = self.token_generator.expires_in.get(ClientCredentialsGrant.grant_type, None)
+        if expires_in is None:
+            expires_at = None
+        else:
+            expires_at = int(time.time()) + expires_in
 
         access_token = AccessToken(
             client_id=self.client.identifier,
@@ -1061,7 +1064,7 @@ class ClientCredentialsHandler(GrantHandler):
 
         body["access_token"] = token
 
-        if expires_in > 0:
+        if expires_in is not None:
             body["expires_in"] = expires_in
 
         if self.scope_handler.send_back:

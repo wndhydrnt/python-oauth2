@@ -579,6 +579,7 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
                                                    call("Cache-Control",
                                                         "no-store"),
                                                    call("Pragma", "no-cache")])
+
     @patch("time.time", mock_time)
     def test_process_with_refresh_token(self):
         token_data = {"access_token": "abcd", "token_type": "Bearer",
@@ -670,12 +671,12 @@ class AuthorizationCodeTokenHandlerTestCase(unittest.TestCase):
         response = Response()
 
         access_token_store_mock = Mock(spec=AccessTokenStore)
-        access_token_store_mock.fetch_existing_token_of_user.\
+        access_token_store_mock.fetch_existing_token_of_user. \
             side_effect = AccessTokenNotFound
 
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.refresh_expires_in = 10000
-        token_generator_mock.create_access_token_data.\
+        token_generator_mock.create_access_token_data. \
             return_value = token_data
 
         handler = AuthorizationCodeTokenHandler(
@@ -866,7 +867,6 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         self.assertEqual(responseMock.content, "")
         self.assertEqual(result_response, responseMock)
 
-
     def test_process_redirect_with_state(self):
         """
         ImplicitGrantHandler should include the value of the "state" query parameter from request in redirect
@@ -916,7 +916,8 @@ class ImplicitGrantHandlerTestCase(unittest.TestCase):
         state = "XHGFI"
         token = "tokencode"
 
-        expected_redirect_uri = "%s#access_token=%s&token_type=bearer&state=%s&scope=%s" % (redirect_uri, token, state, scopes_uri)
+        expected_redirect_uri = "%s#access_token=%s&token_type=bearer&state=%s&scope=%s" % (
+            redirect_uri, token, state, scopes_uri)
 
         response_mock = Mock(spec=Response)
 
@@ -1516,6 +1517,7 @@ class RefreshTokenTestCase(unittest.TestCase):
 
         self.assertEqual(grant_handler, None)
 
+
 class RefreshTokenHandlerTestCase(unittest.TestCase):
     @patch("time.time", mock_time)
     def test_process_no_reissue(self):
@@ -1537,7 +1539,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         scope_handler_mock = Mock(spec=Scope)
         scope_handler_mock.scopes = scopes
 
-        token_data = {"access_token": token, "expires_in":expires_in, "token_type": "Bearer", "refresh_token":"gafc"}
+        token_data = {"access_token": token, "expires_in": expires_in, "token_type": "Bearer", "refresh_token": "gafc"}
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.create_access_token_data.return_value = token_data
         token_generator_mock.refresh_expires_in = 1200
@@ -1588,7 +1590,8 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         scope_handler_mock = Mock(spec=Scope)
         scope_handler_mock.scopes = scopes
 
-        token_data = {"access_token": token, "expires_in":expires_in, "token_type": "Bearer", "refresh_token":refresh_token}
+        token_data = {"access_token": token, "expires_in": expires_in, "token_type": "Bearer",
+                      "refresh_token": refresh_token}
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.create_access_token_data.return_value = token_data
         token_generator_mock.refresh_expires_in = 1200
@@ -1618,7 +1621,6 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         self.assertDictContainsSubset(expected_headers, result.headers)
         self.assertDictEqual(expected_response_body, json.loads(result.body))
 
-
     @patch("time.time", mock_time)
     def test_read_validate_params(self):
         client_id = "client"
@@ -1645,7 +1647,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
         request_mock = Mock(spec=Request)
         request_mock.post_param.side_effect = [refresh_token]
 
-        token_generator_mock = Mock(expires_in={'test_grant_type':600})
+        token_generator_mock = Mock(expires_in={'test_grant_type': 600})
         token_generator_mock.refresh_expires_in = 0
 
         scope_handler_mock = Mock(spec=Scope)
@@ -1738,7 +1740,7 @@ class RefreshTokenHandlerTestCase(unittest.TestCase):
             access_token_store=access_token_store_mock,
             client_authenticator=client_auth_mock,
             scope_handler=Mock(),
-            token_generator=Mock(expires_in={'test_grant_type':600}))
+            token_generator=Mock(expires_in={'test_grant_type': 600}))
 
         with self.assertRaises(OAuthInvalidError) as expected:
             handler.read_validate_params(request_mock)
@@ -1811,7 +1813,6 @@ class ClientCredentialsGrantTestCase(unittest.TestCase):
 class ClientCredentialsHandlerTestCase(unittest.TestCase):
     def test_process(self):
         client_id = "abc"
-        expires_in = 0
         token = "abcd"
 
         expected_response_body = {"access_token": token,
@@ -1827,7 +1828,7 @@ class ClientCredentialsHandlerTestCase(unittest.TestCase):
 
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.generate.return_value = token
-        token_generator_mock.expires_in = {ClientCredentialsGrant.grant_type:expires_in}
+        token_generator_mock.expires_in = {}
         handler = ClientCredentialsHandler(
             access_token_store=access_token_store_mock,
             client_authenticator=Mock(),
@@ -1862,7 +1863,7 @@ class ClientCredentialsHandlerTestCase(unittest.TestCase):
 
         token_generator_mock = Mock(spec=TokenGenerator)
         token_generator_mock.generate.return_value = token
-        token_generator_mock.expires_in = {ClientCredentialsGrant.grant_type:expires_in}
+        token_generator_mock.expires_in = {ClientCredentialsGrant.grant_type: expires_in}
 
         handler = ClientCredentialsHandler(
             access_token_store=access_token_store_mock,
@@ -1915,6 +1916,7 @@ class ClientCredentialsHandlerTestCase(unittest.TestCase):
         client_auth_mock.by_identifier_secret.assert_called_with(request_mock)
         scope_handler_mock.parse.assert_called_with(request=request_mock,
                                                     source="body")
+
 
 if __name__ == "__main__":
     unittest.main()

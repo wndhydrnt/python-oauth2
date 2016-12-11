@@ -1,5 +1,11 @@
 ## 1.1.0 (unreleased)
 
+## 1.0.1
+
+Bugfixes:
+
+  - Fix error in `ClientCredentialsGrant` when no expiration of a token is set in the handler ([@wndhydrnt][])
+
 ## 1.0.0
 
 Features:
