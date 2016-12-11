@@ -30,7 +30,7 @@ class Request(object):
             self.query_params[param] = value[0]
 
         if (self.method == "POST"
-            and env["CONTENT_TYPE"] == "application/x-www-form-urlencoded"):
+            and env["CONTENT_TYPE"].startswith("application/x-www-form-urlencoded")):
             self.post_params = {}
             content = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
             post_params = parse_qs(content)

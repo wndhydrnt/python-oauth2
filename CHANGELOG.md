@@ -4,7 +4,8 @@
 
 Bugfixes:
 
-  - Fix error in `ClientCredentialsGrant` when no expiration of a token is set in the handler ([@wndhydrnt][])
+  - Fix an error in `ClientCredentialsGrant` when no expiration of a token is set in the handler ([@wndhydrnt][])
+  - Fix an error where the body of a POST request would not be parsed if the `Content-Type` header contains a `charset` ([@wndhydrnt][])
 
 ## 1.0.0
 
