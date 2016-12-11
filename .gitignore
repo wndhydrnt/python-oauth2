@@ -10,6 +10,7 @@
 dist/
 build/
 _build/
+__pycache__
 
 # coverage
 .coverage
@@ -20,4 +21,3 @@ cover/
 Berksfile.lock
 cookbooks/
 Gemfile.lock
-
