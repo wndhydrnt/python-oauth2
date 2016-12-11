@@ -1115,7 +1115,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
 
         site_adapter_mock.authenticate.assert_called_with(request_mock, {},
                                                           scopes, client)
-        token_generator_mock.create_access_token_data.assert_called_with(ResourceOwnerGrant.grant_type)
+        token_generator_mock.create_access_token_data.assert_called_with(user, ResourceOwnerGrant.grant_type, None)
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
         self.assertEqual(access_token.grant_type,
@@ -1169,7 +1169,8 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
 
         site_adapter_mock.authenticate.assert_called_with(request_mock, {},
                                                           scopes, client)
-        token_generator_mock.create_access_token_data.assert_called_with(ResourceOwnerGrant.grant_type)
+        token_generator_mock.create_access_token_data.assert_called_with(user[0], ResourceOwnerGrant.grant_type,
+                                                                         user[1])
         access_token, = access_token_store_mock.save_token.call_args[0]
         self.assertTrue(isinstance(access_token, AccessToken))
         self.assertEqual(access_token.user_id, user[1])
@@ -1186,7 +1187,9 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
 
     def test_process_redirect_with_scope(self):
         access_token = "0aef"
+        data = {"test": "data"}
         scopes = ["scope_read", "scope_write"]
+        user_id = 123
         expected_response_body = {"access_token": access_token,
                                   "token_type": "Bearer",
                                   "scope": " ".join(scopes)}
@@ -1195,7 +1198,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         response_mock = Mock(Response)
 
         site_adapter_mock = Mock(spec=ResourceOwnerGrantSiteAdapter)
-        site_adapter_mock.authenticate.return_value = ({"test": "data"}, 123)
+        site_adapter_mock.authenticate.return_value = (data, user_id)
 
         scope_handler_mock = Mock(Scope)
         scope_handler_mock.scopes = scopes
@@ -1213,7 +1216,7 @@ class ResourceOwnerGrantHandlerTestCase(unittest.TestCase):
         handler.client = Client(identifier="abc", secret="xyz")
         result = handler.process(Mock(Request), response_mock, {})
 
-        token_generator_mock.create_access_token_data.assert_called_with(ResourceOwnerGrant.grant_type)
+        token_generator_mock.create_access_token_data.assert_called_with(data, ResourceOwnerGrant.grant_type, user_id)
         response_mock.add_header.assert_has_calls([call("Content-Type",
                                                         "application/json"),
                                                    call("Cache-Control",

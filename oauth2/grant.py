@@ -362,7 +362,7 @@ class AccessTokenMixin(object):
             except AccessTokenNotFound:
                 pass
 
-        token_data = self.token_generator.create_access_token_data(grant_type)
+        token_data = self.token_generator.create_access_token_data(data, grant_type, user_id)
 
         access_token = AccessToken(client_id=client_id, data=data,
                                    grant_type=grant_type,
@@ -945,7 +945,7 @@ class RefreshTokenHandler(GrantHandler):
         :return: :class:`oauth2.web.Response`
 
         """
-        token_data = self.token_generator.create_access_token_data(self.refresh_grant_type)
+        token_data = self.token_generator.create_access_token_data(self.data, self.refresh_grant_type, self.user_id)
         expires_at = int(time.time()) + token_data["expires_in"]
 
         access_token = AccessToken(client_id=self.client.identifier,

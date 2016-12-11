@@ -1,4 +1,8 @@
-## 1.1.0 (unreleased)
+## 1.1.0
+
+Features:
+
+ - Pass `data` and `user_id` to the `TokenGenerator`
 
 ## 1.0.1
 
