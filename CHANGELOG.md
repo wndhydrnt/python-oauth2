@@ -2,7 +2,7 @@
 
 Features:
 
- - Pass `data` and `user_id` to the `TokenGenerator`
+ - Pass `data` and `user_id` to the `TokenGenerator` ([@wndhydrnt][])
 
 ## 1.0.1
 
