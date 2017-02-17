@@ -1,6 +1,7 @@
 mock
 nose
 pymongo
+python-memcached
 redis
 tornado
 http://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-1.1.7.tar.gz

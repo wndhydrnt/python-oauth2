@@ -1,8 +1,12 @@
-## 1.1.0
+## 2.0.0 (unreleased)
 
 Features:
 
- - Pass `data` and `user_id` to the `TokenGenerator` ([@wndhydrnt][])
+  - Pass `data` and `user_id` to the `TokenGenerator` ([@wndhydrnt][])
+
+Improvements:
+
+  - Drop support for Python 2.6 ([@wndhydrnt][])
 
 ## 1.0.1
 

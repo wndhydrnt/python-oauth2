@@ -34,7 +34,7 @@ from oauth2.tokengenerator import Uuid4
 from oauth2.grant import Scope, AuthorizationCodeGrant, ImplicitGrant, \
     ClientCredentialsGrant, ResourceOwnerGrant, RefreshToken
 
-VERSION = "1.1.0"
+VERSION = "2.0.0"
 
 
 class Provider(object):
