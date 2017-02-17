@@ -1,5 +1,9 @@
 ## 1.1.0 (unreleased)
 
+Improvements:
+
+  - Drop support for Python 2.6 ([@wndhydrnt][])
+
 ## 1.0.1
 
 Bugfixes:
