@@ -7,6 +7,8 @@ Features:
 Improvements:
 
   - Drop support for Python 2.6 ([@wndhydrnt][])
+  - Drop support for Python 3.2 ([@wndhydrnt][])
+  - Drop support for Python 3.3 ([@wndhydrnt][])
 
 ## 1.0.1
 
