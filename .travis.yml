@@ -27,3 +27,4 @@ deploy:
   on:
     tags: true
     repo: wndhydrnt/python-oauth2
+    condition: $TRAVIS_PYTHON_VERSION = '3.6'
