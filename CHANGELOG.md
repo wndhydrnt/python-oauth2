@@ -10,6 +10,10 @@ Improvements:
   - Drop support for Python 3.2 ([@wndhydrnt][])
   - Drop support for Python 3.3 ([@wndhydrnt][])
 
+Bugfixes:
+
+  - Fix an exception when requesting an unknown URL on Python 3.x
+
 ## 1.0.1
 
 Bugfixes:

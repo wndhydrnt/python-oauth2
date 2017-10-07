@@ -157,6 +157,38 @@ class AuthorizationCodeTestCase(unittest.TestCase):
 
         self.access_token()
 
+    def test_wsgi_404(self):
+        def run_provider(queue):
+            try:
+                provider = create_provider()
+
+                app = Application(provider=provider)
+
+                httpd = make_server('', 15486, app,
+                                    handler_class=NoLoggingHandler)
+
+                queue.put({"result": 0})
+
+                httpd.serve_forever()
+            except Exception as e:
+                queue.put({"result": 1, "error_message": str(e)})
+
+        ready_queue = Queue()
+
+        self.server = Process(target=run_provider, args=(ready_queue,))
+        self.server.start()
+
+        provider_started = ready_queue.get()
+
+        if provider_started["result"] != 0:
+            raise Exception("Error starting Provider process with message"
+                            "'{0}'".format(provider_started["error_message"]))
+
+        try:
+            urlopen("http://127.0.0.1:15486/invalid-path").read()
+        except HTTPError as e:
+            self.assertEqual(404, e.code)
+
     def access_token(self):
         uuid_regex = "^[a-z0-9]{8}\-[a-z0-9]{4}\-[a-z0-9]{4}\-[a-z0-9]{4}-[a-z0-9]{12}$"
 

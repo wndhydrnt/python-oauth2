@@ -102,7 +102,7 @@ class Application(object):
             and env["PATH_INFO"] != self.token_uri):
             start_response("404 Not Found",
                            [('Content-type', 'text/html')])
-            return ["Not Found"]
+            return [b"Not Found"]
 
         request = self.request_class(env)
 
