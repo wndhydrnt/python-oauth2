@@ -105,9 +105,9 @@ class ProviderTestCase(unittest.TestCase):
         self.auth_server.dispatch(request_mock, {})
 
         self.response_mock.add_header.assert_called_with("Content-Type",
-                                                         "text/plain")
+                                                         "application/json")
         self.assertEqual(self.response_mock.status_code, 400)
-        self.assertEqual(self.response_mock.body, "")
+        self.assertEqual(json.loads(self.response_mock.body)["error"], "invalid_redirect_uri")
 
     def test_dispatch_general_exception(self):
         request_mock = Mock(spec=Request)
