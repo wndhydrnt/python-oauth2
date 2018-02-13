@@ -117,8 +117,13 @@ class Provider(object):
             return grant_type.process(request, response, environ)
         except OAuthInvalidNoRedirectError:
             response = self.response_class()
-            response.add_header("Content-Type", "text/plain")
+            response.add_header("Content-Type", "application/json")
             response.status_code = 400
+            response.body = json.dumps({
+                "error": "invalid_redirect_uri",
+                "error_description": "Invalid redirect URI"
+            })
+
             return response
         except OAuthInvalidError as err:
             response = self.response_class()
