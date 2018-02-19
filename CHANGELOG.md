@@ -1,14 +1,17 @@
 ## 1.1.0 (unreleased)
 
+## 1.1.0
+
 Improvements:
 
   - Drop support for Python 2.6 ([@wndhydrnt][])
   - Drop support for Python 3.2 ([@wndhydrnt][])
   - Drop support for Python 3.3 ([@wndhydrnt][])
+  - Add error message to response for bad redirect URIs ([@SumnerH][])
 
 Bugfixes:
 
-  - Fix an exception when requesting an unknown URL on Python 3.x
+  - Fix an exception when requesting an unknown URL on Python 3.x ([@wndhydrnt][])
 
 ## 1.0.1
 
@@ -135,3 +138,4 @@ Features:
 [@kivo360]: https://github.com/kivo360
 [@bhoomit]: https://github.com/bhoomit
 [@shupp]: https://github.com/shupp
+[@SumnerH]: https://github.com/SumnerH
