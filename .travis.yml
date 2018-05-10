@@ -16,6 +16,7 @@ services:
 - mongodb
 - redis-server
 install:
+- pip install pipenv
 - pipenv install --dev
 script: make test
 deploy:
