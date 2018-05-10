@@ -16,8 +16,7 @@ services:
 - mongodb
 - redis-server
 install:
-- pip install --upgrade setuptools
-- pip install -r requirements.txt
+- pipenv install --dev
 script: make test
 deploy:
   provider: pypi
