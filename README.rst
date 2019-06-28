@@ -1,3 +1,6 @@
+This project is not maintained anymore.
+If you are looking for a OAuth 2.0 library to integrate into your Python application, I recommend `oauthlib <https://pypi.org/project/oauthlib/>`_.
+
 python-oauth2
 #############
 

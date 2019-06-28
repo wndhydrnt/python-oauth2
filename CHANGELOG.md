@@ -1,3 +1,9 @@
+## 1.1.1
+
+Features:
+
+  - Add message explaining that this project is not maintained ([@wndhydrnt][])
+
 ## 1.1.0
 
 Improvements:
